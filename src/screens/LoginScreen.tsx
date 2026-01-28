@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, View, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 import { useAuth } from '../contexts/AuthContext';
 import { login } from '../api/auth';
 import { KeyboardAvoidingScrollView } from '../components/KeyboardAvoidingScrollView';
+import { COLORS, SPACING, FONT_SIZE, GLOBAL_STYLES } from '../theme';
 
 export function LoginScreen() {
     const { signIn } = useAuth();
@@ -30,39 +33,48 @@ export function LoginScreen() {
     return (
         <KeyboardAvoidingScrollView contentContainerStyle={styles.container}>
             <View style={styles.content}>
-                <Text style={styles.title}>Tour Booking</Text>
-                <Text style={styles.subtitle}>Sign in to your account</Text>
+                <View style={styles.header}>
+                    <View style={styles.iconCircle}>
+                        <MaterialCommunityIcons name="bus-side" size={48} color={COLORS.white} />
+                    </View>
+                    <Text style={styles.title}>Tour Booking</Text>
+                    <Text style={styles.subtitle}>Sign in to access your business</Text>
+                </View>
 
                 <View style={styles.form}>
-                    <Text style={styles.label}>Username</Text>
-                    <TextInput
-                        style={styles.input}
-                        autoCapitalize="none"
-                        value={username}
-                        onChangeText={setUsername}
-                        placeholder="Enter username"
-                        placeholderTextColor="#999"
-                    />
+                    <View>
+                        <Text style={GLOBAL_STYLES.label}>Username</Text>
+                        <TextInput
+                            style={GLOBAL_STYLES.input}
+                            autoCapitalize="none"
+                            value={username}
+                            onChangeText={setUsername}
+                            placeholder="e.g. admin"
+                            placeholderTextColor={COLORS.textSecondary}
+                        />
+                    </View>
 
-                    <Text style={styles.label}>Password</Text>
-                    <TextInput
-                        style={styles.input}
-                        secureTextEntry
-                        value={password}
-                        onChangeText={setPassword}
-                        placeholder="Enter password"
-                        placeholderTextColor="#999"
-                    />
+                    <View>
+                        <Text style={GLOBAL_STYLES.label}>Password</Text>
+                        <TextInput
+                            style={GLOBAL_STYLES.input}
+                            secureTextEntry
+                            value={password}
+                            onChangeText={setPassword}
+                            placeholder="••••••••"
+                            placeholderTextColor={COLORS.textSecondary}
+                        />
+                    </View>
 
                     <TouchableOpacity
-                        style={[styles.button, isSubmitting && styles.buttonDisabled]}
+                        style={[GLOBAL_STYLES.btnPrimary, isSubmitting && styles.buttonDisabled]}
                         onPress={handleLogin}
                         disabled={isSubmitting}
                     >
                         {isSubmitting ? (
-                            <ActivityIndicator color="#fff" />
+                            <ActivityIndicator color={COLORS.white} />
                         ) : (
-                            <Text style={styles.buttonText}>Sign In</Text>
+                            <Text style={GLOBAL_STYLES.btnText}>Sign In</Text>
                         )}
                     </TouchableOpacity>
                 </View>
@@ -74,55 +86,54 @@ export function LoginScreen() {
 const styles = StyleSheet.create({
     container: {
         flexGrow: 1,
-        backgroundColor: '#fff',
+        backgroundColor: COLORS.background,
         justifyContent: 'center',
     },
     content: {
-        padding: 24,
+        padding: SPACING.lg,
+    },
+    header: {
+        alignItems: 'center',
+        marginBottom: SPACING.xxl,
+    },
+    iconCircle: {
+        width: 96,
+        height: 96,
+        borderRadius: 48,
+        backgroundColor: COLORS.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: SPACING.md,
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
     },
     title: {
-        fontSize: 32,
+        fontSize: FONT_SIZE.xxl,
         fontWeight: 'bold',
-        color: '#333',
-        marginBottom: 8,
+        color: COLORS.textPrimary,
         textAlign: 'center',
     },
     subtitle: {
-        fontSize: 16,
-        color: '#666',
-        marginBottom: 48,
+        fontSize: FONT_SIZE.md,
+        color: COLORS.textSecondary,
+        marginTop: SPACING.xs,
         textAlign: 'center',
     },
     form: {
-        gap: 16,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#333',
-        marginBottom: 4,
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 8,
-        padding: 12,
-        fontSize: 16,
-        backgroundColor: '#fafafa',
-    },
-    button: {
-        backgroundColor: '#2563eb', // Nice blue
-        paddingVertical: 14,
-        borderRadius: 8,
-        alignItems: 'center',
-        marginTop: 16,
+        gap: SPACING.md,
+        backgroundColor: COLORS.surface,
+        padding: SPACING.lg,
+        borderRadius: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 4,
     },
     buttonDisabled: {
         opacity: 0.7,
-    },
-    buttonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
     },
 });

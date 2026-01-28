@@ -1,12 +1,15 @@
 import * as React from 'react';
-import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { KeyboardAvoidingScrollView } from '../components/KeyboardAvoidingScrollView';
 import type { RootStackParamList } from '../navigation/types';
 import { addAdvanceToAgreement, cancelAgreement } from '../api/agreements';
 import type { AgreementResponse } from '../types/api';
+import { generateAndShareAgreementPdf } from '../utils/pdfGenerator';
+
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BookingDetails'>;
 
@@ -106,7 +109,7 @@ export function BookingDetailsScreen({ route, navigation }: Props) {
         onPress: async () => {
           setBusy(true);
           try {
-	            await cancelAgreement(agreement.id);
+            await cancelAgreement(agreement.id);
             Alert.alert(t('common.successTitle'), t('bookingDetails.cancelled'), [
               { text: t('common.ok'), onPress: () => navigation.goBack() },
             ]);
@@ -209,6 +212,48 @@ export function BookingDetailsScreen({ route, navigation }: Props) {
         </Pressable>
 
         <Pressable
+          style={[styles.whatsappBtn, busy ? styles.btnDisabled : null]}
+          disabled={busy}
+          onPress={async () => {
+            const ph = agreement.phone.replace(/[^0-9]/g, '');
+            const msg = `Booking Confirmed!\n\nCustomer: ${agreement.customerName}\nDates: ${agreement.fromDate} to ${agreement.toDate}\nBus: ${agreement.busType} (${agreement.busCount})\nTotal Amount: ${agreement.totalAmount}\nBalance: ${agreement.balance}\n\nThank you for choosing us!`;
+            const url = `whatsapp://send?phone=${ph}&text=${encodeURIComponent(msg)}`;
+
+            try {
+              const supported = await Linking.canOpenURL(url);
+              if (supported) {
+                await Linking.openURL(url);
+              } else {
+                Alert.alert('Error', 'WhatsApp is not installed');
+              }
+            } catch (err) {
+              Alert.alert('Error', 'Could not open WhatsApp');
+            }
+          }}
+        >
+          <MaterialCommunityIcons name="whatsapp" size={24} color="white" style={{ marginRight: 8 }} />
+          <Text style={styles.whatsappBtnText}>WhatsApp Text</Text>
+        </Pressable>
+
+        <Pressable
+          style={[styles.pdfBtn, busy ? styles.btnDisabled : null]}
+          disabled={busy}
+          onPress={async () => {
+            setBusy(true);
+            try {
+              await generateAndShareAgreementPdf(agreement);
+            } catch (e: any) {
+              Alert.alert('Error', 'Failed to generate PDF');
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          <MaterialCommunityIcons name="file-pdf-box" size={24} color="white" style={{ marginRight: 8 }} />
+          <Text style={styles.pdfBtnText}>Share PDF</Text>
+        </Pressable>
+
+        <Pressable
           style={[styles.dangerBtn, busy || isCancelled ? styles.btnDisabled : null]}
           disabled={busy || isCancelled}
           onPress={onCancelTour}
@@ -290,10 +335,32 @@ const styles = StyleSheet.create({
   actionsRow: { gap: 10 },
   primaryBtn: { backgroundColor: '#111827', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
   primaryBtnText: { color: 'white', fontSize: 16, fontWeight: '700' },
+
+  whatsappBtn: {
+    backgroundColor: '#22c55e', // Green-500
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  whatsappBtnText: { color: 'white', fontSize: 16, fontWeight: '800' },
+
+  pdfBtn: {
+    backgroundColor: '#CA8A04',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  pdfBtnText: { color: 'white', fontSize: 16, fontWeight: '800' },
+
   secondaryBtn: { backgroundColor: '#f3f4f6', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
   secondaryBtnText: { color: '#111827', fontSize: 16, fontWeight: '800' },
   dangerBtn: { backgroundColor: '#b91c1c', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
   dangerBtnText: { color: 'white', fontSize: 16, fontWeight: '800' },
+
   btnDisabled: { opacity: 0.6 },
 
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', padding: 16 },

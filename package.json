@@ -9,12 +9,15 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.4.4",
     "@react-navigation/native": "^7.1.26",
     "@react-navigation/native-stack": "^7.9.0",
-    "expo": "~54.0.31",
+    "expo": "~54.0.32",
     "expo-localization": "~17.0.8",
+    "expo-print": "^15.0.8",
+    "expo-sharing": "^14.0.8",
     "expo-status-bar": "~3.0.9",
     "i18next": "^25.7.4",
     "react": "19.1.0",

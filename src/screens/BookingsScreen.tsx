@@ -3,10 +3,13 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from '
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { listAgreements } from '../api/agreements';
 import type { RootStackParamList } from '../navigation/types';
 import type { AgreementResponse } from '../types/api';
+import { Card } from '../components/ui/Card';
+import { COLORS, SPACING, FONT_SIZE, GLOBAL_STYLES } from '../theme';
 
 function parseDdMmYyyy(value: string): Date | null {
   const parts = value.split('/').map((p) => p.trim());
@@ -66,8 +69,10 @@ export function BookingsScreen({ navigation }: Props) {
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{t('bookings.title')}</Text>
+    <View style={GLOBAL_STYLES.container}>
+      <View style={styles.header}>
+        <Text style={GLOBAL_STYLES.title}>{t('bookings.title')}</Text>
+      </View>
 
       {error && items.length === 0 ? (
         <View style={styles.stateBox}>
@@ -75,41 +80,62 @@ export function BookingsScreen({ navigation }: Props) {
           <Text style={styles.noteSmall} numberOfLines={4}>
             {error}
           </Text>
-          <Pressable style={styles.retryBtn} onPress={load}>
-            <Text style={styles.retryBtnText}>{t('bookings.retry')}</Text>
+          <Pressable style={GLOBAL_STYLES.btnPrimary} onPress={load}>
+            <Text style={GLOBAL_STYLES.btnText}>{t('bookings.retry')}</Text>
           </Pressable>
         </View>
       ) : null}
 
       {loading && items.length === 0 ? (
         <View style={styles.stateBox}>
-          <ActivityIndicator />
+          <ActivityIndicator color={COLORS.primary} size="large" />
           <Text style={styles.note}>{t('bookings.loading')}</Text>
         </View>
       ) : null}
 
       <FlatList
         data={items}
+        contentContainerStyle={styles.listContent}
         keyExtractor={(item) => item.id}
         refreshing={loading}
         onRefresh={load}
-        contentContainerStyle={items.length === 0 ? styles.listEmptyContainer : undefined}
         ListEmptyComponent={
           !loading && !error ? <Text style={styles.note}>{t('bookings.empty')}</Text> : null
         }
         renderItem={({ item }) => (
           <Pressable
-            style={styles.card}
             onPress={() => navigation.navigate('BookingDetails', { agreement: item })}
           >
-            <Text style={styles.cardTitle}>{item.customerName}</Text>
-            <Text style={styles.cardSub}>{`${item.fromDate} → ${item.toDate}`}</Text>
-            <View style={styles.cardRow}>
-              <Text style={styles.cardMeta}>{item.busType}</Text>
+            <Card style={styles.card}>
+              <View style={styles.cardHeader}>
+                <View style={styles.cardIcon}>
+                  <MaterialCommunityIcons name="bus" size={24} color={COLORS.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cardTitle}>{item.customerName}</Text>
+                  <Text style={styles.cardSub}>{item.busType}</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={24} color={COLORS.textSecondary} />
+              </View>
+
+              <View style={styles.divider} />
+
+              <View style={styles.cardRow}>
+                <View style={styles.rowItem}>
+                  <MaterialCommunityIcons name="calendar" size={16} color={COLORS.textSecondary} style={{ marginRight: 4 }} />
+                  <Text style={styles.cardMeta}>{`${item.fromDate} → ${item.toDate}`}</Text>
+                </View>
+              </View>
+
               {item.totalAmount != null ? (
-                <Text style={styles.cardMeta}>{`${t('agreement.totalAmount')}: ${item.totalAmount}`}</Text>
+                <View style={[styles.cardRow, { marginTop: 8 }]}>
+                  <View style={styles.rowItem}>
+                    <MaterialCommunityIcons name="cash" size={16} color={COLORS.textSecondary} style={{ marginRight: 4 }} />
+                    <Text style={[styles.cardMeta, { fontWeight: 'bold', color: COLORS.success }]}>{`${t('agreement.totalAmount')}: ${item.totalAmount}`}</Text>
+                  </View>
+                </View>
               ) : null}
-            </View>
+            </Card>
           </Pressable>
         )}
       />
@@ -118,33 +144,61 @@ export function BookingsScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 10 },
-  title: { fontSize: 18, fontWeight: '800' },
-  note: { color: '#6b7280', textAlign: 'center' },
-  noteSmall: { color: '#6b7280', fontSize: 12, textAlign: 'center' },
-
-  stateBox: { paddingVertical: 18, gap: 10, alignItems: 'center' },
-  retryBtn: {
-    backgroundColor: '#111827',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
+  header: {
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.md,
   },
-  retryBtnText: { color: 'white', fontSize: 14, fontWeight: '700' },
-
-  listEmptyContainer: { flexGrow: 1, justifyContent: 'center' },
+  listContent: {
+    padding: SPACING.md,
+    paddingBottom: SPACING.xxl,
+  },
+  stateBox: { paddingVertical: SPACING.xl, gap: SPACING.md, alignItems: 'center' },
+  note: { color: COLORS.textSecondary, fontSize: FONT_SIZE.md, textAlign: 'center' },
+  noteSmall: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, textAlign: 'center' },
 
   card: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    marginBottom: SPACING.md,
   },
-  cardTitle: { fontSize: 16, fontWeight: '800', marginBottom: 4, color: '#111827' },
-  cardSub: { color: '#374151', marginBottom: 8 },
-  cardRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
-  cardMeta: { color: '#6b7280', fontWeight: '600' },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  cardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.md,
+  },
+  cardTitle: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: 'bold',
+    color: COLORS.textPrimary
+  },
+  cardSub: {
+    color: COLORS.textSecondary,
+    fontSize: FONT_SIZE.md
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: SPACING.sm,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  rowItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardMeta: {
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+    fontSize: FONT_SIZE.md
+  },
 });
 
