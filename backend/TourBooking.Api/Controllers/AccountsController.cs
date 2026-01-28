@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 using System.Globalization;
 
@@ -9,6 +10,7 @@ using TourBooking.Api.Models;
 
 namespace TourBooking.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api")]
 public sealed class AccountsController : ControllerBase

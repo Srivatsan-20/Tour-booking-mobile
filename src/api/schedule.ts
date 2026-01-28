@@ -1,6 +1,7 @@
 import type { ScheduleResponse } from '../types/api';
 import { getApiBaseUrl } from './config';
 import { ApiError, readErrorResponse } from './ApiError';
+import { fetchApi } from './client';
 
 async function throwApiError(res: Response): Promise<never> {
   const err = await readErrorResponse(res);
@@ -12,7 +13,7 @@ export async function getSchedule(fromIso: string, toIso: string): Promise<Sched
   const qs = new URLSearchParams({ from: fromIso, to: toIso });
   const url = `${baseUrl}/api/schedule?${qs.toString()}`;
 
-  const res = await fetch(url, { method: 'GET' });
+  const res = await fetchApi(url, { method: 'GET' });
   if (!res.ok) await throwApiError(res);
   return (await res.json()) as ScheduleResponse;
 }

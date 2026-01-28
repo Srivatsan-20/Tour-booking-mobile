@@ -1,6 +1,7 @@
 import type { BusResponse } from '../types/api';
 import { getApiBaseUrl } from './config';
 import { ApiError, readErrorResponse } from './ApiError';
+import { fetchApi } from './client';
 
 type CreateBusRequest = {
   vehicleNumber: string;
@@ -18,7 +19,7 @@ export async function listBuses(options?: { includeInactive?: boolean }): Promis
   if (options?.includeInactive) qs.set('includeInactive', 'true');
   const url = `${baseUrl}/api/buses${qs.toString() ? `?${qs.toString()}` : ''}`;
 
-  const res = await fetch(url, { method: 'GET' });
+  const res = await fetchApi(url, { method: 'GET' });
   if (!res.ok) await throwApiError(res);
   return (await res.json()) as BusResponse[];
 }
@@ -32,9 +33,8 @@ export async function createBus(vehicleNumber: string, name?: string): Promise<B
     ...(name ? { name } : {}),
   };
 
-  const res = await fetch(url, {
+  const res = await fetchApi(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
 
@@ -46,8 +46,9 @@ export async function deleteBus(busId: string): Promise<BusResponse> {
   const baseUrl = await getApiBaseUrl();
   const url = `${baseUrl}/api/buses/${busId}`;
 
-  const res = await fetch(url, { method: 'DELETE' });
+  const res = await fetchApi(url, { method: 'DELETE' });
   if (!res.ok) await throwApiError(res);
   return (await res.json()) as BusResponse;
 }
+
 

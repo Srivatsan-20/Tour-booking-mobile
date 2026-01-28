@@ -2,6 +2,7 @@ import type { AgreementDraft } from '../types/agreement';
 import type { AgreementResponse } from '../types/api';
 
 export type RootStackParamList = {
+  Login: undefined;
   Home: undefined;
   AgreementForm: undefined;
   AgreementPreview: { draft: AgreementDraft };

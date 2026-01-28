@@ -2,6 +2,7 @@ import type { AgreementDraft } from '../types/agreement';
 import type { AgreementResponse } from '../types/api';
 import { getApiBaseUrl } from './config';
 import { ApiError, readErrorResponse } from './ApiError';
+import { fetchApi } from './client';
 
 export type CreateAgreementRequest = {
   customerName: string;
@@ -66,20 +67,15 @@ export async function createAgreement(draft: AgreementDraft): Promise<AgreementR
   const url = `${baseUrl}/api/agreements`;
   let res: Response;
   try {
-    res = await fetch(url, {
+    res = await fetchApi(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify(toCreateRequest(draft)),
     });
   } catch (e: any) {
-    // Provide a more actionable message (especially on Android where the default is just
-    // "Network request failed").
     if (__DEV__) {
       throw new Error(
         `Network request failed. Tried: ${url}.\n` +
-          `Tip: ensure your API is running and set EXPO_PUBLIC_API_BASE_URL to your PC IP (example: http://192.168.1.18:5115).`,
+        `Tip: ensure your API is running and set EXPO_PUBLIC_API_BASE_URL to your PC IP (example: http://192.168.1.18:5115).`,
       );
     }
     throw new Error('Network request failed');
@@ -104,12 +100,12 @@ export async function listAgreements(options?: ListAgreementsOptions): Promise<A
 
   let res: Response;
   try {
-    res = await fetch(url, { method: 'GET' });
+    res = await fetchApi(url, { method: 'GET' });
   } catch (e: any) {
     if (__DEV__) {
       throw new Error(
         `Network request failed. Tried: ${url}.\n` +
-          `Tip: ensure your API is running and your phone can open Swagger in the browser.`,
+        `Tip: ensure your API is running and your phone can open Swagger in the browser.`,
       );
     }
     throw new Error('Network request failed');
@@ -128,7 +124,7 @@ export async function getAgreementById(id: string): Promise<AgreementResponse> {
 
   let res: Response;
   try {
-    res = await fetch(url, { method: 'GET' });
+    res = await fetchApi(url, { method: 'GET' });
   } catch (e: any) {
     if (__DEV__) {
       throw new Error(`Network request failed. Tried: ${url}.`);
@@ -149,7 +145,7 @@ export async function cancelAgreement(id: string): Promise<void> {
 
   let res: Response;
   try {
-    res = await fetch(url, { method: 'DELETE' });
+    res = await fetchApi(url, { method: 'DELETE' });
   } catch (e: any) {
     if (__DEV__) {
       throw new Error(`Network request failed. Tried: ${url}.`);
@@ -162,7 +158,6 @@ export async function cancelAgreement(id: string): Promise<void> {
   }
 }
 
-// Backward-compatible name (old behavior was hard-delete; backend now soft-cancels)
 export async function deleteAgreement(id: string): Promise<void> {
   return cancelAgreement(id);
 }
@@ -177,9 +172,8 @@ export async function addAdvanceToAgreement(
 
   let res: Response;
   try {
-    res = await fetch(url, {
+    res = await fetchApi(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount, note: note ?? '' }),
     });
   } catch (e: any) {
@@ -202,9 +196,8 @@ export async function updateAgreement(id: string, request: CreateAgreementReques
 
   let res: Response;
   try {
-    res = await fetch(url, {
+    res = await fetchApi(url, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
     });
   } catch (e: any) {
@@ -225,9 +218,8 @@ export async function assignBusToAgreement(id: string, busId: string): Promise<A
   const baseUrl = await getApiBaseUrl();
   const url = `${baseUrl}/api/agreements/${encodeURIComponent(id)}/assign-bus`;
 
-  const res = await fetch(url, {
+  const res = await fetchApi(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ busId }),
   });
 
@@ -239,9 +231,8 @@ export async function unassignBusFromAgreement(id: string, busId: string): Promi
   const baseUrl = await getApiBaseUrl();
   const url = `${baseUrl}/api/agreements/${encodeURIComponent(id)}/unassign-bus`;
 
-  const res = await fetch(url, {
+  const res = await fetchApi(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ busId }),
   });
 

@@ -1,8 +1,11 @@
 namespace TourBooking.Api.Models;
 
-public sealed class Bus
+public sealed class Bus : IMustHaveTenant
 {
     public Guid Id { get; set; }
+
+    public int? TenantId { get; set; }
+    public Tenant? Tenant { get; set; }
 
     // Vehicle number shown to users (must be unique).
     public string VehicleNumber { get; set; } = string.Empty;

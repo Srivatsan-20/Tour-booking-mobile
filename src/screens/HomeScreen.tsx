@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useAuth } from '../contexts/AuthContext';
 
 import type { RootStackParamList } from '../navigation/types';
 
@@ -9,6 +10,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export function HomeScreen({ navigation }: Props) {
   const { t } = useTranslation();
+  const { signOut } = useAuth();
 
   return (
     <View style={styles.container}>
@@ -44,6 +46,10 @@ export function HomeScreen({ navigation }: Props) {
       <Pressable style={styles.btn} onPress={() => navigation.navigate('AccountsSummary')}>
         <Text style={styles.btnText}>{t('home.accounts')}</Text>
       </Pressable>
+
+      <Pressable style={[styles.btn, styles.logoutBtn]} onPress={signOut}>
+        <Text style={[styles.btnText, styles.logoutText]}>Sign Out</Text>
+      </Pressable>
     </View>
   );
 }
@@ -58,5 +64,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   btnText: { color: 'white', fontSize: 16, fontWeight: '600' },
+  logoutBtn: {
+    backgroundColor: '#ef4444',
+    marginTop: 12,
+  },
+  logoutText: {
+    color: 'white',
+  },
 });
-

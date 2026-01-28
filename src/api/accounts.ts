@@ -1,5 +1,6 @@
 import { getApiBaseUrl } from './config';
 import { ApiError, readErrorResponse } from './ApiError';
+import { fetchApi } from './client';
 import type {
   AccountsSummaryItem,
   AgreementAccountsResponse,
@@ -15,7 +16,7 @@ export async function getAgreementAccounts(agreementId: string): Promise<Agreeme
   const baseUrl = await getApiBaseUrl();
   const url = `${baseUrl}/api/agreements/${encodeURIComponent(agreementId)}/accounts`;
 
-  const res = await fetch(url, { method: 'GET' });
+  const res = await fetchApi(url, { method: 'GET' });
   if (!res.ok) await throwApiError(res);
   return (await res.json()) as AgreementAccountsResponse;
 }
@@ -27,9 +28,8 @@ export async function upsertAgreementAccounts(
   const baseUrl = await getApiBaseUrl();
   const url = `${baseUrl}/api/agreements/${encodeURIComponent(agreementId)}/accounts`;
 
-  const res = await fetch(url, {
+  const res = await fetchApi(url, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
 
@@ -49,7 +49,7 @@ export async function listAccounts(options?: {
   if (options?.includeCancelled) qs.set('includeCancelled', 'true');
   const url = `${baseUrl}/api/accounts${qs.toString() ? `?${qs.toString()}` : ''}`;
 
-  const res = await fetch(url, { method: 'GET' });
+  const res = await fetchApi(url, { method: 'GET' });
   if (!res.ok) await throwApiError(res);
   return (await res.json()) as AccountsSummaryItem[];
 }

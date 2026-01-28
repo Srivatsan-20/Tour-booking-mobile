@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { LanguageToggle } from '../components/LanguageToggle';
@@ -16,19 +16,30 @@ import { ManageAssignmentsScreen } from '../screens/ManageAssignmentsScreen';
 import { AccountsSummaryScreen } from '../screens/AccountsSummaryScreen';
 import { TourAccountScreen } from '../screens/TourAccountScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { LoginScreen } from '../screens/LoginScreen';
 import type { RootStackParamList } from './types';
+import { useAuth } from '../contexts/AuthContext';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function AppNavigator() {
   const { t } = useTranslation();
+  const { token, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <Stack.Navigator
       screenOptions={({ navigation, route }) => ({
         headerRight: () => (
           <View style={styles.headerRight}>
-            {route.name !== 'Home' ? (
+            {route.name !== 'Home' && route.name !== 'Login' ? (
               <Pressable
                 accessibilityRole="button"
                 style={styles.homeBtn}
@@ -37,30 +48,37 @@ export function AppNavigator() {
                 <Text style={styles.homeBtnText}>{t('common.home')}</Text>
               </Pressable>
             ) : null}
-						{/* Hide language toggle on Manage Assignments to avoid header clutter */}
-						{route.name !== 'ManageAssignments' ? <LanguageToggle /> : null}
+            {/* Hide language toggle on Manage Assignments to avoid header clutter */}
+            {route.name !== 'ManageAssignments' && route.name !== 'Login' ? <LanguageToggle /> : null}
           </View>
         ),
       })}
     >
-      <Stack.Screen name="Home" component={HomeScreen} />
-      <Stack.Screen name="AgreementForm" component={AgreementFormScreen} />
-      <Stack.Screen name="AgreementPreview" component={AgreementPreviewScreen} />
-      <Stack.Screen name="Bookings" component={BookingsScreen} />
-      <Stack.Screen name="AllTours" component={AllToursScreen} />
-      <Stack.Screen name="CancelledTours" component={CancelledToursScreen} />
-      <Stack.Screen name="BusAvailability" component={BusAvailabilityScreen} />
-      <Stack.Screen name="ManageAssignments" component={ManageAssignmentsScreen} />
-      <Stack.Screen name="BookingDetails" component={BookingDetailsScreen} />
-      <Stack.Screen name="BookingEdit" component={BookingEditScreen} />
+      {!token ? (
+        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+      ) : (
+        <>
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="AgreementForm" component={AgreementFormScreen} />
+          <Stack.Screen name="AgreementPreview" component={AgreementPreviewScreen} />
+          <Stack.Screen name="Bookings" component={BookingsScreen} />
+          <Stack.Screen name="AllTours" component={AllToursScreen} />
+          <Stack.Screen name="CancelledTours" component={CancelledToursScreen} />
+          <Stack.Screen name="BusAvailability" component={BusAvailabilityScreen} />
+          <Stack.Screen name="ManageAssignments" component={ManageAssignmentsScreen} />
+          <Stack.Screen name="BookingDetails" component={BookingDetailsScreen} />
+          <Stack.Screen name="BookingEdit" component={BookingEditScreen} />
 
-      <Stack.Screen name="AccountsSummary" component={AccountsSummaryScreen} />
-      <Stack.Screen name="TourAccount" component={TourAccountScreen} />
+          <Stack.Screen name="AccountsSummary" component={AccountsSummaryScreen} />
+          <Stack.Screen name="TourAccount" component={TourAccountScreen} />
+        </>
+      )}
     </Stack.Navigator>
   );
 }
 
 const styles = StyleSheet.create({
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   homeBtn: {
     paddingHorizontal: 10,
@@ -71,4 +89,3 @@ const styles = StyleSheet.create({
   },
   homeBtnText: { fontWeight: '700' },
 });
-

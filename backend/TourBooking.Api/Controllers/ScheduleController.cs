@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 using System.Globalization;
 
@@ -8,6 +9,7 @@ using TourBooking.Api.Data;
 
 namespace TourBooking.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/schedule")]
 public sealed class ScheduleController : ControllerBase

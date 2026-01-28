@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 using TourBooking.Api.Contracts;
 using TourBooking.Api.Data;
@@ -7,6 +8,7 @@ using TourBooking.Api.Models;
 
 namespace TourBooking.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/buses")]
 public sealed class BusesController : ControllerBase

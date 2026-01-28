@@ -1,8 +1,11 @@
 namespace TourBooking.Api.Models;
 
-public sealed class Agreement
+public sealed class Agreement : IMustHaveTenant
 {
     public Guid Id { get; set; }
+
+    public int? TenantId { get; set; }
+    public Tenant? Tenant { get; set; }
 
     public string CustomerName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
