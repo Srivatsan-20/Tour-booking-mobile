@@ -78,4 +78,31 @@ public sealed class BusesController : ControllerBase
             CreatedAtUtc = entity.CreatedAtUtc,
         });
     }
+
+
+	// "Delete" is implemented as a safe soft-delete (deactivate) so existing assignments/history remain intact.
+	[HttpDelete("{id:guid}")]
+	public async Task<ActionResult<BusResponse>> Delete(Guid id, CancellationToken cancellationToken)
+	{
+		var entity = await _db.Buses.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+		if (entity is null)
+		{
+			return NotFound();
+		}
+
+		if (entity.IsActive)
+		{
+			entity.IsActive = false;
+			await _db.SaveChangesAsync(cancellationToken);
+		}
+
+		return new BusResponse
+		{
+			Id = entity.Id,
+			VehicleNumber = entity.VehicleNumber,
+			Name = entity.Name,
+			IsActive = entity.IsActive,
+			CreatedAtUtc = entity.CreatedAtUtc,
+		};
+	}
 }

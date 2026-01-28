@@ -193,6 +193,14 @@ export function BookingDetailsScreen({ route, navigation }: Props) {
         </Pressable>
 
         <Pressable
+          style={[styles.secondaryBtn, busy ? styles.btnDisabled : null]}
+          disabled={busy}
+          onPress={() => navigation.navigate('TourAccount', { agreementId: agreement.id })}
+        >
+          <Text style={styles.secondaryBtnText}>{t('bookingDetails.accountsButton')}</Text>
+        </Pressable>
+
+        <Pressable
           style={[styles.secondaryBtn, busy || isCancelled ? styles.btnDisabled : null]}
           disabled={busy || isCancelled}
           onPress={() => navigation.navigate('BookingEdit', { agreement })}

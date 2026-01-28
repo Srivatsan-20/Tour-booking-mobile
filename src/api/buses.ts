@@ -42,3 +42,12 @@ export async function createBus(vehicleNumber: string, name?: string): Promise<B
   return (await res.json()) as BusResponse;
 }
 
+export async function deleteBus(busId: string): Promise<BusResponse> {
+  const baseUrl = await getApiBaseUrl();
+  const url = `${baseUrl}/api/buses/${busId}`;
+
+  const res = await fetch(url, { method: 'DELETE' });
+  if (!res.ok) await throwApiError(res);
+  return (await res.json()) as BusResponse;
+}
+

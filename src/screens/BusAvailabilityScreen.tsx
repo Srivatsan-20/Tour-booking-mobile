@@ -137,6 +137,7 @@ function DraggableBlock(props: {
 
   const pos = React.useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const dragEnabledRef = React.useRef(false);
+  const didDragRef = React.useRef(false);
   const [dragging, setDragging] = React.useState(false);
   const longPressTimer = React.useRef<any>(null);
 
@@ -155,6 +156,9 @@ function DraggableBlock(props: {
           const dx = g.dx;
           const dy = g.dy;
 
+          // If we actually perform a drop action, suppress the subsequent tap handler.
+          didDragRef.current = false;
+
           dragEnabledRef.current = false;
           setDragging(false);
 
@@ -164,11 +168,17 @@ function DraggableBlock(props: {
           // Decide action: bus move OR date shift (not both) to keep this reliable.
           if (Math.abs(dx) > Math.abs(dy)) {
             const deltaCols = Math.round(dx / BUS_W);
-            if (deltaCols !== 0) onDrop({ type: 'moveBus', targetBusIndex: busIndex + deltaCols });
+            if (deltaCols !== 0) {
+              didDragRef.current = true;
+              onDrop({ type: 'moveBus', targetBusIndex: busIndex + deltaCols });
+            }
             return;
           }
           const deltaDays = Math.round(dy / ROW_H);
-          if (deltaDays !== 0) onDrop({ type: 'shiftDates', deltaDays });
+          if (deltaDays !== 0) {
+            didDragRef.current = true;
+            onDrop({ type: 'shiftDates', deltaDays });
+          }
         },
       }),
     [busIndex, onDrop, pos],
@@ -196,10 +206,16 @@ function DraggableBlock(props: {
           dragEnabledRef.current = true;
           setDragging(true);
         }, 220);
+        didDragRef.current = false;
       }}
       onTouchEnd={() => {
         if (longPressTimer.current) clearTimeout(longPressTimer.current);
         longPressTimer.current = null;
+        // After a drag/drop, Android can still fire this touch-end; ignore it once.
+        if (didDragRef.current) {
+          didDragRef.current = false;
+          return;
+        }
         if (!dragEnabledRef.current) onPress();
       }}
     >
@@ -231,6 +247,9 @@ export function BusAvailabilityScreen({ navigation, route }: Props) {
   const [assignModal, setAssignModal] = React.useState<{ busId: string; dayIso: string } | null>(null);
   const [selected, setSelected] = React.useState<{ busId: string; agreement: ScheduleAgreementDto } | null>(null);
   const [busyAction, setBusyAction] = React.useState(false);
+
+  const [busFilterOpen, setBusFilterOpen] = React.useState(false);
+	const [selectedBusIds, setSelectedBusIds] = React.useState<string[] | null>(null); // null = All buses
 
   const headerHRef = React.useRef<ScrollView>(null);
   const bodyHRef = React.useRef<ScrollView>(null);
@@ -326,6 +345,58 @@ export function BusAvailabilityScreen({ navigation, route }: Props) {
     return map;
   }, [dayIndexByIso, days, schedule]);
 
+	const selectedBus = React.useMemo(() => {
+		if (!schedule) return null;
+		if (!selectedBusIds || selectedBusIds.length !== 1) return null;
+		return schedule.buses.find((b) => b.id === selectedBusIds[0]) ?? null;
+	}, [schedule, selectedBusIds]);
+
+	const gridBuses = React.useMemo(() => {
+		const buses = schedule?.buses ?? [];
+		if (!selectedBusIds || selectedBusIds.length === 0) return buses;
+		const wanted = new Set(selectedBusIds);
+		const filtered = buses.filter((b) => wanted.has(b.id));
+		// If selection is stale (e.g., bus deleted), fallback to all buses.
+		return filtered.length > 0 ? filtered : buses;
+	}, [schedule, selectedBusIds]);
+
+	const busFilterLabel = React.useMemo(() => {
+		if (!schedule) return t('busAvailability.allBuses');
+		if (!selectedBusIds || selectedBusIds.length === 0) return t('busAvailability.allBuses');
+		if (selectedBusIds.length === 1) return selectedBus ? busLabel(selectedBus).primary : t('busAvailability.allBuses');
+		return t('busAvailability.selectedBusesCount', { count: selectedBusIds.length });
+	}, [schedule, selectedBus, selectedBusIds, t]);
+
+	React.useEffect(() => {
+		if (!schedule) return;
+		if (!selectedBusIds || selectedBusIds.length === 0) return;
+		const existing = new Set(schedule.buses.map((b) => b.id));
+		const next = selectedBusIds.filter((id) => existing.has(id));
+		if (next.length !== selectedBusIds.length) setSelectedBusIds(next.length > 0 ? next : null);
+	}, [schedule, selectedBusIds]);
+
+  React.useEffect(() => {
+    // When switching filter/month, reset horizontal scroll so header/body stay aligned.
+    headerHRef.current?.scrollTo({ x: 0, animated: false });
+    bodyHRef.current?.scrollTo({ x: 0, animated: false });
+	}, [cursor, selectedBusIds]);
+
+	const confirmChange = React.useCallback(
+		(title: string, message: string) =>
+			new Promise<boolean>((resolve) => {
+				Alert.alert(
+					title,
+					message,
+					[
+						{ text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
+						{ text: t('common.ok'), onPress: () => resolve(true) },
+					],
+					{ cancelable: true },
+				);
+			}),
+		[t],
+	);
+
   const openConflictsIfAny = React.useCallback(
     (e: unknown) => {
       if (e instanceof ApiError && e.status === 409 && isConflictBody(e.body)) {
@@ -356,59 +427,103 @@ export function BusAvailabilityScreen({ navigation, route }: Props) {
     }
   };
 
-  const onDrop = async (block: Block, args: { type: 'moveBus'; targetBusIndex: number } | { type: 'shiftDates'; deltaDays: number }) => {
-    if (!schedule) return;
-    if (busyAction) return;
-    setBusyAction(true);
-    try {
-      if (args.type === 'moveBus') {
-        const buses = schedule.buses;
-        const targetIdx = Math.max(0, Math.min(buses.length - 1, args.targetBusIndex));
-        const targetBus = buses[targetIdx];
-        if (!targetBus || targetBus.id === block.busId) return;
+	const onDrop = async (block: Block, args: { type: 'moveBus'; targetBusIndex: number } | { type: 'shiftDates'; deltaDays: number }) => {
+		if (!schedule) return;
+		if (busyAction) return;
 
-        // prevent duplicates
-        const ag = schedule.agreements.find((x) => x.id === block.agreementId);
-        if (ag?.assignedBusIds?.includes(targetBus.id)) {
-          Alert.alert(t('common.validationTitle'), t('busAvailability.alreadyAssignedToBus'));
-          return;
-        }
+		// Confirm only for drag & drop changes.
+		if (args.type === 'moveBus') {
+			const buses = gridBuses;
+			const targetIdx = Math.max(0, Math.min(buses.length - 1, args.targetBusIndex));
+			const targetBus = buses[targetIdx];
+			if (!targetBus || targetBus.id === block.busId) return;
 
-        await unassignBusFromAgreement(block.agreementId, block.busId);
-        try {
-          await assignBusToAgreement(block.agreementId, targetBus.id);
-        } catch (e) {
-          // rollback best effort
-          try {
-            await assignBusToAgreement(block.agreementId, block.busId);
-          } catch {
-            // ignore
-          }
-          if (!openConflictsIfAny(e)) {
-            Alert.alert(t('common.errorTitle'), e instanceof Error ? e.message : String(e));
-          }
-          return;
-        }
-      } else {
-        const agFull = await getAgreementById(block.agreementId);
-        const from = parseDateDDMMYYYY(agFull.fromDate);
-        const to = parseDateDDMMYYYY(agFull.toDate);
-        if (!from || !to) return;
-        const newFrom = formatDateDDMMYYYY(addDays(from, args.deltaDays));
-        const newTo = formatDateDDMMYYYY(addDays(to, args.deltaDays));
-        const req = toUpdateRequestFromAgreement(agFull, newFrom, newTo);
-        await updateAgreement(block.agreementId, req);
-      }
+			// prevent duplicates
+			const ag = schedule.agreements.find((x) => x.id === block.agreementId);
+			if (ag?.assignedBusIds?.includes(targetBus.id)) {
+				Alert.alert(t('common.validationTitle'), t('busAvailability.alreadyAssignedToBus'));
+				return;
+			}
 
-      await load();
-    } catch (e) {
-      if (!openConflictsIfAny(e)) {
-        Alert.alert(t('common.errorTitle'), e instanceof Error ? e.message : String(e));
-      }
-    } finally {
-      setBusyAction(false);
-    }
-  };
+			const fromBus = schedule.buses.find((b) => b.id === block.busId) ?? null;
+			const fromBusLabel = fromBus ? busLabel(fromBus).primary : block.busId;
+			const toBusLabel = busLabel(targetBus).primary;
+
+			const msg = [
+				`${t('busAvailability.summaryTour')}: ${block.customerName}`,
+				`${t('busAvailability.summaryBus')}: ${fromBusLabel} → ${toBusLabel}`,
+				`${t('busAvailability.summaryDates')}: ${block.fromDate} - ${block.toDate}`,
+				'',
+				t('busAvailability.confirmChangeQuestion'),
+			].join('\n');
+
+			const ok = await confirmChange(t('busAvailability.confirmChangeTitle'), msg);
+			if (!ok) return;
+
+			setBusyAction(true);
+			try {
+				await unassignBusFromAgreement(block.agreementId, block.busId);
+				try {
+					await assignBusToAgreement(block.agreementId, targetBus.id);
+				} catch (e) {
+					// rollback best effort
+					try {
+						await assignBusToAgreement(block.agreementId, block.busId);
+					} catch {
+						// ignore
+					}
+					if (!openConflictsIfAny(e)) {
+						Alert.alert(t('common.errorTitle'), e instanceof Error ? e.message : String(e));
+					}
+					return;
+				}
+
+				await load();
+			} catch (e) {
+				if (!openConflictsIfAny(e)) {
+					Alert.alert(t('common.errorTitle'), e instanceof Error ? e.message : String(e));
+				}
+			} finally {
+				setBusyAction(false);
+			}
+			return;
+		}
+
+		// shiftDates
+		const agFull = await getAgreementById(block.agreementId);
+		const from = parseDateDDMMYYYY(agFull.fromDate);
+		const to = parseDateDDMMYYYY(agFull.toDate);
+		if (!from || !to) return;
+		const newFrom = formatDateDDMMYYYY(addDays(from, args.deltaDays));
+		const newTo = formatDateDDMMYYYY(addDays(to, args.deltaDays));
+
+		const bus = schedule.buses.find((b) => b.id === block.busId) ?? null;
+		const busText = bus ? busLabel(bus).primary : block.busId;
+
+		const msg = [
+			`${t('busAvailability.summaryTour')}: ${agFull.customerName}`,
+			`${t('busAvailability.summaryBus')}: ${busText}`,
+			`${t('busAvailability.summaryDates')}: ${agFull.fromDate} - ${agFull.toDate} → ${newFrom} - ${newTo}`,
+			'',
+			t('busAvailability.confirmChangeQuestion'),
+		].join('\n');
+
+		const ok = await confirmChange(t('busAvailability.confirmChangeTitle'), msg);
+		if (!ok) return;
+
+		setBusyAction(true);
+		try {
+			const req = toUpdateRequestFromAgreement(agFull, newFrom, newTo);
+			await updateAgreement(block.agreementId, req);
+			await load();
+		} catch (e) {
+			if (!openConflictsIfAny(e)) {
+				Alert.alert(t('common.errorTitle'), e instanceof Error ? e.message : String(e));
+			}
+		} finally {
+			setBusyAction(false);
+		}
+	};
 
   const bookingsForDayAndBus = React.useCallback(
     (busId: string, dayIso: string): ScheduleAgreementDto[] => {
@@ -497,7 +612,7 @@ export function BusAvailabilityScreen({ navigation, route }: Props) {
             scrollEnabled={false}
           >
             <View style={{ flexDirection: 'row' }}>
-              {schedule.buses.map((b) => {
+              {gridBuses.map((b) => {
                 const label = busLabel(b);
                 return (
                   <View key={b.id} style={[styles.busHeaderCell, { width: BUS_W }]}>
@@ -543,7 +658,7 @@ export function BusAvailabilityScreen({ navigation, route }: Props) {
               scrollEventThrottle={16}
             >
               <View style={{ flexDirection: 'row' }}>
-                {schedule.buses.map((bus, busIndex) => {
+                {gridBuses.map((bus, busIndex) => {
                   const blocks = blocksByBus.get(bus.id) ?? [];
 
                   return (
@@ -609,12 +724,24 @@ export function BusAvailabilityScreen({ navigation, route }: Props) {
         <Pressable style={styles.smallBtn} onPress={() => setCursor((d) => monthStart(addDays(d, -1)))}>
           <Text style={styles.smallBtnText}>‹</Text>
         </Pressable>
-        <Text style={styles.monthTitle}>{monthTitle(cursor)}</Text>
+        <Text numberOfLines={1} ellipsizeMode="tail" style={styles.monthTitle}>
+          {monthTitle(cursor)}
+        </Text>
         <Pressable style={styles.smallBtn} onPress={() => setCursor((d) => monthStart(addDays(monthEnd(d), 1)))}>
           <Text style={styles.smallBtnText}>›</Text>
         </Pressable>
 
         <View style={{ flex: 1 }} />
+
+        <Pressable
+          style={styles.smallBtnOutline}
+          onPress={() => setBusFilterOpen(true)}
+          disabled={!schedule || schedule.buses.length === 0}
+        >
+          <Text numberOfLines={1} ellipsizeMode="tail" style={styles.smallBtnOutlineText}>
+					{t('busAvailability.busFilter')}: {busFilterLabel}
+          </Text>
+        </Pressable>
 
         <Pressable style={styles.smallBtnOutline} onPress={() => setCursor(monthStart(new Date()))}>
           <Text style={styles.smallBtnOutlineText}>{t('busAvailability.today')}</Text>
@@ -625,6 +752,56 @@ export function BusAvailabilityScreen({ navigation, route }: Props) {
       </View>
 
       {renderBody()}
+
+      {/* Bus filter modal */}
+      <Modal visible={busFilterOpen} transparent animationType="fade" onRequestClose={() => setBusFilterOpen(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { maxHeight: '80%' }]}>
+            <Text style={styles.modalTitle}>{t('busAvailability.busFilterTitle')}</Text>
+            <ScrollView style={{ marginTop: 10 }}>
+              <Pressable
+                style={styles.pickRow}
+                onPress={() => {
+								setSelectedBusIds(null);
+                }}
+              >
+							<Text style={styles.pickTitle}>{`${selectedBusIds == null ? '✓ ' : ''}${t('busAvailability.allBuses')}`}</Text>
+              </Pressable>
+
+						{(schedule?.buses ?? []).map((b) => {
+							const label = busLabel(b);
+							const isSelected = !!selectedBusIds?.includes(b.id);
+                return (
+                  <Pressable
+                    key={b.id}
+                    style={styles.pickRow}
+                    onPress={() => {
+										setSelectedBusIds((prev) => {
+											// If currently showing all, start a subset selection.
+											if (!prev || prev.length === 0) return [b.id];
+											if (prev.includes(b.id)) {
+												const next = prev.filter((x) => x !== b.id);
+												return next.length === 0 ? null : next;
+											}
+											return [...prev, b.id];
+										});
+                    }}
+                  >
+                    <Text style={styles.pickTitle}>{`${isSelected ? '✓ ' : ''}${label.primary}`}</Text>
+                    {label.secondary ? <Text style={styles.pickSub}>{label.secondary}</Text> : null}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            <View style={styles.modalRow}>
+						<Pressable style={styles.secondaryBtn} onPress={() => setBusFilterOpen(false)}>
+							<Text style={styles.secondaryBtnText}>{t('common.done')}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Add Bus modal */}
       <Modal visible={addBusOpen} transparent animationType="fade" onRequestClose={() => setAddBusOpen(false)}>
@@ -758,6 +935,7 @@ export function BusAvailabilityScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 10,
@@ -765,7 +943,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  monthTitle: { fontSize: 16, fontWeight: '800' },
+  monthTitle: { fontSize: 16, fontWeight: '800', flexShrink: 1 },
   smallBtn: {
     width: 32,
     height: 32,
@@ -788,14 +966,15 @@ const styles = StyleSheet.create({
   err: { fontWeight: '800', color: '#B91C1C' },
   errSub: { color: '#6B7280', textAlign: 'center' },
 
-  gridHeader: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
+  // Darker borders so each cell is clearly visible on mild background colors.
+  gridHeader: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#94A3B8' },
   dateHeaderCell: {
     height: 44,
     justifyContent: 'center',
     paddingHorizontal: 8,
     backgroundColor: '#F9FAFB',
     borderRightWidth: 1,
-    borderRightColor: '#E5E7EB',
+    borderRightColor: '#94A3B8',
   },
   headerText: { fontWeight: '900', color: '#111827' },
   busHeaderCell: {
@@ -804,7 +983,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     backgroundColor: '#F9FAFB',
     borderRightWidth: 1,
-    borderRightColor: '#E5E7EB',
+    borderRightColor: '#94A3B8',
   },
   busHeaderPrimary: { fontWeight: '900', color: '#111827' },
   busHeaderSecondary: { fontWeight: '700', color: '#6B7280', fontSize: 12, marginTop: 2 },
@@ -813,9 +992,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 8,
     borderRightWidth: 1,
-    borderRightColor: '#E5E7EB',
+    borderRightColor: '#94A3B8',
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: '#94A3B8',
     backgroundColor: '#FFF',
   },
   dateCellText: { fontWeight: '800', color: '#111827' },
@@ -823,11 +1002,11 @@ const styles = StyleSheet.create({
   busCol: {
     position: 'relative',
     borderRightWidth: 1,
-    borderRightColor: '#E5E7EB',
+    borderRightColor: '#94A3B8',
   },
   cell: {
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: '#94A3B8',
   },
 
   block: {

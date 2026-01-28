@@ -36,4 +36,7 @@ public sealed class Agreement
     public DateTime CreatedAtUtc { get; set; }
 
     public List<AgreementBusAssignment> BusAssignments { get; set; } = new();
+
+	// Accounts / expenses (optional; created when operator adds expenses)
+	public TripExpense? TripExpense { get; set; }
 }

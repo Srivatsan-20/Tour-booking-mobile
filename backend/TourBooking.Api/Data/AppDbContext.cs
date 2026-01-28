@@ -15,6 +15,11 @@ public sealed class AppDbContext : DbContext
     public DbSet<Bus> Buses => Set<Bus>();
     public DbSet<AgreementBusAssignment> AgreementBusAssignments => Set<AgreementBusAssignment>();
 
+	public DbSet<TripExpense> TripExpenses => Set<TripExpense>();
+	public DbSet<BusExpense> BusExpenses => Set<BusExpense>();
+	public DbSet<FuelEntry> FuelEntries => Set<FuelEntry>();
+	public DbSet<OtherExpense> OtherExpenses => Set<OtherExpense>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         var agreement = modelBuilder.Entity<Agreement>();
@@ -47,6 +52,49 @@ public sealed class AppDbContext : DbContext
 
         agreement.Property(x => x.CreatedAtUtc)
             .HasDefaultValueSql("GETUTCDATE()");
+
+		// Accounts / expenses (1 Agreement -> 0..1 TripExpense)
+		var tripExpense = modelBuilder.Entity<TripExpense>();
+		tripExpense.HasKey(x => x.Id);
+		tripExpense.HasIndex(x => x.AgreementId).IsUnique();
+		tripExpense.Property(x => x.CreatedAtUtc).HasDefaultValueSql("GETUTCDATE()");
+		tripExpense.Property(x => x.UpdatedAtUtc).HasDefaultValueSql("GETUTCDATE()");
+		tripExpense.HasOne(x => x.Agreement)
+			.WithOne(x => x.TripExpense)
+			.HasForeignKey<TripExpense>(x => x.AgreementId)
+			.OnDelete(DeleteBehavior.Cascade);
+
+		var busExpense = modelBuilder.Entity<BusExpense>();
+		busExpense.HasKey(x => x.Id);
+		busExpense.Property(x => x.DriverBatta).HasColumnType("decimal(18,2)").HasDefaultValue(0m);
+		busExpense.Property(x => x.Days).HasDefaultValue(0);
+		busExpense.HasOne(x => x.TripExpense)
+			.WithMany(x => x.BusExpenses)
+			.HasForeignKey(x => x.TripExpenseId)
+			.OnDelete(DeleteBehavior.Cascade);
+		busExpense.HasOne(x => x.Bus)
+			.WithMany()
+			.HasForeignKey(x => x.BusId)
+			.OnDelete(DeleteBehavior.SetNull);
+
+		var fuel = modelBuilder.Entity<FuelEntry>();
+		fuel.HasKey(x => x.Id);
+		fuel.Property(x => x.Place).HasMaxLength(200);
+		fuel.Property(x => x.Liters).HasColumnType("decimal(18,2)").HasDefaultValue(0m);
+		fuel.Property(x => x.Cost).HasColumnType("decimal(18,2)").HasDefaultValue(0m);
+		fuel.HasOne(x => x.BusExpense)
+			.WithMany(x => x.FuelEntries)
+			.HasForeignKey(x => x.BusExpenseId)
+			.OnDelete(DeleteBehavior.Cascade);
+
+		var other = modelBuilder.Entity<OtherExpense>();
+		other.HasKey(x => x.Id);
+		other.Property(x => x.Description).HasMaxLength(400);
+		other.Property(x => x.Amount).HasColumnType("decimal(18,2)").HasDefaultValue(0m);
+		other.HasOne(x => x.BusExpense)
+			.WithMany(x => x.OtherExpenses)
+			.HasForeignKey(x => x.BusExpenseId)
+			.OnDelete(DeleteBehavior.Cascade);
 
         var bus = modelBuilder.Entity<Bus>();
         bus.HasKey(x => x.Id);

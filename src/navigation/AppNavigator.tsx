@@ -12,6 +12,9 @@ import { BookingsScreen } from '../screens/BookingsScreen';
 import { AllToursScreen } from '../screens/AllToursScreen';
 import { CancelledToursScreen } from '../screens/CancelledToursScreen';
 import { BusAvailabilityScreen } from '../screens/BusAvailabilityScreen';
+import { ManageAssignmentsScreen } from '../screens/ManageAssignmentsScreen';
+import { AccountsSummaryScreen } from '../screens/AccountsSummaryScreen';
+import { TourAccountScreen } from '../screens/TourAccountScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import type { RootStackParamList } from './types';
 
@@ -34,7 +37,8 @@ export function AppNavigator() {
                 <Text style={styles.homeBtnText}>{t('common.home')}</Text>
               </Pressable>
             ) : null}
-            <LanguageToggle />
+						{/* Hide language toggle on Manage Assignments to avoid header clutter */}
+						{route.name !== 'ManageAssignments' ? <LanguageToggle /> : null}
           </View>
         ),
       })}
@@ -46,8 +50,12 @@ export function AppNavigator() {
       <Stack.Screen name="AllTours" component={AllToursScreen} />
       <Stack.Screen name="CancelledTours" component={CancelledToursScreen} />
       <Stack.Screen name="BusAvailability" component={BusAvailabilityScreen} />
+      <Stack.Screen name="ManageAssignments" component={ManageAssignmentsScreen} />
       <Stack.Screen name="BookingDetails" component={BookingDetailsScreen} />
       <Stack.Screen name="BookingEdit" component={BookingEditScreen} />
+
+      <Stack.Screen name="AccountsSummary" component={AccountsSummaryScreen} />
+      <Stack.Screen name="TourAccount" component={TourAccountScreen} />
     </Stack.Navigator>
   );
 }

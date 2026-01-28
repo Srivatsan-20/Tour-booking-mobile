@@ -35,20 +35,6 @@ public sealed class ScheduleController : ControllerBase
             return BadRequest("to must be >= from");
         }
 
-        var buses = await _db.Buses
-            .AsNoTracking()
-            .Where(x => x.IsActive)
-            .OrderBy(x => x.VehicleNumber)
-            .Select(x => new BusResponse
-            {
-                Id = x.Id,
-                VehicleNumber = x.VehicleNumber,
-                Name = x.Name,
-                IsActive = x.IsActive,
-                CreatedAtUtc = x.CreatedAtUtc,
-            })
-            .ToListAsync(cancellationToken);
-
         // Dates are stored as dd/MM/yyyy strings, so we filter in-memory.
         var allAgreements = await _db.Agreements
             .AsNoTracking()
@@ -76,6 +62,23 @@ public sealed class ScheduleController : ControllerBase
 	            .AsNoTracking()
 	            .Where(x => ids.Contains(x.AgreementId))
 	            .ToListAsync(cancellationToken);
+
+	    // Include active buses, plus any inactive buses that are assigned in this range
+	    // (so historical/assigned columns don't disappear when a bus gets deactivated).
+	    var assignedBusIds = assignments.Select(x => x.BusId).Distinct().ToList();
+	    var buses = await _db.Buses
+	        .AsNoTracking()
+	        .Where(x => x.IsActive || assignedBusIds.Contains(x.Id))
+	        .OrderBy(x => x.VehicleNumber)
+	        .Select(x => new BusResponse
+	        {
+	            Id = x.Id,
+	            VehicleNumber = x.VehicleNumber,
+	            Name = x.Name,
+	            IsActive = x.IsActive,
+	            CreatedAtUtc = x.CreatedAtUtc,
+	        })
+	        .ToListAsync(cancellationToken);
 
 	    var assignedByAgreement = assignments
 	        .GroupBy(x => x.AgreementId)

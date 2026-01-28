@@ -60,27 +60,32 @@ export function BookingEditScreen({ route, navigation }: Props) {
 
   // Keep individual rates array in sync when user edits busCount / toggles modes.
   const syncRates = React.useCallback(
-    (nextBusCount: string, next: IndividualBusRateDraft[] = individualBusRates): IndividualBusRateDraft[] => {
-      if (!useIndividualBusRates) return next;
-      const currentCount = parsePositiveInt(nextBusCount);
-      const targetCount = currentCount ?? 1;
-      let rates = Array.isArray(next) ? [...next] : [];
-      while (rates.length < targetCount) {
-        rates.push({ perDayRent, includeMountainRent, mountainRent });
-      }
-      if (rates.length > targetCount) {
-        rates = rates.slice(0, targetCount);
-      }
-      // normalize busCount to a valid value while in individual mode
-      if (String(targetCount) !== nextBusCount) setBusCount(String(targetCount));
-      return rates;
-    },
-    [includeMountainRent, individualBusRates, mountainRent, perDayRent, useIndividualBusRates]
+		(nextBusCount: string, next: IndividualBusRateDraft[]): IndividualBusRateDraft[] => {
+			const currentCount = parsePositiveInt(nextBusCount);
+			// Allow the user to temporarily clear the input while editing.
+			// In that case, keep the existing rates array as-is.
+			if (!currentCount) return next;
+			const targetCount = currentCount;
+			if (Array.isArray(next) && next.length === targetCount) return next;
+
+			let rates = Array.isArray(next) ? [...next] : [];
+			while (rates.length < targetCount) {
+				rates.push({ perDayRent, includeMountainRent, mountainRent });
+			}
+			if (rates.length > targetCount) {
+				rates = rates.slice(0, targetCount);
+			}
+			return rates;
+		},
+		[includeMountainRent, mountainRent, perDayRent]
   );
 
   React.useEffect(() => {
     if (!useIndividualBusRates) return;
-    setIndividualBusRates((r) => syncRates(busCount, r));
+		// When entering individual mode (or initial load), ensure busCount is at least 1.
+		const normalizedBusCount = String(parsePositiveInt(busCount) ?? 1);
+		if (normalizedBusCount !== busCount) setBusCount(normalizedBusCount);
+		setIndividualBusRates((r) => syncRates(normalizedBusCount, r));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [useIndividualBusRates]);
 
@@ -135,6 +140,14 @@ export function BookingEditScreen({ route, navigation }: Props) {
       return;
     }
 
+		const parsedBusCount = parsePositiveInt(busCount);
+		if (!parsedBusCount) {
+			Alert.alert(t('common.validationTitle'), t('agreement.validation.busCount'));
+			return;
+		}
+		const normalizedBusCount = String(parsedBusCount);
+		const normalizedRates = useIndividualBusRates ? syncRates(normalizedBusCount, individualBusRates) : individualBusRates;
+
     if (!displayTotalAmount.trim() || parseAmount(displayTotalAmount) == null) {
       Alert.alert(t('common.validationTitle'), t('bookingEdit.validationTotalAmount'));
       return;
@@ -148,7 +161,7 @@ export function BookingEditScreen({ route, navigation }: Props) {
         fromDate,
         toDate,
         busType,
-        busCount,
+				busCount: normalizedBusCount,
         passengers,
         placesToCover,
 
@@ -157,7 +170,7 @@ export function BookingEditScreen({ route, navigation }: Props) {
         mountainRent,
         useIndividualBusRates,
         busRates: useIndividualBusRates
-          ? individualBusRates.map((r) => ({
+					? normalizedRates.map((r) => ({
               perDayRent: r.perDayRent,
               includeMountainRent: r.includeMountainRent,
               mountainRent: r.mountainRent,
@@ -220,7 +233,8 @@ export function BookingEditScreen({ route, navigation }: Props) {
           onChangeText={(v) => {
             setBusCount(v);
             if (useIndividualBusRates) {
-              setIndividualBusRates((r) => syncRates(v, r));
+							const n = parsePositiveInt(v);
+							if (n) setIndividualBusRates((r) => syncRates(String(n), r));
             }
           }}
           keyboardType="number-pad"
@@ -237,8 +251,9 @@ export function BookingEditScreen({ route, navigation }: Props) {
           onValueChange={(value) => {
             setUseIndividualBusRates(value);
             if (value) {
-              if (!parsePositiveInt(busCount)) setBusCount('1');
-              setIndividualBusRates((r) => syncRates(busCount, r));
+						const normalized = String(parsePositiveInt(busCount) ?? 1);
+						setBusCount(normalized);
+						setIndividualBusRates((r) => syncRates(normalized, r));
             }
           }}
         />
