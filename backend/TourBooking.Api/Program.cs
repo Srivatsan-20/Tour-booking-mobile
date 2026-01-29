@@ -74,6 +74,8 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     // Apply migrations (will create DB and Tables if missing)
     // Use EnsureCreated() to generate schema at runtime (bypasses Migrations folder)
+    // TEMPORARY: Wipe database to ensure schema is created from scratch (fixes 'relation not found' errors)
+    db.Database.EnsureDeleted();
     db.Database.EnsureCreated();
 }
 
