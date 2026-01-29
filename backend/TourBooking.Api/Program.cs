@@ -67,11 +67,17 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+// Auto-migrate Database
+using (var scope = app.Services.CreateScope())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    // This will create the DB and apply all migrations if they don't exist
+    db.Database.Migrate();
 }
+
+// Enable Swagger in ALL environments (including Cloud Production)
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseCors("DevCors");
 
