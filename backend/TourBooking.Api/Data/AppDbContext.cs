@@ -40,7 +40,7 @@ public sealed class AppDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
             entity.Property(e => e.IsActive).HasDefaultValue(true);
-            entity.Property(e => e.CreatedAtUtc).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.CreatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
         });
 
         // --- User ---
@@ -56,7 +56,7 @@ public sealed class AppDbContext : DbContext
                   .HasForeignKey(e => e.TenantId)
                   .OnDelete(DeleteBehavior.Cascade);
                   
-            entity.Property(e => e.CreatedAtUtc).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.CreatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
         });
 
         // --- Agreement ---
@@ -94,14 +94,14 @@ public sealed class AppDbContext : DbContext
         agreement.Property(x => x.BusRatesJson).HasMaxLength(8000);
 
         agreement.Property(x => x.CreatedAtUtc)
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         // Accounts / expenses
         var tripExpense = modelBuilder.Entity<TripExpense>();
         tripExpense.HasKey(x => x.Id);
         tripExpense.HasIndex(x => x.AgreementId).IsUnique();
-        tripExpense.Property(x => x.CreatedAtUtc).HasDefaultValueSql("GETUTCDATE()");
-        tripExpense.Property(x => x.UpdatedAtUtc).HasDefaultValueSql("GETUTCDATE()");
+        tripExpense.Property(x => x.CreatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
+        tripExpense.Property(x => x.UpdatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
         tripExpense.HasOne(x => x.Agreement)
             .WithOne(x => x.TripExpense)
             .HasForeignKey<TripExpense>(x => x.AgreementId)
@@ -152,11 +152,11 @@ public sealed class AppDbContext : DbContext
 
         bus.Property(x => x.Name).HasMaxLength(100);
         bus.Property(x => x.IsActive).HasDefaultValue(true);
-        bus.Property(x => x.CreatedAtUtc).HasDefaultValueSql("GETUTCDATE()");
+        bus.Property(x => x.CreatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         var assignment = modelBuilder.Entity<AgreementBusAssignment>();
         assignment.HasKey(x => new { x.AgreementId, x.BusId });
-        assignment.Property(x => x.CreatedAtUtc).HasDefaultValueSql("GETUTCDATE()");
+        assignment.Property(x => x.CreatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
         assignment.HasIndex(x => x.BusId);
 
         assignment.HasOne(x => x.Agreement)

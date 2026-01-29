@@ -72,8 +72,9 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    // This will create the DB and apply all migrations if they don't exist
-    db.Database.Migrate();
+    // Use EnsureCreated() (works for Postgres + SQL Server without requiring migration files)
+    // NOTE: This will not update partial schemas, but good for fresh cloud deploy.
+    db.Database.EnsureCreated();
 }
 
 // Enable Swagger in ALL environments (including Cloud Production)
