@@ -72,9 +72,19 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    // Use EnsureCreated() (works for Postgres + SQL Server without requiring migration files)
-    // NOTE: This will not update partial schemas, but good for fresh cloud deploy.
-    db.Database.EnsureCreated();
+    
+    // Fix for Cloud: explicit check for tables
+    var databaseCreator = db.Database.GetService<Microsoft.EntityFrameworkCore.Infrastructure.IDatabaseCreator>() 
+        as Microsoft.EntityFrameworkCore.Storage.RelationalDatabaseCreator;
+        
+    if (databaseCreator != null)
+    {
+        // 1. Create Database if it doesn't exist
+        if (!databaseCreator.CanConnect()) databaseCreator.Create();
+        
+        // 2. Create Tables if they don't exist
+        if (!databaseCreator.HasTables()) databaseCreator.CreateTables();
+    }
 }
 
 // Enable Swagger in ALL environments (including Cloud Production)
