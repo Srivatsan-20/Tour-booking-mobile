@@ -9,8 +9,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
-  type TextInputProps,
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -18,10 +16,17 @@ import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useHeaderHeight } from '@react-navigation/elements';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { listAgreements } from '../api/agreements';
 import type { RootStackParamList } from '../navigation/types';
 import type { AgreementResponse } from '../types/api';
+
+import { Screen } from '../components/Screen';
+import { Card } from '../components/Card';
+import { Input } from '../components/Input';
+import { Button } from '../components/Button';
+import { COLORS, SPACING, FONT_SIZE, FONT_WEIGHT, RADIUS, SHADOWS } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AllTours'>;
 
@@ -223,11 +228,6 @@ export function AllToursScreen({ navigation }: Props) {
         if (balanceFilter === 'pending' && paid) return false;
       }
 
-      // Date range filter (overlap semantics):
-      // include trips that overlap the selected range.
-      // - If only From is set: include trips where tripTo >= From
-      // - If only To is set: include trips where tripFrom <= To
-      // - If both set: include trips where tripFrom <= To && tripTo >= From
       if (fromMs != null || toMs != null) {
         const tripFrom = parseDateDDMMYYYY(a.fromDate)?.getTime();
         const tripTo = parseDateDDMMYYYY(a.toDate)?.getTime();
@@ -269,8 +269,6 @@ export function AllToursScreen({ navigation }: Props) {
   );
 
   const scrollResultsToTop = React.useCallback(() => {
-    // Keep results visible instantly while typing.
-    // (No animation to avoid jitter on every focus.)
     listRef.current?.scrollToOffset({ offset: 0, animated: false });
   }, []);
 
@@ -293,24 +291,18 @@ export function AllToursScreen({ navigation }: Props) {
           <View style={[styles.filtersPanel, compactFilters ? styles.filtersPanelCompact : null]}>
             <View style={styles.headerTopRow}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                <Text style={styles.title}>{t('allTours.title')}</Text>
-                {loading && all.length === 0 ? <ActivityIndicator /> : null}
+                {loading && all.length === 0 ? <ActivityIndicator color={COLORS.primary} size="small" /> : null}
               </View>
 
-              <Pressable
-                accessibilityRole="button"
+              <Button
+                title={t('allTours.clearFilters') + (activeFilterCount > 0 ? ` (${activeFilterCount})` : '')}
                 onPress={clearFilters}
-                style={[styles.smallBtn, activeFilterCount === 0 ? styles.smallBtnDisabled : null]}
+                variant="ghost"
+                size="sm"
                 disabled={activeFilterCount === 0}
-              >
-                <Text style={[styles.smallBtnText, activeFilterCount === 0 ? styles.smallBtnTextDisabled : null]}>
-                  {t('allTours.clearFilters')}
-                  {activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
-                </Text>
-              </Pressable>
+              />
             </View>
 
-            {/* When keyboard is open, auto-collapse advanced filters so results are visible instantly. */}
             {!compactFilters ? (
               <>
                 <View style={styles.chipsRow}>
@@ -334,49 +326,46 @@ export function AllToursScreen({ navigation }: Props) {
             ) : null}
 
             <View style={styles.filtersGrid}>
-              <LabeledInput
-                label={t('agreement.customerName')}
+              <Input
+                label={compactFilters ? undefined : t('agreement.customerName')}
                 value={customerName}
                 onChangeText={setCustomerName}
                 placeholder={t('allTours.customerNamePlaceholder')}
-                hideLabel={compactFilters}
-                dense={compactFilters}
+                containerStyle={{ marginBottom: compactFilters ? SPACING.xs : SPACING.sm }}
                 onFocus={scrollResultsToTop}
               />
-              <LabeledInput
-                label={t('agreement.phone')}
+              <Input
+                label={compactFilters ? undefined : t('agreement.phone')}
                 value={phone}
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
                 placeholder={t('allTours.phonePlaceholder')}
-                hideLabel={compactFilters}
-                dense={compactFilters}
+                rightIcon={<MaterialCommunityIcons name="phone" size={20} color={COLORS.textTertiary} />}
+                containerStyle={{ marginBottom: compactFilters ? SPACING.xs : SPACING.sm }}
                 onFocus={scrollResultsToTop}
               />
-              <LabeledInput
-                label={t('agreement.busType')}
+              <Input
+                label={compactFilters ? undefined : t('agreement.busType')}
                 value={busType}
                 onChangeText={setBusType}
                 placeholder={t('allTours.busTypePlaceholder')}
-                hideLabel={compactFilters}
-                dense={compactFilters}
+                rightIcon={<MaterialCommunityIcons name="bus" size={20} color={COLORS.textTertiary} />}
+                containerStyle={{ marginBottom: compactFilters ? SPACING.xs : SPACING.sm }}
                 onFocus={scrollResultsToTop}
               />
 
               {!compactFilters ? (
                 <>
-                  <View style={{ gap: 6 }}>
-                    <Text style={styles.label}>{t('allTours.dateFrom')}</Text>
-                    <Pressable accessibilityRole="button" onPress={() => openPicker('rangeFrom')} style={styles.inputBox}>
-                      <Text style={[styles.inputText, !rangeFrom ? styles.placeholderText : null]}>{rangeFrom || 'DD/MM/YYYY'}</Text>
-                    </Pressable>
-                  </View>
-                  <View style={{ gap: 6 }}>
-                    <Text style={styles.label}>{t('allTours.dateTo')}</Text>
-                    <Pressable accessibilityRole="button" onPress={() => openPicker('rangeTo')} style={styles.inputBox}>
-                      <Text style={[styles.inputText, !rangeTo ? styles.placeholderText : null]}>{rangeTo || 'DD/MM/YYYY'}</Text>
-                    </Pressable>
-                  </View>
+                  <Pressable onPress={() => openPicker('rangeFrom')}>
+                    <View pointerEvents="none">
+                      <Input label={t('allTours.dateFrom')} value={rangeFrom} placeholder="DD/MM/YYYY" editable={false} rightIcon={<MaterialCommunityIcons name="calendar" size={20} color={COLORS.textTertiary} />} />
+                    </View>
+                  </Pressable>
+                  <Pressable onPress={() => openPicker('rangeTo')}>
+                    <View pointerEvents="none">
+                      <Input label={t('allTours.dateTo')} value={rangeTo} placeholder="DD/MM/YYYY" editable={false} rightIcon={<MaterialCommunityIcons name="calendar" size={20} color={COLORS.textTertiary} />} />
+                    </View>
+                  </Pressable>
                 </>
               ) : null}
             </View>
@@ -384,12 +373,8 @@ export function AllToursScreen({ navigation }: Props) {
             {!compactFilters && error ? (
               <View style={styles.stateBox}>
                 <Text style={styles.note}>{t('allTours.error')}</Text>
-                <Text style={styles.noteSmall} numberOfLines={4}>
-                  {error}
-                </Text>
-                <Pressable style={styles.retryBtn} onPress={load}>
-                  <Text style={styles.retryBtnText}>{t('allTours.retry')}</Text>
-                </Pressable>
+                <Text style={styles.noteSmall}>{error}</Text>
+                <Button title={t('allTours.retry')} onPress={() => void load()} size="sm" />
               </View>
             ) : null}
           </View>
@@ -398,7 +383,7 @@ export function AllToursScreen({ navigation }: Props) {
         renderItem={({ item }) => {
           const st = statusOf(item, startOfTodayMs());
           return (
-            <Pressable style={styles.card} onPress={() => navigation.navigate('BookingDetails', { agreement: item })}>
+            <Card style={styles.card} onPress={() => navigation.navigate('BookingDetails', { agreement: item })}>
               <View style={styles.cardTopRow}>
                 <Text style={styles.cardTitle}>{item.customerName}</Text>
                 <StatusBadge status={st} t={t} />
@@ -409,40 +394,16 @@ export function AllToursScreen({ navigation }: Props) {
                 <Text style={styles.cardMeta}>{`${item.busType || '-'} · ${t('agreement.busCount')}: ${item.busCount ?? '-'}`}</Text>
               </View>
               <View style={styles.cardRow}>
-                {item.totalAmount != null ? (
-                  <Text style={styles.cardMeta}>{`${t('agreement.totalAmount')}: ${item.totalAmount}`}</Text>
-                ) : (
-                  <Text style={styles.cardMeta}>{`${t('agreement.totalAmount')}: -`}</Text>
-                )}
-                {item.balance != null ? (
-                  <Text style={styles.cardMeta}>{`${t('agreement.balance')}: ${item.balance}`}</Text>
-                ) : (
-                  <Text style={styles.cardMeta}>{`${t('agreement.balance')}: -`}</Text>
-                )}
+                <Text style={styles.cardMeta}>{`${t('agreement.totalAmount')}: ${item.totalAmount ?? '-'}`}</Text>
+                <Text style={[styles.cardMeta, { color: isPaid(item.balance) ? COLORS.success : COLORS.error }]}>{`${t('agreement.balance')}: ${item.balance ?? '-'}`}</Text>
               </View>
-            </Pressable>
+            </Card>
           );
         }}
       />
 
       {/* Date Picker */}
-      {picker && Platform.OS === 'android' ? (
-        <DateTimePicker
-          value={picker.date}
-          mode="date"
-          display="default"
-          minimumDate={picker.field === 'rangeTo' ? parseDateDDMMYYYY(rangeFrom) ?? undefined : undefined}
-          onChange={(event, selectedDate) => {
-            setPicker(null);
-            if (!selectedDate) return;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if ((event as any)?.type && (event as any).type !== 'set') return;
-            commitPickedDate(picker.field, selectedDate);
-          }}
-        />
-      ) : null}
-
-      {picker && Platform.OS === 'ios' ? (
+      {(picker && Platform.OS !== 'android') && (
         <Modal transparent animationType="fade" visible onRequestClose={() => setPicker(null)}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalCard}>
@@ -452,66 +413,41 @@ export function AllToursScreen({ navigation }: Props) {
                 display="spinner"
                 minimumDate={picker.field === 'rangeTo' ? parseDateDDMMYYYY(rangeFrom) ?? undefined : undefined}
                 onChange={(_, selectedDate) => {
-                  if (!selectedDate) return;
-                  setPicker((p) => (p ? { ...p, date: selectedDate } : p));
+                  if (selectedDate) setPicker((p) => (p ? { ...p, date: selectedDate } : p));
                 }}
               />
-
               <View style={styles.modalActions}>
-                <Pressable onPress={() => setPicker(null)} style={[styles.modalBtn, styles.modalBtnSecondary]}>
-                  <Text style={styles.modalBtnTextSecondary}>{t('common.cancel')}</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    commitPickedDate(picker.field, picker.date);
-                    setPicker(null);
-                  }}
-                  style={[styles.modalBtn, styles.modalBtnPrimary]}
-                >
-                  <Text style={styles.modalBtnTextPrimary}>{t('common.done')}</Text>
-                </Pressable>
+                <Button title={t('common.cancel')} onPress={() => setPicker(null)} variant="ghost" size="sm" style={{ flex: 1 }} />
+                <Button title={t('common.done')} onPress={() => { commitPickedDate(picker.field, picker.date); setPicker(null); }} size="sm" style={{ flex: 1 }} />
               </View>
             </View>
           </View>
         </Modal>
-      ) : null}
+      )}
+      {(picker && Platform.OS === 'android') && (
+        <DateTimePicker
+          value={picker.date}
+          mode="date"
+          display="default"
+          minimumDate={picker.field === 'rangeTo' ? parseDateDDMMYYYY(rangeFrom) ?? undefined : undefined}
+          onChange={(event, selectedDate) => {
+            setPicker(null);
+            if (selectedDate && event.type === 'set') commitPickedDate(picker.field, selectedDate);
+          }}
+        />
+      )}
     </KeyboardAvoidingView>
-  );
-}
-
-function LabeledInput(props: {
-  label: string;
-  value: string;
-  onChangeText: (v: string) => void;
-  placeholder?: string;
-  keyboardType?: 'default' | 'phone-pad' | 'number-pad';
-  onFocus?: TextInputProps['onFocus'];
-  onBlur?: TextInputProps['onBlur'];
-  hideLabel?: boolean;
-  dense?: boolean;
-}) {
-  return (
-    <View style={{ gap: props.dense ? 4 : 6 }}>
-      {!props.hideLabel ? <Text style={styles.label}>{props.label}</Text> : null}
-      <TextInput
-        value={props.value}
-        onChangeText={props.onChangeText}
-        placeholder={props.placeholder}
-        keyboardType={props.keyboardType}
-        onFocus={props.onFocus}
-        onBlur={props.onBlur}
-        style={[styles.inputBox, props.dense ? styles.inputBoxDense : null, styles.textInput]}
-      />
-    </View>
   );
 }
 
 function Chip(props: { label: string; active: boolean; onPress: () => void }) {
   return (
     <Pressable
-      accessibilityRole="button"
       onPress={props.onPress}
-      style={[styles.chip, props.active ? styles.chipActive : null]}
+      style={[
+        styles.chip,
+        props.active ? styles.chipActive : null,
+      ]}
     >
       <Text style={[styles.chipText, props.active ? styles.chipTextActive : null]}>{props.label}</Text>
     </Pressable>
@@ -557,110 +493,62 @@ function StatusBadge(props: {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
+  container: { flex: 1, backgroundColor: COLORS.background },
   filtersPanel: {
-    padding: 16,
-    paddingBottom: 12,
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    backgroundColor: '#f9fafb',
+    padding: SPACING.md,
+    gap: SPACING.md,
+    ...SHADOWS.soft,
+    backgroundColor: COLORS.surface,
+    marginBottom: SPACING.md,
+    borderRadius: RADIUS.lg,
   },
-  filtersPanelCompact: { paddingBottom: 8, gap: 10 },
-  listContainer: { padding: 16, paddingBottom: 24 },
-  listEmptyContainer: { flexGrow: 1, padding: 16, paddingBottom: 24 },
+  filtersPanelCompact: { paddingBottom: SPACING.sm, gap: SPACING.sm },
+  listContainer: { padding: SPACING.md, paddingBottom: SPACING.xl },
+  listEmptyContainer: { flexGrow: 1, padding: SPACING.md, paddingBottom: SPACING.xl },
 
-  header: { gap: 12, marginBottom: 12 },
-  headerTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  title: { fontSize: 18, fontWeight: '800', color: '#111827' },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: SPACING.md },
 
-  smallBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: 'white',
-  },
-  smallBtnDisabled: { backgroundColor: '#f3f4f6' },
-  smallBtnText: { fontWeight: '800', color: '#111827' },
-  smallBtnTextDisabled: { color: '#9ca3af' },
-
-  chipsRow: { gap: 8 },
-  chipsLabel: { fontSize: 13, fontWeight: '700', color: '#374151' },
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chipsRow: { gap: SPACING.xs },
+  chipsLabel: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.bold, color: COLORS.textSecondary },
+  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
 
   chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: 'white',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADIUS.round,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: COLORS.border,
   },
-  chipActive: { backgroundColor: '#111827', borderColor: '#111827' },
-  chipText: { fontSize: 12, fontWeight: '800', color: '#111827' },
-  chipTextActive: { color: 'white' },
+  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  chipText: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.bold, color: COLORS.textPrimary },
+  chipTextActive: { color: COLORS.surface },
 
-  filtersGrid: { gap: 12 },
-  label: { fontSize: 13, fontWeight: '600', color: '#374151' },
-  inputBox: {
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: 'white',
-  },
-  inputBoxDense: {
-    paddingVertical: 8,
-  },
-  textInput: { color: '#111827' },
-  inputText: { fontSize: 14, color: '#111827' },
-  placeholderText: { color: '#9ca3af' },
+  filtersGrid: { gap: SPACING.xs },
 
-  note: { color: '#6b7280', textAlign: 'center' },
-  noteSmall: { color: '#6b7280', fontSize: 12, textAlign: 'center' },
-  stateBox: { paddingVertical: 18, gap: 10, alignItems: 'center' },
-  retryBtn: {
-    backgroundColor: '#111827',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-  },
-  retryBtnText: { color: 'white', fontSize: 14, fontWeight: '700' },
+  note: { color: COLORS.textSecondary, textAlign: 'center', marginVertical: SPACING.lg },
+  noteSmall: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, textAlign: 'center', marginBottom: SPACING.sm },
+  stateBox: { paddingVertical: SPACING.md, gap: SPACING.sm, alignItems: 'center' },
 
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
-  cardTitle: { fontSize: 16, fontWeight: '800', color: '#111827', flex: 1 },
-  cardSub: { color: '#374151', marginTop: 4, marginBottom: 8 },
-  cardRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginTop: 2 },
-  cardMeta: { color: '#6b7280', fontWeight: '600', flexShrink: 1 },
+  card: { marginBottom: SPACING.md },
+  cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: SPACING.sm },
+  cardTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.bold, color: COLORS.textPrimary, flex: 1 },
+  cardSub: { color: COLORS.textSecondary, marginTop: 4, marginBottom: 8, fontSize: FONT_SIZE.sm },
+  cardRow: { flexDirection: 'row', justifyContent: 'space-between', gap: SPACING.sm, marginTop: 2 },
+  cardMeta: { color: COLORS.textTertiary, fontWeight: FONT_WEIGHT.medium, fontSize: FONT_SIZE.xs, flexShrink: 1 },
 
-  badge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
-  badgeText: { fontSize: 12, fontWeight: '900' },
-  badgeUpcoming: { backgroundColor: '#ecfdf5' },
-  badgeTextUpcoming: { color: '#047857' },
-  badgePast: { backgroundColor: '#f3f4f6' },
-  badgeTextPast: { color: '#374151' },
-  badgeCancelled: { backgroundColor: '#fef2f2' },
-  badgeTextCancelled: { color: '#b91c1c' },
-  badgeUnknown: { backgroundColor: '#eff6ff' },
-  badgeTextUnknown: { color: '#1d4ed8' },
+  badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: RADIUS.round },
+  badgeText: { fontSize: 10, fontWeight: FONT_WEIGHT.bold },
+  badgeUpcoming: { backgroundColor: COLORS.successBg },
+  badgeTextUpcoming: { color: COLORS.success },
+  badgePast: { backgroundColor: COLORS.background }, // Was gray
+  badgeTextPast: { color: COLORS.textSecondary },
+  badgeCancelled: { backgroundColor: COLORS.errorBg },
+  badgeTextCancelled: { color: COLORS.error },
+  badgeUnknown: { backgroundColor: COLORS.primaryLight },
+  badgeTextUnknown: { color: COLORS.primary },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', padding: 16 },
-  modalCard: { backgroundColor: 'white', borderRadius: 12, padding: 12 },
-  modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 10 },
-  modalBtn: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10 },
-  modalBtnPrimary: { backgroundColor: '#111827' },
-  modalBtnSecondary: { backgroundColor: '#f3f4f6' },
-  modalBtnTextPrimary: { color: 'white', fontWeight: '800' },
-  modalBtnTextSecondary: { color: '#111827', fontWeight: '800' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: SPACING.lg },
+  modalCard: { backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: SPACING.lg, ...SHADOWS.medium },
+  modalActions: { flexDirection: 'row', gap: SPACING.md, marginTop: SPACING.md },
 });

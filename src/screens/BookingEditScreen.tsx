@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { Alert, Modal, Platform, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, Modal, Platform, Pressable, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { KeyboardAvoidingScrollView, useScrollToFocusedInput } from '../components/KeyboardAvoidingScrollView';
 import type { RootStackParamList } from '../navigation/types';
@@ -11,6 +11,12 @@ import { updateAgreement } from '../api/agreements';
 import { ApiError } from '../api/ApiError';
 import type { BusAssignmentConflictResponse } from '../types/api';
 import type { IndividualBusRateDraft } from '../types/agreement';
+
+import { Screen } from '../components/Screen';
+import { Card } from '../components/Card';
+import { Input } from '../components/Input';
+import { Button } from '../components/Button';
+import { COLORS, SPACING, FONT_SIZE, FONT_WEIGHT, RADIUS, SHADOWS } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BookingEdit'>;
 
@@ -43,7 +49,6 @@ export function BookingEditScreen({ route, navigation }: Props) {
 
   // Fallback/manual total (prefilled from saved record)
   const [manualTotalAmount, setManualTotalAmount] = React.useState(a.totalAmount == null ? '' : String(a.totalAmount));
-
   const advancePaid = a.advancePaid == null ? '' : String(a.advancePaid);
   const [notes, setNotes] = React.useState(a.notes ?? '');
 
@@ -60,37 +65,34 @@ export function BookingEditScreen({ route, navigation }: Props) {
 
   // Keep individual rates array in sync when user edits busCount / toggles modes.
   const syncRates = React.useCallback(
-		(nextBusCount: string, next: IndividualBusRateDraft[]): IndividualBusRateDraft[] => {
-			const currentCount = parsePositiveInt(nextBusCount);
-			// Allow the user to temporarily clear the input while editing.
-			// In that case, keep the existing rates array as-is.
-			if (!currentCount) return next;
-			const targetCount = currentCount;
-			if (Array.isArray(next) && next.length === targetCount) return next;
+    (nextBusCount: string, next: IndividualBusRateDraft[]): IndividualBusRateDraft[] => {
+      const currentCount = parsePositiveInt(nextBusCount);
+      if (!currentCount) return next;
+      const targetCount = currentCount;
+      if (Array.isArray(next) && next.length === targetCount) return next;
 
-			let rates = Array.isArray(next) ? [...next] : [];
-			while (rates.length < targetCount) {
-				rates.push({ perDayRent, includeMountainRent, mountainRent });
-			}
-			if (rates.length > targetCount) {
-				rates = rates.slice(0, targetCount);
-			}
-			return rates;
-		},
-		[includeMountainRent, mountainRent, perDayRent]
+      let rates = Array.isArray(next) ? [...next] : [];
+      while (rates.length < targetCount) {
+        rates.push({ perDayRent, includeMountainRent, mountainRent });
+      }
+      if (rates.length > targetCount) {
+        rates = rates.slice(0, targetCount);
+      }
+      return rates;
+    },
+    [includeMountainRent, mountainRent, perDayRent]
   );
 
   React.useEffect(() => {
     if (!useIndividualBusRates) return;
-		// When entering individual mode (or initial load), ensure busCount is at least 1.
-		const normalizedBusCount = String(parsePositiveInt(busCount) ?? 1);
-		if (normalizedBusCount !== busCount) setBusCount(normalizedBusCount);
-		setIndividualBusRates((r) => syncRates(normalizedBusCount, r));
+    const normalizedBusCount = String(parsePositiveInt(busCount) ?? 1);
+    if (normalizedBusCount !== busCount) setBusCount(normalizedBusCount);
+    setIndividualBusRates((r) => syncRates(normalizedBusCount, r));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [useIndividualBusRates]);
 
   const computedTotal = React.useMemo(() => {
-    const total = computeTotalAmountMaybe({
+    return computeTotalAmountMaybe({
       fromDate,
       toDate,
       busCount,
@@ -100,17 +102,7 @@ export function BookingEditScreen({ route, navigation }: Props) {
       useIndividualBusRates,
       individualBusRates,
     });
-    return total;
-  }, [
-    busCount,
-    fromDate,
-    includeMountainRent,
-    individualBusRates,
-    mountainRent,
-    perDayRent,
-    toDate,
-    useIndividualBusRates,
-  ]);
+  }, [busCount, fromDate, includeMountainRent, individualBusRates, mountainRent, perDayRent, toDate, useIndividualBusRates]);
 
   const displayTotalAmount = computedTotal ?? manualTotalAmount;
   const displayBalance = computeBalance(displayTotalAmount, advancePaid);
@@ -140,13 +132,13 @@ export function BookingEditScreen({ route, navigation }: Props) {
       return;
     }
 
-		const parsedBusCount = parsePositiveInt(busCount);
-		if (!parsedBusCount) {
-			Alert.alert(t('common.validationTitle'), t('agreement.validation.busCount'));
-			return;
-		}
-		const normalizedBusCount = String(parsedBusCount);
-		const normalizedRates = useIndividualBusRates ? syncRates(normalizedBusCount, individualBusRates) : individualBusRates;
+    const parsedBusCount = parsePositiveInt(busCount);
+    if (!parsedBusCount) {
+      Alert.alert(t('common.validationTitle'), t('agreement.validation.busCount'));
+      return;
+    }
+    const normalizedBusCount = String(parsedBusCount);
+    const normalizedRates = useIndividualBusRates ? syncRates(normalizedBusCount, individualBusRates) : individualBusRates;
 
     if (!displayTotalAmount.trim() || parseAmount(displayTotalAmount) == null) {
       Alert.alert(t('common.validationTitle'), t('bookingEdit.validationTotalAmount'));
@@ -161,25 +153,22 @@ export function BookingEditScreen({ route, navigation }: Props) {
         fromDate,
         toDate,
         busType,
-				busCount: normalizedBusCount,
+        busCount: normalizedBusCount,
         passengers,
         placesToCover,
-
         perDayRent,
         includeMountainRent,
         mountainRent,
         useIndividualBusRates,
         busRates: useIndividualBusRates
-					? normalizedRates.map((r) => ({
-              perDayRent: r.perDayRent,
-              includeMountainRent: r.includeMountainRent,
-              mountainRent: r.mountainRent,
-            }))
+          ? normalizedRates.map((r) => ({
+            perDayRent: r.perDayRent,
+            includeMountainRent: r.includeMountainRent,
+            mountainRent: r.mountainRent,
+          }))
           : [],
-
         totalAmount: displayTotalAmount,
-        // Advance is recorded via the "Add Advance" flow, so don't overwrite it during edit.
-        advancePaid: '',
+        advancePaid: '', // Don't overwrite
         notes,
       });
 
@@ -217,186 +206,208 @@ export function BookingEditScreen({ route, navigation }: Props) {
   };
 
   return (
-    <KeyboardAvoidingScrollView contentContainerStyle={styles.container}>
-      <Section title={t('agreement.customerDetails')}>
-        <Field label={t('agreement.customerName')} value={customerName} onChangeText={setCustomerName} />
-        <Field label={t('agreement.phone')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-      </Section>
+    <Screen style={styles.container}>
+      <KeyboardAvoidingScrollView contentContainerStyle={styles.scrollContent}>
 
-      <Section title={t('agreement.tripDetails')}>
-        <Field label={t('agreement.fromDate')} value={fromDate} placeholder="DD/MM/YYYY" onPress={() => openPicker('fromDate')} />
-        <Field label={t('agreement.toDate')} value={toDate} placeholder="DD/MM/YYYY" onPress={() => openPicker('toDate')} />
-        <Field label={t('agreement.busType')} value={busType} onChangeText={setBusType} placeholder="AC / Non-AC" />
-        <Field
-          label={t('agreement.busCount')}
-          value={busCount}
-          onChangeText={(v) => {
-            setBusCount(v);
-            if (useIndividualBusRates) {
-							const n = parsePositiveInt(v);
-							if (n) setIndividualBusRates((r) => syncRates(String(n), r));
-            }
-          }}
-          keyboardType="number-pad"
-        />
-        <Field label={t('agreement.passengers')} value={passengers} onChangeText={setPassengers} keyboardType="number-pad" />
-        <Field label={t('agreement.placesToCover')} value={placesToCover} onChangeText={setPlacesToCover} />
-      </Section>
+        <Card>
+          <Text style={styles.cardTitle}>{t('agreement.customerDetails')}</Text>
+          <Input label={t('agreement.customerName')} value={customerName} onChangeText={setCustomerName} placeholder="Enter name" />
+          <Input label={t('agreement.phone')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="Enter phone" />
+        </Card>
 
-      <Section title={t('agreement.rentDetails')}>
-        <Field label={t('agreement.totalDays')} value={totalDays ? String(totalDays) : ''} editable={false} />
-        <ToggleField
-          label={t('agreement.useIndividualBusRates')}
-          value={useIndividualBusRates}
-          onValueChange={(value) => {
-            setUseIndividualBusRates(value);
-            if (value) {
-						const normalized = String(parsePositiveInt(busCount) ?? 1);
-						setBusCount(normalized);
-						setIndividualBusRates((r) => syncRates(normalized, r));
-            }
-          }}
-        />
+        <Card>
+          <Text style={styles.cardTitle}>{t('agreement.tripDetails')}</Text>
+          <Pressable onPress={() => openPicker('fromDate')}>
+            <View pointerEvents="none">
+              <Input label={t('agreement.fromDate')} value={fromDate} placeholder="DD/MM/YYYY" rightIcon={<MaterialCommunityIcons name="calendar" size={20} color={COLORS.textTertiary} />} editable={false} />
+            </View>
+          </Pressable>
+          <Pressable onPress={() => openPicker('toDate')}>
+            <View pointerEvents="none">
+              <Input label={t('agreement.toDate')} value={toDate} placeholder="DD/MM/YYYY" rightIcon={<MaterialCommunityIcons name="calendar" size={20} color={COLORS.textTertiary} />} editable={false} />
+            </View>
+          </Pressable>
 
-        {!useIndividualBusRates ? (
-          <>
-            <Field label={t('agreement.perDayRent')} value={perDayRent} onChangeText={setPerDayRent} keyboardType="number-pad" />
-            <ToggleField
-              label={t('agreement.includeMountainRent')}
-              value={includeMountainRent}
-              onValueChange={setIncludeMountainRent}
+          <Input label={t('agreement.busType')} value={busType} onChangeText={setBusType} placeholder="AC / Non-AC" />
+
+          <Input
+            label={t('agreement.busCount')}
+            value={busCount}
+            onChangeText={(v) => {
+              setBusCount(v);
+              if (useIndividualBusRates) {
+                const n = parsePositiveInt(v);
+                if (n) setIndividualBusRates((r) => syncRates(String(n), r));
+              }
+            }}
+            keyboardType="number-pad"
+            placeholder="Number of buses"
+          />
+
+          <Input label={t('agreement.passengers')} value={passengers} onChangeText={setPassengers} keyboardType="number-pad" placeholder="Count" />
+          <Input label={t('agreement.placesToCover')} value={placesToCover} onChangeText={setPlacesToCover} placeholder="Route details" />
+        </Card>
+
+        <Card>
+          <View style={styles.rowBetween}>
+            <Text style={styles.cardTitle}>{t('agreement.rentDetails')}</Text>
+            {totalDays ? <Text style={styles.badge}>{totalDays} Days</Text> : null}
+          </View>
+
+          <View style={[styles.toggleRow, { marginBottom: SPACING.md }]}>
+            <Text style={styles.label}>{t('agreement.useIndividualBusRates')}</Text>
+            <Switch
+              value={useIndividualBusRates}
+              onValueChange={(value) => {
+                setUseIndividualBusRates(value);
+                if (value) {
+                  const normalized = String(parsePositiveInt(busCount) ?? 1);
+                  setBusCount(normalized);
+                  setIndividualBusRates((r) => syncRates(normalized, r));
+                }
+              }}
+              trackColor={{ false: COLORS.border, true: COLORS.primaryLight }}
+              thumbColor={useIndividualBusRates ? COLORS.primary : '#f4f3f4'}
             />
-            <Field
-              label={t('agreement.mountainRent')}
-              value={mountainRent}
-              onChangeText={setMountainRent}
-              keyboardType="number-pad"
-              editable={includeMountainRent}
-            />
-          </>
-        ) : (
-          <View style={{ gap: 12 }}>
-            {individualBusRates.map((r, idx) => (
-              <View key={idx} style={styles.busRateCard}>
-                <Text style={styles.busRateTitle}>
-                  {t('agreement.bus')} {idx + 1}
-                </Text>
-                <Field
-                  label={t('agreement.perDayRent')}
-                  value={r.perDayRent}
-                  onChangeText={(v) =>
-                    setIndividualBusRates((prev) => {
-                      const next = [...prev];
-                      const current = next[idx] ?? { perDayRent: '', includeMountainRent: false, mountainRent: '' };
-                      next[idx] = { ...current, perDayRent: v };
-                      return next;
-                    })
-                  }
-                  keyboardType="number-pad"
-                />
-                <ToggleField
-                  label={t('agreement.includeMountainRent')}
-                  value={r.includeMountainRent}
-                  onValueChange={(v) =>
-                    setIndividualBusRates((prev) => {
-                      const next = [...prev];
-                      const current = next[idx] ?? { perDayRent: '', includeMountainRent: false, mountainRent: '' };
-                      next[idx] = { ...current, includeMountainRent: v };
-                      return next;
-                    })
-                  }
-                />
-                <Field
-                  label={t('agreement.mountainRent')}
-                  value={r.mountainRent}
-                  onChangeText={(v) =>
-                    setIndividualBusRates((prev) => {
-                      const next = [...prev];
-                      const current = next[idx] ?? { perDayRent: '', includeMountainRent: false, mountainRent: '' };
-                      next[idx] = { ...current, mountainRent: v };
-                      return next;
-                    })
-                  }
-                  keyboardType="number-pad"
-                  editable={r.includeMountainRent}
+          </View>
+
+          {!useIndividualBusRates ? (
+            <>
+              <Input label={t('agreement.perDayRent')} value={perDayRent} onChangeText={setPerDayRent} keyboardType="number-pad" prefix="₹" />
+
+              <View style={[styles.toggleRow, { marginBottom: SPACING.sm }]}>
+                <Text style={styles.label}>{t('agreement.includeMountainRent')}</Text>
+                <Switch
+                  value={includeMountainRent}
+                  onValueChange={setIncludeMountainRent}
+                  trackColor={{ false: COLORS.border, true: COLORS.primaryLight }}
+                  thumbColor={includeMountainRent ? COLORS.primary : '#f4f3f4'}
                 />
               </View>
-            ))}
-          </View>
-        )}
-      </Section>
 
-      <Section title={t('agreement.paymentDetails')}>
-        <Field
-          label={t('agreement.totalAmount')}
-          value={displayTotalAmount}
-          onChangeText={computedTotal ? undefined : setManualTotalAmount}
-          editable={!computedTotal}
-          keyboardType="number-pad"
+              {includeMountainRent && (
+                <Input label={t('agreement.mountainRent')} value={mountainRent} onChangeText={setMountainRent} keyboardType="number-pad" />
+              )}
+            </>
+          ) : (
+            <View style={{ gap: SPACING.md }}>
+              {individualBusRates.map((r, idx) => (
+                <View key={idx} style={styles.subCard}>
+                  <Text style={styles.subCardTitle}>{t('agreement.bus')} {idx + 1}</Text>
+
+                  <Input
+                    label={t('agreement.perDayRent')}
+                    value={r.perDayRent}
+                    onChangeText={(v) =>
+                      setIndividualBusRates((prev) => {
+                        const next = [...prev];
+                        next[idx] = { ...(next[idx] ?? { perDayRent: '', includeMountainRent: false, mountainRent: '' }), perDayRent: v };
+                        return next;
+                      })
+                    }
+                    keyboardType="number-pad"
+                  />
+
+                  <View style={[styles.toggleRow, { marginBottom: SPACING.sm }]}>
+                    <Text style={styles.label}>{t('agreement.includeMountainRent')}</Text>
+                    <Switch
+                      value={r.includeMountainRent}
+                      onValueChange={(v) =>
+                        setIndividualBusRates((prev) => {
+                          const next = [...prev];
+                          next[idx] = { ...(next[idx] ?? { perDayRent: '', includeMountainRent: false, mountainRent: '' }), includeMountainRent: v };
+                          return next;
+                        })
+                      }
+                      trackColor={{ false: COLORS.border, true: COLORS.primaryLight }}
+                      thumbColor={r.includeMountainRent ? COLORS.primary : '#f4f3f4'}
+                    />
+                  </View>
+
+                  {r.includeMountainRent && (
+                    <Input
+                      label={t('agreement.mountainRent')}
+                      value={r.mountainRent}
+                      onChangeText={(v) =>
+                        setIndividualBusRates((prev) => {
+                          const next = [...prev];
+                          next[idx] = { ...(next[idx] ?? { perDayRent: '', includeMountainRent: false, mountainRent: '' }), mountainRent: v };
+                          return next;
+                        })
+                      }
+                      keyboardType="number-pad"
+                    />
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
+        </Card>
+
+        <Card>
+          <Text style={styles.cardTitle}>{t('agreement.paymentDetails')}</Text>
+          <Input
+            label={t('agreement.totalAmount')}
+            value={displayTotalAmount}
+            onChangeText={computedTotal ? undefined : setManualTotalAmount}
+            editable={!computedTotal}
+            keyboardType="number-pad"
+            style={computedTotal ? { backgroundColor: COLORS.background } : undefined}
+          />
+          <Input label={t('agreement.advancePaid')} value={advancePaid} editable={false} style={{ backgroundColor: COLORS.background }} />
+          <Input label={t('agreement.balance')} value={displayBalance} editable={false} style={{ backgroundColor: COLORS.background, fontWeight: 'bold', color: COLORS.primary }} />
+          <Input label={t('agreement.notes')} value={notes} onChangeText={setNotes} multiline style={{ minHeight: 100, textAlignVertical: 'top' }} />
+        </Card>
+
+        <Button
+          title={t('common.save')}
+          onPress={onSave}
+          loading={busy}
+          size="lg"
+          style={{ marginBottom: SPACING.xl }}
         />
-        <Field label={t('agreement.advancePaid')} value={advancePaid} editable={false} keyboardType="number-pad" />
-        <Field label={t('agreement.balance')} value={displayBalance} editable={false} keyboardType="number-pad" />
-        <Field label={t('agreement.notes')} value={notes} onChangeText={setNotes} multiline />
-      </Section>
 
-      <Pressable style={[styles.primaryBtn, busy ? styles.disabled : null]} onPress={onSave} disabled={busy}>
-        <Text style={styles.primaryBtnText}>{t('common.save')}</Text>
-      </Pressable>
-
-      {/* Date Picker */}
-      {picker && Platform.OS === 'android' ? (
-        <DateTimePicker
-          value={picker.date}
-          mode="date"
-          display="default"
-          minimumDate={picker.field === 'toDate' ? parseDateDDMMYYYY(fromDate) ?? undefined : undefined}
-          onChange={(event, selectedDate) => {
-            setPicker(null);
-            if (!selectedDate) return;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if ((event as any)?.type && (event as any).type !== 'set') return;
-            commitPickedDate(picker.field, selectedDate);
-          }}
-        />
-      ) : null}
-
-      {picker && Platform.OS === 'ios' ? (
-        <Modal transparent animationType="fade" visible onRequestClose={() => setPicker(null)}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalCard}>
-              <DateTimePicker
-                value={picker.date}
-                mode="date"
-                display="spinner"
-                minimumDate={picker.field === 'toDate' ? parseDateDDMMYYYY(fromDate) ?? undefined : undefined}
-                onChange={(_, selectedDate) => {
-                  if (!selectedDate) return;
-                  setPicker((p) => (p ? { ...p, date: selectedDate } : p));
-                }}
-              />
-
-              <View style={styles.modalActions}>
-                <Pressable onPress={() => setPicker(null)} style={[styles.modalBtn, styles.modalBtnSecondary]}>
-                  <Text style={styles.modalBtnTextSecondary}>{t('common.cancel')}</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    commitPickedDate(picker.field, picker.date);
-                    setPicker(null);
+        {/* Date Picker Modal */}
+        {(picker && Platform.OS !== 'android') && (
+          <Modal transparent animationType="fade" visible onRequestClose={() => setPicker(null)}>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalCard}>
+                <DateTimePicker
+                  value={picker.date}
+                  mode="date"
+                  display="spinner"
+                  minimumDate={picker.field === 'toDate' ? parseDateDDMMYYYY(fromDate) ?? undefined : undefined}
+                  onChange={(_, selectedDate) => {
+                    if (selectedDate) setPicker((p) => (p ? { ...p, date: selectedDate } : p));
                   }}
-                  style={[styles.modalBtn, styles.modalBtnPrimary]}
-                >
-                  <Text style={styles.modalBtnTextPrimary}>{t('common.done')}</Text>
-                </Pressable>
+                />
+                <View style={styles.modalActions}>
+                  <Button title={t('common.cancel')} onPress={() => setPicker(null)} variant="ghost" size="sm" style={{ flex: 1 }} />
+                  <Button title={t('common.done')} onPress={() => { commitPickedDate(picker.field, picker.date); setPicker(null); }} size="sm" style={{ flex: 1 }} />
+                </View>
               </View>
             </View>
-          </View>
-        </Modal>
-      ) : null}
-    </KeyboardAvoidingScrollView>
+          </Modal>
+        )}
+        {(picker && Platform.OS === 'android') && (
+          <DateTimePicker
+            value={picker.date}
+            mode="date"
+            display="default"
+            minimumDate={picker.field === 'toDate' ? parseDateDDMMYYYY(fromDate) ?? undefined : undefined}
+            onChange={(event, selectedDate) => {
+              setPicker(null);
+              if (selectedDate && event.type === 'set') commitPickedDate(picker.field, selectedDate);
+            }}
+          />
+        )}
+
+      </KeyboardAvoidingScrollView>
+    </Screen>
   );
 }
 
+// Utils (Same as before)
 function parseAmount(input: string): number | null {
   const cleaned = input.replace(/[^0-9.]/g, '');
   if (!cleaned) return null;
@@ -408,8 +419,7 @@ function parsePositiveInt(input: string): number | null {
   const cleaned = input.replace(/[^0-9]/g, '');
   if (!cleaned) return null;
   const n = Number.parseInt(cleaned, 10);
-  if (!Number.isFinite(n)) return null;
-  if (n <= 0) return null;
+  if (!Number.isFinite(n) || n <= 0) return null;
   return n;
 }
 
@@ -417,9 +427,7 @@ function computeBalance(totalAmount: string, advancePaid: string): string {
   if (!totalAmount && !advancePaid) return '';
   const total = parseAmount(totalAmount) ?? 0;
   const advance = parseAmount(advancePaid) ?? 0;
-  const balance = total - advance;
-  const normalized = Object.is(balance, -0) ? 0 : balance;
-  return String(normalized);
+  return String(Object.is(total - advance, -0) ? 0 : total - advance);
 }
 
 function formatDateDDMMYYYY(date: Date): string {
@@ -444,30 +452,17 @@ function computeTripDaysInclusive(fromDate: string, toDate: string): number | nu
   const from = parseDateDDMMYYYY(fromDate);
   const to = parseDateDDMMYYYY(toDate);
   if (!from || !to) return null;
-
   const fromUtc = Date.UTC(from.getFullYear(), from.getMonth(), from.getDate());
   const toUtc = Date.UTC(to.getFullYear(), to.getMonth(), to.getDate());
   if (toUtc < fromUtc) return null;
-
-  const msDay = 24 * 60 * 60 * 1000;
-  return Math.floor((toUtc - fromUtc) / msDay) + 1;
+  return Math.floor((toUtc - fromUtc) / (24 * 60 * 60 * 1000)) + 1;
 }
 
 function formatMoney(n: number): string {
-  const normalized = Object.is(n, -0) ? 0 : n;
-  return String(Number(normalized.toFixed(2)));
+  return String(Number((Object.is(n, -0) ? 0 : n).toFixed(2)));
 }
 
-function computeTotalAmountMaybe(input: {
-  fromDate: string;
-  toDate: string;
-  busCount: string;
-  perDayRent: string;
-  includeMountainRent: boolean;
-  mountainRent: string;
-  useIndividualBusRates: boolean;
-  individualBusRates: IndividualBusRateDraft[];
-}): string | null {
+function computeTotalAmountMaybe(input: any): string | null {
   const days = computeTripDaysInclusive(input.fromDate, input.toDate);
   if (!days) return null;
 
@@ -489,94 +484,78 @@ function computeTotalAmountMaybe(input: {
   if (!buses || perDay == null) return null;
   const mountainPerBus = input.includeMountainRent ? (parseAmount(input.mountainRent) ?? 0) : 0;
   if (input.includeMountainRent && parseAmount(input.mountainRent) == null) return null;
-  const total = buses * perDay * days + buses * mountainPerBus;
-  return formatMoney(total);
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={{ gap: 10 }}>{children}</View>
-    </View>
-  );
-}
-
-function Field(
-  props: {
-    label: string;
-    value: string;
-    onChangeText?: (v: string) => void;
-    onPress?: () => void;
-    editable?: boolean;
-    placeholder?: string;
-    keyboardType?: 'default' | 'number-pad' | 'phone-pad';
-    multiline?: boolean;
-  }
-) {
-  const isPressable = typeof props.onPress === 'function';
-  const disabled = !isPressable && props.editable === false;
-  const scrollOnFocus = useScrollToFocusedInput(props.multiline ? 140 : 90);
-  return (
-    <View style={{ gap: 6 }}>
-      <Text style={styles.label}>{props.label}</Text>
-      {isPressable ? (
-        <Pressable accessibilityRole="button" onPress={props.onPress} style={styles.input}>
-          <Text style={[styles.inputText, !props.value ? styles.placeholderText : null]}>
-            {props.value || props.placeholder || ''}
-          </Text>
-        </Pressable>
-      ) : (
-        <TextInput
-          value={props.value}
-          onChangeText={props.onChangeText}
-          placeholder={props.placeholder}
-          keyboardType={props.keyboardType}
-          multiline={props.multiline}
-          editable={!disabled}
-          onFocus={scrollOnFocus}
-          style={[styles.input, disabled ? styles.inputDisabled : null, props.multiline ? styles.multiline : null]}
-        />
-      )}
-    </View>
-  );
-}
-
-function ToggleField(props: { label: string; value: boolean; onValueChange: (v: boolean) => void }) {
-  return (
-    <View style={styles.toggleRow}>
-      <Text style={styles.label}>{props.label}</Text>
-      <Switch value={props.value} onValueChange={props.onValueChange} />
-    </View>
-  );
+  return formatMoney(buses * perDay * days + buses * mountainPerBus);
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 16 },
-  section: { backgroundColor: 'white', borderRadius: 12, padding: 14, gap: 10, borderWidth: 1, borderColor: '#eee' },
-  sectionTitle: { fontSize: 16, fontWeight: '700' },
-  label: { fontSize: 13, fontWeight: '600', color: '#374151' },
-  input: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
-  inputText: { fontSize: 14, color: '#111827' },
-  placeholderText: { color: '#9ca3af' },
-  inputDisabled: { backgroundColor: '#f3f4f6', color: '#111827' },
-  multiline: { minHeight: 80, textAlignVertical: 'top' },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-
-  busRateCard: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, padding: 12, gap: 10 },
-  busRateTitle: { fontSize: 14, fontWeight: '800', color: '#111827' },
-
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', padding: 16 },
-  modalCard: { backgroundColor: 'white', borderRadius: 14, padding: 14, gap: 12 },
-  modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
-  modalBtn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10 },
-  modalBtnPrimary: { backgroundColor: '#111827' },
-  modalBtnSecondary: { backgroundColor: '#f3f4f6' },
-  modalBtnTextPrimary: { color: 'white', fontWeight: '700' },
-  modalBtnTextSecondary: { color: '#111827', fontWeight: '700' },
-
-  primaryBtn: { backgroundColor: '#111827', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  primaryBtnText: { color: 'white', fontSize: 16, fontWeight: '800' },
-  disabled: { opacity: 0.6 },
+  container: {
+    backgroundColor: COLORS.background,
+  },
+  scrollContent: {
+    padding: SPACING.md,
+    gap: SPACING.md,
+  },
+  cardTitle: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: FONT_WEIGHT.bold,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.md,
+  },
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  badge: {
+    backgroundColor: COLORS.primaryLight,
+    color: COLORS.primary,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 4,
+    borderRadius: RADIUS.round,
+    fontSize: FONT_SIZE.xs,
+    fontWeight: FONT_WEIGHT.bold,
+    overflow: 'hidden',
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  label: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.medium,
+    color: COLORS.textSecondary,
+  },
+  subCard: {
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.md,
+    padding: SPACING.sm,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  subCardTitle: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.bold,
+    marginBottom: SPACING.sm,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: SPACING.lg,
+  },
+  modalCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    alignItems: 'center',
+    ...SHADOWS.medium,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+    marginTop: SPACING.md,
+    width: '100%',
+  },
 });
-

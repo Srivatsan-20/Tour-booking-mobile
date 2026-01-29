@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -8,8 +8,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { listAgreements } from '../api/agreements';
 import type { RootStackParamList } from '../navigation/types';
 import type { AgreementResponse } from '../types/api';
-import { Card } from '../components/ui/Card';
-import { COLORS, SPACING, FONT_SIZE, GLOBAL_STYLES } from '../theme';
+import { Card } from '../components/Card';
+import { Screen } from '../components/Screen';
+import { Button } from '../components/Button';
+import { COLORS, SPACING, FONT_SIZE, FONT_WEIGHT, RADIUS } from '../theme';
 
 function parseDdMmYyyy(value: string): Date | null {
   const parts = value.split('/').map((p) => p.trim());
@@ -68,28 +70,63 @@ export function BookingsScreen({ navigation }: Props) {
     }, [load]),
   );
 
-  return (
-    <View style={GLOBAL_STYLES.container}>
-      <View style={styles.header}>
-        <Text style={GLOBAL_STYLES.title}>{t('bookings.title')}</Text>
+  const renderItem = ({ item }: { item: AgreementResponse }) => (
+    <Card
+      style={styles.card}
+      onPress={() => navigation.navigate('BookingDetails', { agreement: item })}
+      padding="md"
+    >
+      <View style={styles.cardHeader}>
+        <View style={styles.iconBox}>
+          <MaterialCommunityIcons name="bus-side" size={24} color={COLORS.primary} />
+        </View>
+        <View style={styles.headerText}>
+          <Text style={styles.customerName} numberOfLines={1}>{item.customerName}</Text>
+          <Text style={styles.busType}>{item.busType}</Text>
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={24} color={COLORS.textTertiary} />
       </View>
 
-      {error && items.length === 0 ? (
-        <View style={styles.stateBox}>
-          <Text style={styles.note}>{t('bookings.error')}</Text>
-          <Text style={styles.noteSmall} numberOfLines={4}>
-            {error}
+      <View style={styles.divider} />
+
+      <View style={styles.row}>
+        <View style={styles.metaItem}>
+          <MaterialCommunityIcons name="calendar-range" size={16} color={COLORS.textSecondary} />
+          <Text style={styles.metaText}>{item.fromDate} - {item.toDate}</Text>
+        </View>
+      </View>
+
+      <View style={styles.row}>
+        <View style={styles.metaItem}>
+          <MaterialCommunityIcons name="map-marker-distance" size={16} color={COLORS.textSecondary} />
+          <Text style={styles.metaText}>
+            {t('agreement.pickup')}: <Text style={styles.highlight}>{item.pickupLocation}</Text>
           </Text>
-          <Pressable style={GLOBAL_STYLES.btnPrimary} onPress={load}>
-            <Text style={GLOBAL_STYLES.btnText}>{t('bookings.retry')}</Text>
-          </Pressable>
+        </View>
+      </View>
+    </Card>
+  );
+
+  return (
+    <Screen style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>{t('bookings.title')}</Text>
+        <Text style={styles.subtitle}>Upcoming trips and reservations</Text>
+      </View>
+
+      {error && !loading && items.length === 0 ? (
+        <View style={styles.centerBox}>
+          <MaterialCommunityIcons name="alert-circle-outline" size={48} color={COLORS.error} />
+          <Text style={styles.errorText}>{t('bookings.error')}</Text>
+          <Text style={styles.errorDetail}>{error}</Text>
+          <Button title={t('bookings.retry')} onPress={load} size="sm" style={{ marginTop: SPACING.md }} />
         </View>
       ) : null}
 
       {loading && items.length === 0 ? (
-        <View style={styles.stateBox}>
+        <View style={styles.centerBox}>
           <ActivityIndicator color={COLORS.primary} size="large" />
-          <Text style={styles.note}>{t('bookings.loading')}</Text>
+          <Text style={styles.loadingText}>{t('bookings.loading')}</Text>
         </View>
       ) : null}
 
@@ -99,106 +136,117 @@ export function BookingsScreen({ navigation }: Props) {
         keyExtractor={(item) => item.id}
         refreshing={loading}
         onRefresh={load}
+        renderItem={renderItem}
         ListEmptyComponent={
-          !loading && !error ? <Text style={styles.note}>{t('bookings.empty')}</Text> : null
+          !loading && !error ? (
+            <View style={styles.centerBox}>
+              <MaterialCommunityIcons name="bus-stop" size={64} color={COLORS.border} />
+              <Text style={styles.emptyText}>{t('bookings.empty')}</Text>
+            </View>
+          ) : null
         }
-        renderItem={({ item }) => (
-          <Pressable
-            onPress={() => navigation.navigate('BookingDetails', { agreement: item })}
-          >
-            <Card style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardIcon}>
-                  <MaterialCommunityIcons name="bus" size={24} color={COLORS.primary} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.cardTitle}>{item.customerName}</Text>
-                  <Text style={styles.cardSub}>{item.busType}</Text>
-                </View>
-                <MaterialCommunityIcons name="chevron-right" size={24} color={COLORS.textSecondary} />
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.cardRow}>
-                <View style={styles.rowItem}>
-                  <MaterialCommunityIcons name="calendar" size={16} color={COLORS.textSecondary} style={{ marginRight: 4 }} />
-                  <Text style={styles.cardMeta}>{`${item.fromDate} → ${item.toDate}`}</Text>
-                </View>
-              </View>
-
-              {item.totalAmount != null ? (
-                <View style={[styles.cardRow, { marginTop: 8 }]}>
-                  <View style={styles.rowItem}>
-                    <MaterialCommunityIcons name="cash" size={16} color={COLORS.textSecondary} style={{ marginRight: 4 }} />
-                    <Text style={[styles.cardMeta, { fontWeight: 'bold', color: COLORS.success }]}>{`${t('agreement.totalAmount')}: ${item.totalAmount}`}</Text>
-                  </View>
-                </View>
-              ) : null}
-            </Card>
-          </Pressable>
-        )}
       />
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    backgroundColor: COLORS.background,
+  },
   header: {
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.md,
+    paddingVertical: SPACING.md,
+    marginBottom: SPACING.sm,
+  },
+  title: {
+    fontSize: FONT_SIZE.xxl,
+    fontWeight: FONT_WEIGHT.bold,
+    color: COLORS.textPrimary,
+  },
+  subtitle: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
   listContent: {
-    padding: SPACING.md,
     paddingBottom: SPACING.xxl,
   },
-  stateBox: { paddingVertical: SPACING.xl, gap: SPACING.md, alignItems: 'center' },
-  note: { color: COLORS.textSecondary, fontSize: FONT_SIZE.md, textAlign: 'center' },
-  noteSmall: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, textAlign: 'center' },
-
   card: {
     marginBottom: SPACING.md,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.md,
   },
-  cardIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#EEF2FF',
+  iconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: SPACING.md,
   },
-  cardTitle: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: 'bold',
-    color: COLORS.textPrimary
+  headerText: {
+    flex: 1,
   },
-  cardSub: {
+  customerName: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: FONT_WEIGHT.bold,
+    color: COLORS.textPrimary,
+  },
+  busType: {
+    fontSize: FONT_SIZE.sm,
     color: COLORS.textSecondary,
-    fontSize: FONT_SIZE.md
   },
   divider: {
     height: 1,
-    backgroundColor: '#E5E7EB',
-    marginVertical: SPACING.sm,
+    backgroundColor: COLORS.border,
+    marginBottom: SPACING.md,
   },
-  cardRow: {
+  row: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    marginBottom: SPACING.xs,
   },
-  rowItem: {
+  metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: SPACING.xs,
   },
-  cardMeta: {
+  metaText: {
+    fontSize: FONT_SIZE.md,
     color: COLORS.textSecondary,
-    fontWeight: '500',
-    fontSize: FONT_SIZE.md
+  },
+  highlight: {
+    color: COLORS.textPrimary,
+    fontWeight: FONT_WEIGHT.medium,
+  },
+  centerBox: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SPACING.xl,
+    paddingTop: 100,
+  },
+  errorText: {
+    marginTop: SPACING.md,
+    fontSize: FONT_SIZE.lg,
+    fontWeight: FONT_WEIGHT.bold,
+    color: COLORS.textPrimary,
+  },
+  errorDetail: {
+    marginTop: SPACING.xs,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+  },
+  loadingText: {
+    marginTop: SPACING.md,
+    color: COLORS.textSecondary,
+  },
+  emptyText: {
+    marginTop: SPACING.md,
+    fontSize: FONT_SIZE.lg,
+    color: COLORS.textTertiary,
   },
 });
-

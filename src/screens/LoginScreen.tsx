@@ -1,21 +1,27 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, View, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Alert, Text, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useAuth } from '../contexts/AuthContext';
 import { login } from '../api/auth';
+import { COLORS, SPACING, FONT_SIZE, FONT_WEIGHT, SHADOWS, RADIUS } from '../theme';
+
+import { Screen } from '../components/Screen';
+import { Input } from '../components/Input';
+import { Button } from '../components/Button';
 import { KeyboardAvoidingScrollView } from '../components/KeyboardAvoidingScrollView';
-import { COLORS, SPACING, FONT_SIZE, GLOBAL_STYLES } from '../theme';
 
 export function LoginScreen() {
     const { signIn } = useAuth();
+    const { t } = useTranslation();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     async function handleLogin() {
         if (!username.trim() || !password.trim()) {
-            Alert.alert('Error', 'Please enter username and password');
+            Alert.alert(t('common.error'), t('auth.fillAllFields'));
             return;
         }
 
@@ -24,116 +30,108 @@ export function LoginScreen() {
             const { token } = await login({ username, password });
             await signIn(token);
         } catch (e: any) {
-            Alert.alert('Login Failed', e.message || 'Unknown error');
+            Alert.alert(t('auth.loginFailed'), e.message || 'Unknown error');
         } finally {
             setIsSubmitting(false);
         }
     }
 
     return (
-        <KeyboardAvoidingScrollView contentContainerStyle={styles.container}>
-            <View style={styles.content}>
-                <View style={styles.header}>
-                    <View style={styles.iconCircle}>
-                        <MaterialCommunityIcons name="bus-side" size={48} color={COLORS.white} />
+        <Screen style={styles.container} unsafe>
+            <KeyboardAvoidingScrollView contentContainerStyle={styles.scrollContent}>
+
+                <View style={styles.headerContainer}>
+                    <View style={styles.logoContainer}>
+                        <MaterialCommunityIcons name="bus-marker" size={64} color={COLORS.primary} />
                     </View>
-                    <Text style={styles.title}>Tour Booking</Text>
-                    <Text style={styles.subtitle}>Sign in to access your business</Text>
+                    <Text style={styles.title}>{t('common.appName')}</Text>
+                    <Text style={styles.subtitle}>{t('auth.welcome')}</Text>
                 </View>
 
-                <View style={styles.form}>
-                    <View>
-                        <Text style={GLOBAL_STYLES.label}>Username</Text>
-                        <TextInput
-                            style={GLOBAL_STYLES.input}
-                            autoCapitalize="none"
-                            value={username}
-                            onChangeText={setUsername}
-                            placeholder="e.g. admin"
-                            placeholderTextColor={COLORS.textSecondary}
-                        />
-                    </View>
+                <View style={styles.formContainer}>
+                    <Input
+                        label={t('auth.username')}
+                        value={username}
+                        onChangeText={setUsername}
+                        placeholder={t('auth.usernamePlaceholder')}
+                        autoCapitalize="none"
+                        leftIcon={<MaterialCommunityIcons name="account-outline" size={20} color={COLORS.textTertiary} />}
+                    />
 
-                    <View>
-                        <Text style={GLOBAL_STYLES.label}>Password</Text>
-                        <TextInput
-                            style={GLOBAL_STYLES.input}
-                            secureTextEntry
-                            value={password}
-                            onChangeText={setPassword}
-                            placeholder="••••••••"
-                            placeholderTextColor={COLORS.textSecondary}
-                        />
-                    </View>
+                    <Input
+                        label={t('auth.password')}
+                        value={password}
+                        onChangeText={setPassword}
+                        placeholder={t('auth.passwordPlaceholder')}
+                        secureTextEntry
+                        leftIcon={<MaterialCommunityIcons name="lock-outline" size={20} color={COLORS.textTertiary} />}
+                        containerStyle={{ marginTop: SPACING.sm }}
+                    />
 
-                    <TouchableOpacity
-                        style={[GLOBAL_STYLES.btnPrimary, isSubmitting && styles.buttonDisabled]}
+                    <Button
+                        title={t('auth.signIn')}
                         onPress={handleLogin}
-                        disabled={isSubmitting}
-                    >
-                        {isSubmitting ? (
-                            <ActivityIndicator color={COLORS.white} />
-                        ) : (
-                            <Text style={GLOBAL_STYLES.btnText}>Sign In</Text>
-                        )}
-                    </TouchableOpacity>
+                        loading={isSubmitting}
+                        style={styles.loginButton}
+                        size="lg"
+                    />
                 </View>
-            </View>
-        </KeyboardAvoidingScrollView>
+
+                <Text style={styles.footerText}>
+                    Version 1.0.0 • Tour Management System
+                </Text>
+
+            </KeyboardAvoidingScrollView>
+        </Screen>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        flexGrow: 1,
         backgroundColor: COLORS.background,
+    },
+    scrollContent: {
+        flexGrow: 1,
         justifyContent: 'center',
+        padding: SPACING.xl,
     },
-    content: {
-        padding: SPACING.lg,
-    },
-    header: {
+    headerContainer: {
         alignItems: 'center',
         marginBottom: SPACING.xxl,
     },
-    iconCircle: {
-        width: 96,
-        height: 96,
-        borderRadius: 48,
-        backgroundColor: COLORS.primary,
+    logoContainer: {
+        width: 120,
+        height: 120,
+        borderRadius: RADIUS.round,
+        backgroundColor: COLORS.primaryLight,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: SPACING.md,
-        shadowColor: COLORS.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
+        marginBottom: SPACING.lg,
+        ...SHADOWS.soft,
     },
     title: {
         fontSize: FONT_SIZE.xxl,
-        fontWeight: 'bold',
+        fontWeight: FONT_WEIGHT.bold,
         color: COLORS.textPrimary,
-        textAlign: 'center',
+        marginBottom: SPACING.xs,
     },
     subtitle: {
         fontSize: FONT_SIZE.md,
         color: COLORS.textSecondary,
-        marginTop: SPACING.xs,
-        textAlign: 'center',
     },
-    form: {
-        gap: SPACING.md,
+    formContainer: {
         backgroundColor: COLORS.surface,
+        borderRadius: RADIUS.lg,
         padding: SPACING.lg,
-        borderRadius: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 4,
+        ...SHADOWS.medium,
+        marginBottom: SPACING.xxl,
     },
-    buttonDisabled: {
-        opacity: 0.7,
+    loginButton: {
+        marginTop: SPACING.xl,
+    },
+    footerText: {
+        textAlign: 'center',
+        color: COLORS.textTertiary,
+        fontSize: FONT_SIZE.sm,
     },
 });

@@ -8,6 +8,11 @@ import { listAgreements } from '../api/agreements';
 import type { RootStackParamList } from '../navigation/types';
 import type { AgreementResponse } from '../types/api';
 
+import { Screen } from '../components/Screen';
+import { Card } from '../components/Card';
+import { Button } from '../components/Button';
+import { COLORS, SPACING, FONT_SIZE, FONT_WEIGHT, RADIUS, SHADOWS } from '../theme';
+
 type Props = NativeStackScreenProps<RootStackParamList, 'CancelledTours'>;
 
 function formatCancelledAt(value: string | null | undefined): string {
@@ -54,25 +59,21 @@ export function CancelledToursScreen({ navigation }: Props) {
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{t('cancelledTours.title')}</Text>
+    <Screen style={styles.container}>
+      {loading && items.length === 0 ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.note}>{t('cancelledTours.loading')}</Text>
+        </View>
+      ) : null}
 
       {error && items.length === 0 ? (
-        <View style={styles.stateBox}>
+        <View style={styles.center}>
           <Text style={styles.note}>{t('cancelledTours.error')}</Text>
           <Text style={styles.noteSmall} numberOfLines={4}>
             {error}
           </Text>
-          <Pressable style={styles.retryBtn} onPress={load}>
-            <Text style={styles.retryBtnText}>{t('cancelledTours.retry')}</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      {loading && items.length === 0 ? (
-        <View style={styles.stateBox}>
-          <ActivityIndicator />
-          <Text style={styles.note}>{t('cancelledTours.loading')}</Text>
+          <Button title={t('cancelledTours.retry')} onPress={() => void load()} />
         </View>
       ) : null}
 
@@ -81,51 +82,53 @@ export function CancelledToursScreen({ navigation }: Props) {
         keyExtractor={(item) => item.id}
         refreshing={loading}
         onRefresh={load}
-        contentContainerStyle={items.length === 0 ? styles.listEmptyContainer : undefined}
-        ListEmptyComponent={!loading && !error ? <Text style={styles.note}>{t('cancelledTours.empty')}</Text> : null}
+        contentContainerStyle={styles.listContent}
+        ListEmptyComponent={!loading && !error ? <Text style={styles.emptyText}>{t('cancelledTours.empty')}</Text> : null}
         renderItem={({ item }) => (
-          <Pressable
+          <Card
             style={styles.card}
             onPress={() => navigation.navigate('BookingDetails', { agreement: item })}
           >
-            <Text style={styles.cardTitle}>{item.customerName}</Text>
+            <View style={styles.row}>
+              <Text style={styles.cardTitle}>{item.customerName}</Text>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{t('allTours.statusCancelled')}</Text>
+              </View>
+            </View>
+
             <Text style={styles.cardSub}>{`${item.fromDate} → ${item.toDate}`}</Text>
             <Text style={styles.cardMeta}>{`${t('cancelledTours.cancelledAt')}: ${formatCancelledAt(
               item.cancelledAtUtc,
             )}`}</Text>
-          </Pressable>
+            <View style={styles.reasonBox}>
+              <Text style={styles.reasonText}>{t('cancelledTours.reason')}: {item.cancellationReason || '-'}</Text>
+            </View>
+          </Card>
         )}
       />
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 10 },
-  title: { fontSize: 18, fontWeight: '800' },
-  note: { color: '#6b7280', textAlign: 'center' },
-  noteSmall: { color: '#6b7280', fontSize: 12, textAlign: 'center' },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  listContent: { padding: SPACING.md },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACING.lg, gap: SPACING.md },
 
-  stateBox: { paddingVertical: 18, gap: 10, alignItems: 'center' },
-  retryBtn: {
-    backgroundColor: '#111827',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-  },
-  retryBtnText: { color: 'white', fontSize: 14, fontWeight: '700' },
+  note: { color: COLORS.textSecondary, textAlign: 'center' },
+  noteSmall: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, textAlign: 'center' },
+  emptyText: { textAlign: 'center', color: COLORS.textSecondary, marginTop: SPACING.xl },
 
-  listEmptyContainer: { flexGrow: 1, justifyContent: 'center' },
+  card: { marginBottom: SPACING.md },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  cardTitle: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.bold, color: COLORS.textPrimary },
 
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  cardTitle: { fontSize: 16, fontWeight: '800', marginBottom: 4, color: '#111827' },
-  cardSub: { color: '#374151', marginBottom: 8 },
-  cardMeta: { color: '#6b7280', fontWeight: '600' },
+  cardSub: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, marginBottom: 4 },
+  cardMeta: { color: COLORS.textTertiary, fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.medium },
+
+  badge: { backgroundColor: COLORS.errorBg, paddingHorizontal: 8, paddingVertical: 2, borderRadius: RADIUS.full },
+  badgeText: { fontSize: 10, fontWeight: FONT_WEIGHT.bold, color: COLORS.error },
+
+  reasonBox: { marginTop: SPACING.sm, padding: SPACING.sm, backgroundColor: COLORS.background, borderRadius: RADIUS.sm },
+  reasonText: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm, fontStyle: 'italic' },
 });

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Linking, Modal, Platform, StyleSheet, Text, View, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -9,7 +9,11 @@ import type { RootStackParamList } from '../navigation/types';
 import { addAdvanceToAgreement, cancelAgreement } from '../api/agreements';
 import type { AgreementResponse } from '../types/api';
 import { generateAndShareAgreementPdf } from '../utils/pdfGenerator';
-
+import { Screen } from '../components/Screen';
+import { Card } from '../components/Card';
+import { Button } from '../components/Button';
+import { Input } from '../components/Input';
+import { COLORS, SPACING, FONT_SIZE, FONT_WEIGHT, RADIUS, SHADOWS } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BookingDetails'>;
 
@@ -39,10 +43,8 @@ function parseDateDDMMYYYY(input: string): Date | null {
   const dd = Number(m[1]);
   const mm = Number(m[2]);
   const yyyy = Number(m[3]);
-  if (!Number.isFinite(dd) || !Number.isFinite(mm) || !Number.isFinite(yyyy)) return null;
   const d = new Date(yyyy, mm - 1, dd);
   if (Number.isNaN(d.getTime())) return null;
-  // validate round-trip
   if (d.getFullYear() !== yyyy || d.getMonth() !== mm - 1 || d.getDate() !== dd) return null;
   return d;
 }
@@ -58,6 +60,13 @@ function computeTripDaysInclusive(fromDate: string, toDate: string): number | nu
   if (!Number.isFinite(diffDays) || diffDays < 0) return null;
   return diffDays + 1;
 }
+
+const DetailRow = ({ label, value }: { label: string; value: string | React.ReactNode }) => (
+  <View style={styles.detailRow}>
+    <Text style={styles.detailLabel}>{label}</Text>
+    <Text style={styles.detailValue}>{value || '-'}</Text>
+  </View>
+);
 
 export function BookingDetailsScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
@@ -124,254 +133,322 @@ export function BookingDetailsScreen({ route, navigation }: Props) {
   };
 
   return (
-    <KeyboardAvoidingScrollView contentContainerStyle={styles.container}>
-      {isCancelled ? (
-        <View style={styles.cancelledBanner}>
-          <Text style={styles.cancelledBannerText}>
-            {t('bookingDetails.cancelled')} {t('cancelledTours.cancelledAt')}: {formatCancelledAt(agreement.cancelledAtUtc)}
-          </Text>
-        </View>
-      ) : null}
+    <Screen style={styles.container}>
+      <KeyboardAvoidingScrollView contentContainerStyle={styles.scrollContent}>
+        {isCancelled ? (
+          <View style={styles.cancelledBanner}>
+            <MaterialCommunityIcons name="alert-circle" size={20} color={COLORS.error} />
+            <Text style={styles.cancelledBannerText}>
+              {t('bookingDetails.cancelled')} • {formatCancelledAt(agreement.cancelledAtUtc)}
+            </Text>
+          </View>
+        ) : null}
 
-      <Card>
-        <Text style={styles.cardTitle}>{t('agreement.customerDetails')}</Text>
-        <Row label={t('agreement.customerName')} value={agreement.customerName} />
-        <Row label={t('agreement.phone')} value={agreement.phone} />
-      </Card>
+        <Card>
+          <View style={styles.cardHeader}>
+            <MaterialCommunityIcons name="account" size={20} color={COLORS.primary} />
+            <Text style={styles.cardTitle}>{t('agreement.customerDetails')}</Text>
+          </View>
+          <View style={styles.cardBody}>
+            <DetailRow label={t('agreement.customerName')} value={agreement.customerName} />
+            <DetailRow label={t('agreement.phone')} value={agreement.phone} />
+          </View>
+        </Card>
 
-      <Card>
-        <Text style={styles.cardTitle}>{t('agreement.tripDetails')}</Text>
-        <Row label={t('agreement.fromDate')} value={agreement.fromDate} />
-        <Row label={t('agreement.toDate')} value={agreement.toDate} />
-        <Row label={t('agreement.totalDays')} value={totalDays == null ? '-' : String(totalDays)} />
-        <Row label={t('agreement.busType')} value={agreement.busType} />
-        <Row label={t('agreement.busCount')} value={agreement.busCount == null ? '-' : String(agreement.busCount)} />
-        <Row label={t('agreement.passengers')} value={agreement.passengers == null ? '-' : String(agreement.passengers)} />
-        <Row label={t('agreement.placesToCover')} value={agreement.placesToCover} />
-      </Card>
+        <Card>
+          <View style={styles.cardHeader}>
+            <MaterialCommunityIcons name="bus" size={20} color={COLORS.primary} />
+            <Text style={styles.cardTitle}>{t('agreement.tripDetails')}</Text>
+          </View>
+          <View style={styles.cardBody}>
+            <DetailRow label={t('agreement.fromDate')} value={agreement.fromDate} />
+            <DetailRow label={t('agreement.toDate')} value={agreement.toDate} />
+            <DetailRow label={t('agreement.totalDays')} value={totalDays == null ? '-' : String(totalDays)} />
+            <DetailRow label={t('agreement.busType')} value={agreement.busType} />
+            <DetailRow label={t('agreement.busCount')} value={agreement.busCount == null ? '-' : String(agreement.busCount)} />
+            <DetailRow label={t('agreement.passengers')} value={agreement.passengers == null ? '-' : String(agreement.passengers)} />
+            <DetailRow label={t('agreement.placesToCover')} value={agreement.placesToCover} />
+          </View>
+        </Card>
 
-      <Card>
-        <Text style={styles.cardTitle}>{t('agreement.rentDetails')}</Text>
-        <Row label={t('agreement.useIndividualBusRates')} value={yesNo(agreement.useIndividualBusRates)} />
+        <Card>
+          <View style={styles.cardHeader}>
+            <MaterialCommunityIcons name="cash" size={20} color={COLORS.primary} />
+            <Text style={styles.cardTitle}>{t('agreement.rentDetails')}</Text>
+          </View>
+          <View style={styles.cardBody}>
+            <DetailRow label={t('agreement.useIndividualBusRates')} value={yesNo(agreement.useIndividualBusRates)} />
 
-        {!agreement.useIndividualBusRates ? (
-          <>
-            <Row label={t('agreement.perDayRent')} value={money(agreement.perDayRent)} />
-            <Row label={t('agreement.includeMountainRent')} value={yesNo(agreement.includeMountainRent)} />
-            {agreement.includeMountainRent ? (
-              <Row label={t('agreement.mountainRent')} value={money(agreement.mountainRent)} />
-            ) : null}
-          </>
-        ) : (
-          <View style={{ gap: 12 }}>
-            {(agreement.busRates ?? []).map((r, idx) => (
-              <View key={idx} style={styles.busRateCard}>
-                <Text style={styles.busRateTitle}>
-                  {t('agreement.bus')} {idx + 1}
-                </Text>
-                <Row label={t('agreement.perDayRent')} value={money(r.perDayRent)} />
-                <Row label={t('agreement.includeMountainRent')} value={yesNo(r.includeMountainRent)} />
-                {r.includeMountainRent ? <Row label={t('agreement.mountainRent')} value={money(r.mountainRent)} /> : null}
+            {!agreement.useIndividualBusRates ? (
+              <>
+                <DetailRow label={t('agreement.perDayRent')} value={money(agreement.perDayRent)} />
+                <DetailRow label={t('agreement.includeMountainRent')} value={yesNo(agreement.includeMountainRent)} />
+                {agreement.includeMountainRent ? (
+                  <DetailRow label={t('agreement.mountainRent')} value={money(agreement.mountainRent)} />
+                ) : null}
+              </>
+            ) : (
+              <View style={styles.busRatesContainer}>
+                {(agreement.busRates ?? []).map((r, idx) => (
+                  <View key={idx} style={styles.busRateItem}>
+                    <Text style={styles.busRateTitle}>
+                      {t('agreement.bus')} {idx + 1}
+                    </Text>
+                    <DetailRow label={t('agreement.perDayRent')} value={money(r.perDayRent)} />
+                    <DetailRow label={t('agreement.includeMountainRent')} value={yesNo(r.includeMountainRent)} />
+                    {r.includeMountainRent ? <DetailRow label={t('agreement.mountainRent')} value={money(r.mountainRent)} /> : null}
+                  </View>
+                ))}
               </View>
-            ))}
+            )}
           </View>
-        )}
-      </Card>
+        </Card>
 
-      <Card>
-        <Text style={styles.cardTitle}>{t('agreement.paymentDetails')}</Text>
-        <Row label={t('agreement.totalAmount')} value={money(agreement.totalAmount)} />
-        <Row label={t('agreement.advancePaid')} value={money(agreement.advancePaid)} />
-        <Row label={t('agreement.balance')} value={money(agreement.balance)} />
-        <Row label={t('agreement.notes')} value={agreement.notes || '-'} />
-      </Card>
+        <Card>
+          <View style={styles.cardHeader}>
+            <MaterialCommunityIcons name="receipt" size={20} color={COLORS.primary} />
+            <Text style={styles.cardTitle}>{t('agreement.paymentDetails')}</Text>
+          </View>
+          <View style={styles.cardBody}>
+            <DetailRow label={t('agreement.totalAmount')} value={money(agreement.totalAmount)} />
+            <DetailRow label={t('agreement.advancePaid')} value={money(agreement.advancePaid)} />
+            <DetailRow label={t('agreement.balance')} value={<Text style={{ color: COLORS.primary, fontWeight: 'bold' }}>{money(agreement.balance)}</Text>} />
+            <DetailRow label={t('agreement.notes')} value={agreement.notes || '-'} />
+          </View>
+        </Card>
 
-      <View style={styles.actionsRow}>
-        <Pressable
-          style={[styles.primaryBtn, busy || isCancelled ? styles.btnDisabled : null]}
-          disabled={busy || isCancelled}
-          onPress={() => setAdvanceModalOpen(true)}
-        >
-          <Text style={styles.primaryBtnText}>{t('bookingDetails.addAdvance')}</Text>
-        </Pressable>
+        <View style={styles.actionsContainer}>
+          <Button
+            title={t('bookingDetails.addAdvance')}
+            onPress={() => setAdvanceModalOpen(true)}
+            disabled={busy || isCancelled}
+            variant="primary"
+            leftIcon={<MaterialCommunityIcons name="cash-plus" size={20} color={COLORS.surface} />}
+          />
 
-        <Pressable
-          style={[styles.secondaryBtn, busy ? styles.btnDisabled : null]}
-          disabled={busy}
-          onPress={() => navigation.navigate('TourAccount', { agreementId: agreement.id })}
-        >
-          <Text style={styles.secondaryBtnText}>{t('bookingDetails.accountsButton')}</Text>
-        </Pressable>
+          <View style={styles.doubleBtnRow}>
+            <Button
+              title={t('bookingDetails.accountsButton')}
+              onPress={() => navigation.navigate('TourAccount', { agreementId: agreement.id })}
+              disabled={busy}
+              variant="outline"
+              style={{ flex: 1 }}
+            />
+            <Button
+              title={t('bookingDetails.alterButton')}
+              onPress={() => navigation.navigate('BookingEdit', { agreement })}
+              disabled={busy || isCancelled}
+              variant="outline"
+              style={{ flex: 1 }}
+            />
+          </View>
 
-        <Pressable
-          style={[styles.secondaryBtn, busy || isCancelled ? styles.btnDisabled : null]}
-          disabled={busy || isCancelled}
-          onPress={() => navigation.navigate('BookingEdit', { agreement })}
-        >
-          <Text style={styles.secondaryBtnText}>{t('bookingDetails.alterButton')}</Text>
-        </Pressable>
-
-        <Pressable
-          style={[styles.whatsappBtn, busy ? styles.btnDisabled : null]}
-          disabled={busy}
-          onPress={async () => {
-            const ph = agreement.phone.replace(/[^0-9]/g, '');
-            const msg = `Booking Confirmed!\n\nCustomer: ${agreement.customerName}\nDates: ${agreement.fromDate} to ${agreement.toDate}\nBus: ${agreement.busType} (${agreement.busCount})\nTotal Amount: ${agreement.totalAmount}\nBalance: ${agreement.balance}\n\nThank you for choosing us!`;
-            const url = `whatsapp://send?phone=${ph}&text=${encodeURIComponent(msg)}`;
-
-            try {
-              const supported = await Linking.canOpenURL(url);
-              if (supported) {
-                await Linking.openURL(url);
-              } else {
-                Alert.alert('Error', 'WhatsApp is not installed');
+          <Button
+            title="WhatsApp Receipt"
+            onPress={async () => {
+              const ph = agreement.phone.replace(/[^0-9]/g, '');
+              const msg = `Booking Confirmed!\n\nCustomer: ${agreement.customerName}\nDates: ${agreement.fromDate} to ${agreement.toDate}\nBus: ${agreement.busType} (${agreement.busCount})\nTotal Amount: ${agreement.totalAmount}\nBalance: ${agreement.balance}\n\nThank you for choosing us!`;
+              const url = `whatsapp://send?phone=${ph}&text=${encodeURIComponent(msg)}`;
+              try {
+                const supported = await Linking.canOpenURL(url);
+                if (supported) await Linking.openURL(url);
+                else Alert.alert('Error', 'WhatsApp is not installed');
+              } catch (err) {
+                Alert.alert('Error', 'Could not open WhatsApp');
               }
-            } catch (err) {
-              Alert.alert('Error', 'Could not open WhatsApp');
-            }
-          }}
-        >
-          <MaterialCommunityIcons name="whatsapp" size={24} color="white" style={{ marginRight: 8 }} />
-          <Text style={styles.whatsappBtnText}>WhatsApp Text</Text>
-        </Pressable>
+            }}
+            disabled={busy}
+            variant="primary"
+            style={{ backgroundColor: '#25D366' }} // WhatsApp Green
+            leftIcon={<MaterialCommunityIcons name="whatsapp" size={20} color={COLORS.surface} />}
+          />
 
-        <Pressable
-          style={[styles.pdfBtn, busy ? styles.btnDisabled : null]}
-          disabled={busy}
-          onPress={async () => {
-            setBusy(true);
-            try {
-              await generateAndShareAgreementPdf(agreement);
-            } catch (e: any) {
-              Alert.alert('Error', 'Failed to generate PDF');
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          <MaterialCommunityIcons name="file-pdf-box" size={24} color="white" style={{ marginRight: 8 }} />
-          <Text style={styles.pdfBtnText}>Share PDF</Text>
-        </Pressable>
+          <Button
+            title="Share PDF"
+            onPress={async () => {
+              setBusy(true);
+              try {
+                await generateAndShareAgreementPdf(agreement);
+              } catch (e: any) {
+                Alert.alert('Error', 'Failed to generate PDF');
+              } finally {
+                setBusy(false);
+              }
+            }}
+            disabled={busy}
+            variant="primary"
+            style={{ backgroundColor: COLORS.warning }}
+            leftIcon={<MaterialCommunityIcons name="file-pdf-box" size={20} color={COLORS.surface} />}
+          />
 
-        <Pressable
-          style={[styles.dangerBtn, busy || isCancelled ? styles.btnDisabled : null]}
-          disabled={busy || isCancelled}
-          onPress={onCancelTour}
-        >
-          <Text style={styles.dangerBtnText}>{t('bookingDetails.cancelButton')}</Text>
-        </Pressable>
-      </View>
+          <Button
+            title={t('bookingDetails.cancelButton')}
+            onPress={onCancelTour}
+            disabled={busy || isCancelled}
+            variant="danger"
+            style={{ marginTop: SPACING.sm }}
+          />
+        </View>
 
-      <Modal transparent visible={advanceModalOpen} animationType="fade" onRequestClose={() => setAdvanceModalOpen(false)}>
-        <KeyboardAvoidingView
-          style={styles.modalBackdrop}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={0}
-        >
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t('bookingDetails.addAdvance')}</Text>
-            <TextInput
-              value={advanceAmount}
-              onChangeText={setAdvanceAmount}
-              placeholder={t('bookingDetails.advanceAmountPlaceholder')}
-              keyboardType="number-pad"
-              style={styles.input}
-            />
-            <TextInput
-              value={advanceNote}
-              onChangeText={setAdvanceNote}
-              placeholder={t('bookingDetails.advanceNotePlaceholder')}
-              style={[styles.input, styles.inputMultiline]}
-              multiline
-            />
+        <Modal transparent visible={advanceModalOpen} animationType="fade" onRequestClose={() => setAdvanceModalOpen(false)}>
+          <KeyboardAvoidingView
+            style={styles.modalBackdrop}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>{t('bookingDetails.addAdvance')}</Text>
 
-            <View style={styles.modalActionsRow}>
-              <Pressable style={styles.modalBtn} onPress={() => setAdvanceModalOpen(false)} disabled={busy}>
-                <Text style={styles.modalBtnText}>{t('common.cancel')}</Text>
-              </Pressable>
-              <Pressable style={[styles.modalBtn, styles.modalBtnPrimary]} onPress={onAddAdvance} disabled={busy}>
-                <Text style={[styles.modalBtnText, styles.modalBtnTextPrimary]}>{t('common.save')}</Text>
-              </Pressable>
+              <Input
+                value={advanceAmount}
+                onChangeText={setAdvanceAmount}
+                placeholder={t('bookingDetails.advanceAmountPlaceholder')}
+                keyboardType="number-pad"
+                label="Amount"
+              />
+
+              <Input
+                value={advanceNote}
+                onChangeText={setAdvanceNote}
+                placeholder={t('bookingDetails.advanceNotePlaceholder')}
+                multiline
+                style={{ minHeight: 80, textAlignVertical: 'top' }}
+                label="Note (Optional)"
+              />
+
+              <View style={styles.modalActions}>
+                <Button
+                  title={t('common.cancel')}
+                  onPress={() => setAdvanceModalOpen(false)}
+                  variant="ghost"
+                  style={{ flex: 1 }}
+                  size="sm"
+                />
+                <Button
+                  title={t('common.save')}
+                  onPress={onAddAdvance}
+                  variant="primary"
+                  disabled={busy}
+                  style={{ flex: 1 }}
+                  size="sm"
+                />
+              </View>
             </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-    </KeyboardAvoidingScrollView>
-  );
-}
+          </KeyboardAvoidingView>
+        </Modal>
 
-function Card({ children }: { children: React.ReactNode }) {
-  return <View style={styles.card}>{children}</View>;
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.row}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value}>{value || '-'}</Text>
-    </View>
+      </KeyboardAvoidingScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 12 },
+  container: {
+    backgroundColor: COLORS.background,
+  },
+  scrollContent: {
+    padding: SPACING.md,
+    gap: SPACING.md,
+  },
   cancelledBanner: {
-    backgroundColor: '#fef2f2',
-    borderRadius: 12,
-    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.errorBg,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
     borderWidth: 1,
-    borderColor: '#fecaca',
+    borderColor: COLORS.error,
+    gap: SPACING.sm,
   },
-  cancelledBannerText: { color: '#991b1b', fontWeight: '800' },
-  card: { backgroundColor: 'white', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#eee', gap: 10 },
-  cardTitle: { fontSize: 14, fontWeight: '800', color: '#111827' },
-  row: { gap: 2 },
-  label: { fontSize: 12, fontWeight: '700', color: '#374151' },
-  value: { fontSize: 14 },
-
-  busRateCard: { backgroundColor: '#f9fafb', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#e5e7eb' },
-  busRateTitle: { fontSize: 13, fontWeight: '800', color: '#111827', marginBottom: 6 },
-
-  actionsRow: { gap: 10 },
-  primaryBtn: { backgroundColor: '#111827', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  primaryBtnText: { color: 'white', fontSize: 16, fontWeight: '700' },
-
-  whatsappBtn: {
-    backgroundColor: '#22c55e', // Green-500
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
+  cancelledBannerText: {
+    color: COLORS.error,
+    fontWeight: FONT_WEIGHT.bold,
+    fontSize: FONT_SIZE.md,
+  },
+  cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  whatsappBtnText: { color: 'white', fontSize: 16, fontWeight: '800' },
-
-  pdfBtn: {
-    backgroundColor: '#CA8A04',
-    paddingVertical: 14,
-    borderRadius: 12,
     alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
+    paddingBottom: SPACING.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  pdfBtnText: { color: 'white', fontSize: 16, fontWeight: '800' },
-
-  secondaryBtn: { backgroundColor: '#f3f4f6', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  secondaryBtnText: { color: '#111827', fontSize: 16, fontWeight: '800' },
-  dangerBtn: { backgroundColor: '#b91c1c', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  dangerBtnText: { color: 'white', fontSize: 16, fontWeight: '800' },
-
-  btnDisabled: { opacity: 0.6 },
-
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', padding: 16 },
-  modalCard: { backgroundColor: 'white', borderRadius: 14, padding: 14, gap: 10 },
-  modalTitle: { fontSize: 16, fontWeight: '800' },
-  input: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
-  inputMultiline: { minHeight: 80, textAlignVertical: 'top' },
-  modalActionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 4 },
-  modalBtn: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, backgroundColor: '#f3f4f6' },
-  modalBtnPrimary: { backgroundColor: '#111827' },
-  modalBtnText: { fontWeight: '800', color: '#111827' },
-  modalBtnTextPrimary: { color: 'white' },
+  cardTitle: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: FONT_WEIGHT.bold,
+    color: COLORS.textPrimary,
+  },
+  cardBody: {
+    gap: SPACING.xs,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start', // Allow multi-line values to align top
+    paddingVertical: 2,
+    gap: SPACING.md,
+  },
+  detailLabel: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textSecondary,
+    fontWeight: FONT_WEIGHT.medium,
+    flexShrink: 0, // Keep label from shrinking too much
+    maxWidth: '40%', // Ensure label doesn't take over if value is empty/short? Actually optional.
+  },
+  detailValue: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textPrimary,
+    fontWeight: FONT_WEIGHT.bold,
+    textAlign: 'right',
+    flex: 1, // Take remaining space
+    flexWrap: 'wrap', // Ensure wrapping
+  },
+  busRatesContainer: {
+    gap: SPACING.md,
+    marginTop: SPACING.sm,
+  },
+  busRateItem: {
+    backgroundColor: COLORS.background,
+    padding: SPACING.sm,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  busRateTitle: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.bold,
+    marginBottom: SPACING.xs,
+  },
+  actionsContainer: {
+    gap: SPACING.md,
+    marginTop: SPACING.md,
+    marginBottom: SPACING.xl,
+  },
+  doubleBtnRow: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: SPACING.lg,
+  },
+  modalCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    ...SHADOWS.medium,
+  },
+  modalTitle: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: FONT_WEIGHT.bold,
+    marginBottom: SPACING.lg,
+    textAlign: 'center',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+    marginTop: SPACING.md,
+  },
 });
-

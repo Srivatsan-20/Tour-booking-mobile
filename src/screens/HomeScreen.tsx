@@ -1,12 +1,14 @@
 import * as React from 'react';
-import { Pressable, StyleSheet, Text, View, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import type { RootStackParamList } from '../navigation/types';
 import { useAuth } from '../contexts/AuthContext';
-import { COLORS, SPACING, FONT_SIZE, SHADOWS, GLOBAL_STYLES } from '../theme';
+import { COLORS, SPACING, FONT_SIZE, FONT_WEIGHT, SHADOWS, RADIUS } from '../theme';
+import { Screen } from '../components/Screen';
+import { Card } from '../components/Card';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -14,156 +16,212 @@ export function HomeScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { signOut } = useAuth();
 
-  const MENU_ITEMS = [
+  const DASHBOARD_ITEMS = [
     {
       title: t('home.newAgreement'),
+      subtitle: 'Create new booking',
       icon: 'file-document-edit',
       route: 'AgreementForm',
-      color: '#2563EB', // Blue
+      color: COLORS.primary,
+      bg: COLORS.primaryLight,
     },
     {
       title: t('home.viewBookings'),
+      subtitle: 'Manage active trips',
       icon: 'calendar-month',
       route: 'Bookings',
-      color: '#059669', // Green
+      color: COLORS.success,
+      bg: COLORS.successBg,
     },
     {
       title: t('home.viewAllTours'),
+      subtitle: 'Master tour list',
       icon: 'bus-marker',
       route: 'AllTours',
-      color: '#7C3AED', // Purple
+      color: COLORS.info,
+      bg: COLORS.infoBg,
     },
     {
       title: t('home.busAvailability'),
+      subtitle: 'Check dates',
       icon: 'bus-clock',
       route: 'BusAvailability',
-      color: '#D97706', // Amber
+      color: COLORS.warning,
+      bg: COLORS.warningBg,
     },
+  ];
+
+  const SECONDARY_ITEMS = [
     {
       title: t('home.manageAssignments'),
       icon: 'steering',
       route: 'ManageAssignments',
-      color: '#4B5563', // Grey
+      color: COLORS.textSecondary,
     },
     {
       title: t('home.accounts'),
       icon: 'finance',
       route: 'AccountsSummary',
-      color: '#DC2626', // Red
+      color: COLORS.error,
     },
     {
       title: t('home.viewCancelledTours'),
       icon: 'cancel',
       route: 'CancelledTours',
-      color: '#9CA3AF',
-    }
+      color: COLORS.textTertiary,
+    },
   ];
 
   return (
-    <View style={GLOBAL_STYLES.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+    <Screen style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
+        {/* Header Section */}
         <View style={styles.header}>
-          <Text style={styles.welcomeText}>Welcome,</Text>
-          <Text style={styles.appName}>Tour Booking</Text>
+          <View>
+            <Text style={styles.welcomeText}>Welcome back,</Text>
+            <Text style={styles.appName}>Tour Manager</Text>
+          </View>
+          <TouchableOpacity onPress={signOut} style={styles.logoutBtn}>
+            <MaterialCommunityIcons name="logout" size={20} color={COLORS.error} />
+          </TouchableOpacity>
         </View>
 
+        {/* Quick Stats or Highlights could go here */}
+
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.grid}>
-          {MENU_ITEMS.map((item, index) => (
-            <Pressable
+          {DASHBOARD_ITEMS.map((item, index) => (
+            <Card
               key={index}
-              style={({ pressed }) => [
-                styles.card,
-                pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }
-              ]}
+              style={styles.mainCard}
               onPress={() => navigation.navigate(item.route as any)}
+              padding="md"
             >
-              <View style={[styles.iconContainer, { backgroundColor: item.color }]}>
-                <MaterialCommunityIcons name={item.icon as any} size={32} color="white" />
+              <View style={[styles.iconContainer, { backgroundColor: item.bg }]}>
+                <MaterialCommunityIcons name={item.icon as any} size={28} color={item.color} />
               </View>
-              <Text style={styles.cardTitle}>{item.title}</Text>
-              <MaterialCommunityIcons name="chevron-right" size={24} color={COLORS.textSecondary} style={styles.chevron} />
-            </Pressable>
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>{item.title}</Text>
+                <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
+              </View>
+            </Card>
           ))}
         </View>
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.logoutBtn,
-            pressed && { opacity: 0.8 }
-          ]}
-          onPress={signOut}
-        >
-          <MaterialCommunityIcons name="logout" size={24} color="white" style={{ marginRight: 8 }} />
-          <Text style={styles.logoutText}>Sign Out</Text>
-        </Pressable>
+        <Text style={styles.sectionTitle}>Management</Text>
+        <View style={styles.listContainer}>
+          {SECONDARY_ITEMS.map((item, index) => (
+            <Card
+              key={index}
+              style={styles.secondaryCard}
+              onPress={() => navigation.navigate(item.route as any)}
+              padding="md"
+            >
+              <View style={styles.row}>
+                <View style={[styles.miniIcon, { backgroundColor: COLORS.background }]}>
+                  <MaterialCommunityIcons name={item.icon as any} size={20} color={item.color} />
+                </View>
+                <Text style={styles.secondaryTitle}>{item.title}</Text>
+                <MaterialCommunityIcons name="chevron-right" size={20} color={COLORS.textTertiary} />
+              </View>
+            </Card>
+          ))}
+        </View>
+
       </ScrollView>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    backgroundColor: COLORS.background,
+  },
   scrollContent: {
-    padding: SPACING.md,
     paddingBottom: SPACING.xxl,
   },
   header: {
-    marginTop: SPACING.sm,
-    marginBottom: SPACING.lg,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.xl,
+    marginTop: SPACING.md,
   },
   welcomeText: {
-    fontSize: FONT_SIZE.lg,
+    fontSize: FONT_SIZE.md,
     color: COLORS.textSecondary,
-    fontWeight: '500',
+    fontWeight: FONT_WEIGHT.medium,
   },
   appName: {
-    fontSize: FONT_SIZE.xxl,
-    fontWeight: 'bold',
-    color: COLORS.primary,
+    fontSize: FONT_SIZE.xl,
+    fontWeight: FONT_WEIGHT.bold,
+    color: COLORS.textPrimary,
+  },
+  logoutBtn: {
+    padding: SPACING.sm,
+    backgroundColor: COLORS.errorBg,
+    borderRadius: RADIUS.round,
+  },
+  sectionTitle: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: FONT_WEIGHT.bold,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.md,
   },
   grid: {
-    gap: SPACING.md,
-  },
-  card: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    padding: SPACING.md,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    ...SHADOWS.card,
-    minHeight: 80, // Generous touch target
+    flexWrap: 'wrap',
+    gap: SPACING.md,
+    marginBottom: SPACING.xl,
+  },
+  mainCard: {
+    width: '47%', // roughly half minus gap
+    minHeight: 140,
+    justifyContent: 'space-between',
   },
   iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: RADIUS.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.md,
+  },
+  cardContent: {
+    gap: 4,
+  },
+  cardTitle: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: FONT_WEIGHT.bold,
+    color: COLORS.textPrimary,
+  },
+  cardSubtitle: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.textSecondary,
+  },
+  listContainer: {
+    gap: SPACING.sm,
+  },
+  secondaryCard: {
+    marginBottom: SPACING.xs,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  miniIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.round,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: SPACING.md,
   },
-  cardTitle: {
+  secondaryTitle: {
     flex: 1,
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
+    fontSize: FONT_SIZE.md,
+    fontWeight: FONT_WEIGHT.medium,
     color: COLORS.textPrimary,
   },
-  chevron: {
-    opacity: 0.5,
-  },
-  logoutBtn: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.textSecondary,
-    marginTop: SPACING.xl,
-    padding: SPACING.md,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 56,
-  },
-  logoutText: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: 'bold',
-    color: 'white',
-  }
 });

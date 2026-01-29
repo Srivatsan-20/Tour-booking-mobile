@@ -7,12 +7,12 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import type { RootStackParamList } from '../navigation/types';
 import type { BusResponse, ScheduleAgreementDto, ScheduleResponse } from '../types/api';
@@ -20,6 +20,12 @@ import { getSchedule } from '../api/schedule';
 import { assignBusToAgreement, unassignBusFromAgreement } from '../api/agreements';
 import { createBus, deleteBus, listBuses } from '../api/buses';
 import { ApiError } from '../api/ApiError';
+
+import { Screen } from '../components/Screen';
+import { Card } from '../components/Card';
+import { Input } from '../components/Input';
+import { Button } from '../components/Button';
+import { COLORS, SPACING, FONT_SIZE, FONT_WEIGHT, RADIUS, SHADOWS } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ManageAssignments'>;
 
@@ -39,7 +45,6 @@ function startOfMonth(anchor: Date) {
 }
 
 function endOfMonth(anchor: Date) {
-  // day 0 of next month => last day of current month
   return new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0);
 }
 
@@ -129,7 +134,7 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
       title: t('manageAssignments.title'),
       headerRight: () => (
         <Pressable onPress={() => navigation.popToTop()} style={{ paddingHorizontal: 10 }}>
-          <Text style={{ fontWeight: '900' }}>{t('common.home')}</Text>
+          <MaterialCommunityIcons name="home" size={24} color={COLORS.primary} />
         </Pressable>
       ),
     });
@@ -146,11 +151,9 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
     return map;
   }, [buses]);
 
-  // Show ALL tours for the selected month (assigned + unassigned).
   const tours = React.useMemo(() => {
     if (!schedule) return [] as ScheduleAgreementDto[];
     const items = schedule.agreements.slice();
-    // Sort by fromDate ascending
     return items.sort((x, y) => (parseDdMmYyyy(x.fromDate)?.getTime() ?? 0) - (parseDdMmYyyy(y.fromDate)?.getTime() ?? 0));
   }, [schedule]);
 
@@ -167,14 +170,14 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
     return tours.filter(isTourUnassignedOrPartial);
   }, [tourFilter, tours]);
 
-	  const selectedBusSummary = React.useMemo(() => {
-	    if (!selected) return null;
-	    const required = requiredBusesCount(selected);
-	    const assigned = selected.assignedBusIds?.length ?? 0;
-	    const pending = Math.max(0, required - assigned);
-	    const statusText = pending <= 0 ? t('manageAssignments.allAssigned') : t('manageAssignments.notAssigned', { pending });
-	    return { required, assigned, pending, statusText };
-	  }, [selected]);
+  const selectedBusSummary = React.useMemo(() => {
+    if (!selected) return null;
+    const required = requiredBusesCount(selected);
+    const assigned = selected.assignedBusIds?.length ?? 0;
+    const pending = Math.max(0, required - assigned);
+    const statusText = pending <= 0 ? t('manageAssignments.allAssigned') : t('manageAssignments.notAssigned', { pending });
+    return { required, assigned, pending, statusText };
+  }, [selected, t]);
 
   function conflictInfo(busId: string, target: ScheduleAgreementDto) {
     if (!schedule) return null;
@@ -201,7 +204,6 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
     try {
       const selectedId = selected.id;
       await assignBusToAgreement(selected.id, busId);
-      // keep modal open but refresh selected (use fresh schedule data)
       const loaded = await load();
       const refreshed = loaded?.schedule.agreements.find((x) => x.id === selectedId) ?? null;
       setSelected(refreshed);
@@ -276,27 +278,21 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <Screen style={styles.container}>
       <View style={styles.topBar}>
         <View style={styles.monthRow}>
-          <Pressable style={styles.smallBtn} onPress={() => setMonthAnchor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}>
-            <Text style={styles.smallBtnText}>{'<'}</Text>
+          <Pressable style={styles.navBtn} onPress={() => setMonthAnchor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}>
+            <MaterialCommunityIcons name="chevron-left" size={28} color={COLORS.textPrimary} />
           </Pressable>
-          <Text numberOfLines={1} ellipsizeMode="tail" style={styles.monthTitle}>
-            {monthTitle}
-          </Text>
-          <Pressable style={styles.smallBtn} onPress={() => setMonthAnchor((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}>
-            <Text style={styles.smallBtnText}>{'>'}</Text>
+          <Text style={styles.monthTitle}>{monthTitle}</Text>
+          <Pressable style={styles.navBtn} onPress={() => setMonthAnchor((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}>
+            <MaterialCommunityIcons name="chevron-right" size={28} color={COLORS.textPrimary} />
           </Pressable>
         </View>
 
         <View style={styles.actionsRow}>
-          <Pressable style={styles.smallBtnOutline} onPress={load} disabled={loading}>
-            <Text style={styles.smallBtnOutlineText}>{t('common.refresh')}</Text>
-          </Pressable>
-          <Pressable style={styles.smallBtnOutline} onPress={() => setAddBusOpen(true)}>
-            <Text style={styles.smallBtnOutlineText}>{t('manageAssignments.addBus')}</Text>
-          </Pressable>
+          <Button title={t('common.refresh')} onPress={() => void load()} variant="outline" size="sm" />
+          <Button title={t('manageAssignments.addBus')} onPress={() => setAddBusOpen(true)} variant="outline" size="sm" />
         </View>
       </View>
 
@@ -315,8 +311,8 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
 
       {loading && (
         <View style={styles.center}>
-          <ActivityIndicator />
-          <Text style={{ color: '#6B7280' }}>{t('common.loading')}</Text>
+          <ActivityIndicator color={COLORS.primary} size="large" />
+          <Text style={{ color: COLORS.textSecondary, marginTop: SPACING.md }}>{t('common.loading')}</Text>
         </View>
       )}
 
@@ -324,9 +320,7 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
         <View style={styles.center}>
           <Text style={styles.err}>{t('common.errorTitle')}</Text>
           <Text style={styles.errSub}>{error}</Text>
-          <Pressable style={styles.primaryBtn} onPress={load}>
-            <Text style={styles.primaryBtnText}>{t('common.retry')}</Text>
-          </Pressable>
+          <Button title={t('common.retry')} onPress={() => void load()} />
         </View>
       )}
 
@@ -337,27 +331,27 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
               style={[styles.filterBtn, tourFilter === 'unassigned' && styles.filterBtnActive]}
               onPress={() => setTourFilter('unassigned')}
             >
-              <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.filterText, tourFilter === 'unassigned' && styles.filterTextActive]}>
+              <Text style={[styles.filterText, tourFilter === 'unassigned' && styles.filterTextActive]}>
                 {t('manageAssignments.filterUnassigned')} ({tourCounts.unassigned})
               </Text>
             </Pressable>
             <Pressable style={[styles.filterBtn, tourFilter === 'assigned' && styles.filterBtnActive]} onPress={() => setTourFilter('assigned')}>
-              <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.filterText, tourFilter === 'assigned' && styles.filterTextActive]}>
+              <Text style={[styles.filterText, tourFilter === 'assigned' && styles.filterTextActive]}>
                 {t('manageAssignments.filterAssigned')} ({tourCounts.assigned})
               </Text>
             </Pressable>
             <Pressable style={[styles.filterBtn, tourFilter === 'all' && styles.filterBtnActive]} onPress={() => setTourFilter('all')}>
-              <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.filterText, tourFilter === 'all' && styles.filterTextActive]}>
+              <Text style={[styles.filterText, tourFilter === 'all' && styles.filterTextActive]}>
                 {t('manageAssignments.filterAll')} ({tourCounts.all})
               </Text>
             </Pressable>
           </View>
 
-          <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: 30 }}>
+          <ScrollView contentContainerStyle={styles.listContent}>
             {tours.length === 0 ? (
-              <Text style={{ color: '#6B7280', textAlign: 'center', marginTop: 30 }}>{t('manageAssignments.noTours')}</Text>
+              <Text style={styles.emptyText}>{t('manageAssignments.noTours')}</Text>
             ) : visibleTours.length === 0 ? (
-              <Text style={{ color: '#6B7280', textAlign: 'center', marginTop: 30 }}>
+              <Text style={styles.emptyText}>
                 {tourFilter === 'assigned'
                   ? t('manageAssignments.noAssigned')
                   : tourFilter === 'unassigned'
@@ -369,17 +363,20 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
                 const required = requiredBusesCount(a);
                 const assigned = a.assignedBusIds?.length ?? 0;
                 return (
-                  <Pressable key={a.id} style={styles.card} onPress={() => setSelected(a)}>
-                    <Text numberOfLines={1} ellipsizeMode="tail" style={styles.cardTitle}>
-                      {a.customerName}
-                    </Text>
-                    <Text numberOfLines={1} ellipsizeMode="tail" style={styles.cardSub}>
-                      {a.fromDate} - {a.toDate}
-                    </Text>
-                    <Text numberOfLines={1} ellipsizeMode="tail" style={styles.cardSub}>
-                      {t('manageAssignments.buses')}: {assigned}/{required} • {a.busType}
-                    </Text>
-                  </Pressable>
+                  <Card key={a.id} onPress={() => setSelected(a)} style={{ marginBottom: SPACING.md }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.cardTitle}>{a.customerName}</Text>
+                        <Text style={styles.cardSub}>{a.fromDate} - {a.toDate}</Text>
+                      </View>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={[styles.cardSub, { fontWeight: FONT_WEIGHT.bold, color: COLORS.primary }]}>
+                          {t('manageAssignments.buses')}: {assigned}/{required}
+                        </Text>
+                        <Text style={styles.cardSub}>{a.busType}</Text>
+                      </View>
+                    </View>
+                  </Card>
                 );
               })
             )}
@@ -388,28 +385,31 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
       )}
 
       {!loading && !error && tab === 'buses' && (
-        <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: 30 }}>
+        <ScrollView contentContainerStyle={styles.listContent}>
           {buses
             .slice()
             .sort((a, b) => a.vehicleNumber.localeCompare(b.vehicleNumber))
             .map((b) => {
               const label = busLabel(b);
               return (
-                <View key={b.id} style={styles.busRow}>
+                <Card key={b.id} style={{ marginBottom: SPACING.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.busPrimary}>{label.primary}</Text>
                     {!!label.secondary && <Text style={styles.busSecondary}>{label.secondary}</Text>}
-                    <Text style={[styles.busPill, { backgroundColor: b.isActive ? '#DCFCE7' : '#FEE2E2', color: b.isActive ? '#14532D' : '#7F1D1D' }]}>
-                      {b.isActive ? t('manageAssignments.active') : t('manageAssignments.inactive')}
-                    </Text>
+                    <View style={[styles.busPill, { backgroundColor: b.isActive ? COLORS.successBg : COLORS.errorBg }]}>
+                      <Text style={[styles.busPillText, { color: b.isActive ? COLORS.success : COLORS.error }]}>
+                        {b.isActive ? t('manageAssignments.active') : t('manageAssignments.inactive')}
+                      </Text>
+                    </View>
                   </View>
-
-                  {b.isActive && (
-                    <Pressable style={styles.dangerBtn} onPress={() => onDeleteBus(b)}>
-                      <Text style={styles.dangerBtnText}>{t('manageAssignments.delete')}</Text>
-                    </Pressable>
-                  )}
-                </View>
+                  <Button
+                    title={t('manageAssignments.delete')}
+                    onPress={() => onDeleteBus(b)}
+                    variant="danger"
+                    size="sm"
+                    leftIcon={<MaterialCommunityIcons name="delete" size={16} color="white" />}
+                  />
+                </Card>
               );
             })}
         </ScrollView>
@@ -420,32 +420,30 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>{t('manageAssignments.assignTitle')}</Text>
-            <Text style={{ marginTop: 6, fontWeight: '900' }}>{selected?.customerName}</Text>
-            <Text numberOfLines={1} ellipsizeMode="tail" style={{ color: '#6B7280', marginTop: 2 }}>
-              {selected?.fromDate} - {selected?.toDate}
-            </Text>
-	            {!!selectedBusSummary && <Text style={styles.modalSummary}>{selectedBusSummary.statusText}</Text>}
+            <View style={{ marginBottom: SPACING.md }}>
+              <Text style={{ fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.bold, color: COLORS.textPrimary }}>{selected?.customerName}</Text>
+              <Text style={{ color: COLORS.textSecondary }}>{selected?.fromDate} - {selected?.toDate}</Text>
+              {!!selectedBusSummary && <Text style={{ marginTop: 4, color: COLORS.primary, fontWeight: FONT_WEIGHT.bold }}>{selectedBusSummary.statusText}</Text>}
+            </View>
 
             <Text style={styles.modalLabel}>{t('manageAssignments.assignedBuses')}</Text>
             {(selected?.assignedBusIds?.length ?? 0) === 0 ? (
-              <Text style={{ color: '#6B7280', marginTop: 6 }}>{t('manageAssignments.none')}</Text>
+              <Text style={{ color: COLORS.textTertiary, marginVertical: SPACING.xs }}>{t('manageAssignments.none')}</Text>
             ) : (
               selected!.assignedBusIds.map((id) => {
                 const b = busById.get(id);
                 const title = b ? busLabel(b).primary : id;
                 return (
                   <View key={id} style={styles.assignedRow}>
-                    <Text style={{ flex: 1, fontWeight: '800' }}>{title}</Text>
-                    <Pressable style={styles.secondaryBtn} onPress={() => doUnassign(id)} disabled={busyAction}>
-                      <Text style={styles.secondaryBtnText}>{t('manageAssignments.unassign')}</Text>
-                    </Pressable>
+                    <Text style={{ flex: 1, fontWeight: FONT_WEIGHT.bold, color: COLORS.textPrimary }}>{title}</Text>
+                    <Button title={t('manageAssignments.unassign')} onPress={() => doUnassign(id)} variant="ghost" size="sm" disabled={busyAction} />
                   </View>
                 );
               })
             )}
 
             <Text style={styles.modalLabel}>{t('manageAssignments.assignBus')}</Text>
-            <ScrollView style={{ maxHeight: 220, marginTop: 6 }}>
+            <ScrollView style={{ maxHeight: 220, marginTop: SPACING.xs }}>
               {(schedule?.buses ?? [])
                 .filter((b) => b.isActive)
                 .map((b) => {
@@ -460,24 +458,23 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
                       onPress={() => doAssign(b.id)}
                       disabled={disabled}
                     >
-                      <Text style={styles.pickTitle}>{label.primary}</Text>
-                      {!!label.secondary && <Text style={styles.pickSub}>{label.secondary}</Text>}
-                      {already && <Text style={styles.pickSub}>{t('manageAssignments.alreadyAssigned')}</Text>}
-                      {!!conflict && (
-                        <Text style={[styles.pickSub, { color: '#B45309' }]}>
-                          {t('manageAssignments.conflictWith')}: {conflict.customerName}
-                        </Text>
-                      )}
+                      <View>
+                        <Text style={styles.pickTitle}>{label.primary}</Text>
+                        {!!label.secondary && <Text style={styles.pickSub}>{label.secondary}</Text>}
+                        {already && <Text style={[styles.pickSub, { color: COLORS.success }]}>{t('manageAssignments.alreadyAssigned')}</Text>}
+                        {!!conflict && (
+                          <Text style={[styles.pickSub, { color: COLORS.warning }]}>
+                            {t('manageAssignments.conflictWith')}: {conflict.customerName}
+                          </Text>
+                        )}
+                      </View>
+                      {!already && !conflict && <MaterialCommunityIcons name="plus-circle-outline" size={24} color={COLORS.primary} />}
                     </Pressable>
                   );
                 })}
             </ScrollView>
 
-            <View style={styles.modalRow}>
-              <Pressable style={styles.secondaryBtn} onPress={() => setSelected(null)} disabled={busyAction}>
-                <Text style={styles.secondaryBtnText}>{t('common.close')}</Text>
-              </Pressable>
-            </View>
+            <Button title={t('common.close')} onPress={() => setSelected(null)} variant="secondary" style={{ marginTop: SPACING.lg }} disabled={busyAction} />
           </View>
         </View>
       </Modal>
@@ -488,124 +485,68 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>{t('manageAssignments.addBus')}</Text>
 
-            <Text style={styles.modalLabel}>{t('manageAssignments.vehicleNumber')}</Text>
-            <TextInput value={busVehicleNumber} onChangeText={setBusVehicleNumber} placeholder="TN01AB0001" style={styles.input} />
+            <Input label={t('manageAssignments.vehicleNumber')} value={busVehicleNumber} onChangeText={setBusVehicleNumber} placeholder="TN01AB0001" autoCapitalize="characters" />
+            <Input label={t('manageAssignments.busNameOptional')} value={busName} onChangeText={setBusName} placeholder="Mini / Big" containerStyle={{ marginTop: SPACING.md }} />
 
-            <Text style={styles.modalLabel}>{t('manageAssignments.busNameOptional')}</Text>
-            <TextInput value={busName} onChangeText={setBusName} placeholder="Mini / Big" style={styles.input} />
-
-            <View style={styles.modalRow}>
-              <Pressable style={styles.secondaryBtn} onPress={() => setAddBusOpen(false)} disabled={busyAddBus}>
-                <Text style={styles.secondaryBtnText}>{t('common.cancel')}</Text>
-              </Pressable>
-              <Pressable style={styles.primaryBtn} onPress={onAddBus} disabled={busyAddBus}>
-                <Text style={styles.primaryBtnText}>{busyAddBus ? t('common.saving') : t('common.save')}</Text>
-              </Pressable>
+            <View style={styles.modalActions}>
+              <Button title={t('common.cancel')} onPress={() => setAddBusOpen(false)} variant="ghost" style={{ flex: 1 }} />
+              <Button title={busyAddBus ? t('common.saving') : t('common.save')} onPress={() => void onAddBus()} loading={busyAddBus} disabled={!busVehicleNumber.trim()} style={{ flex: 1 }} />
             </View>
           </View>
         </View>
       </Modal>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  container: { backgroundColor: COLORS.background },
   topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    gap: 8,
-    flexWrap: 'wrap',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    padding: SPACING.md,
+    backgroundColor: COLORS.surface,
+    ...SHADOWS.soft,
+    zIndex: 10,
+    gap: SPACING.md,
   },
-  monthRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexGrow: 1, flexShrink: 1, minWidth: 160 },
-  actionsRow: { flexDirection: 'row', gap: 8 },
-  monthTitle: { fontSize: 16, fontWeight: '800', flexShrink: 1 },
-  smallBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: '#111827',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  smallBtnText: { color: 'white', fontSize: 18, fontWeight: '900' },
-  smallBtnOutline: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-  },
-  smallBtnOutlineText: { fontWeight: '800' },
+  monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.md },
+  navBtn: { padding: SPACING.xs },
+  monthTitle: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.bold, color: COLORS.textPrimary, minWidth: 100, textAlign: 'center' },
+  actionsRow: { flexDirection: 'row', justifyContent: 'center', gap: SPACING.sm },
 
-  tabs: { flexDirection: 'row', padding: 10, gap: 10, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
-  tabBtn: { flex: 1, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
-  tabBtnActive: { backgroundColor: '#111827', borderColor: '#111827' },
-  tabText: { fontWeight: '900', color: '#111827' },
-  tabTextActive: { color: 'white' },
+  tabs: { flexDirection: 'row', padding: SPACING.sm, gap: SPACING.sm, backgroundColor: COLORS.surface, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  tabBtn: { flex: 1, paddingVertical: SPACING.sm, alignItems: 'center', borderRadius: RADIUS.md },
+  tabBtnActive: { backgroundColor: COLORS.primaryLight },
+  tabText: { fontWeight: FONT_WEIGHT.bold, color: COLORS.textSecondary },
+  tabTextActive: { color: COLORS.primary },
 
-  filterRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 10,
-    paddingTop: 10,
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  filterBtn: {
-    minWidth: 120,
-    flexGrow: 1,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-    backgroundColor: 'white',
-  },
-  filterBtnActive: { backgroundColor: '#111827', borderColor: '#111827' },
-  filterText: { fontWeight: '900', color: '#111827' },
-  filterTextActive: { color: 'white' },
+  filterRow: { flexDirection: 'row', padding: SPACING.sm, gap: SPACING.xs },
+  filterBtn: { flex: 1, paddingVertical: SPACING.xs, paddingHorizontal: SPACING.sm, borderRadius: RADIUS.round, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', backgroundColor: COLORS.surface },
+  filterBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  filterText: { fontWeight: FONT_WEIGHT.bold, color: COLORS.textSecondary, fontSize: 11 },
+  filterTextActive: { color: COLORS.surface },
 
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20, gap: 10 },
-  err: { fontWeight: '800', color: '#B91C1C' },
-  errSub: { color: '#6B7280', textAlign: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACING.xl },
+  err: { fontWeight: 'bold', color: COLORS.error, fontSize: FONT_SIZE.lg },
+  errSub: { color: COLORS.textSecondary, textAlign: 'center', marginBottom: SPACING.md },
+  emptyText: { color: COLORS.textTertiary, textAlign: 'center', marginTop: SPACING.xl, fontSize: FONT_SIZE.md },
 
-  card: { backgroundColor: 'white', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 10 },
-  cardTitle: { fontWeight: '900', color: '#111827', fontSize: 15 },
-  cardSub: { color: '#6B7280', marginTop: 2, lineHeight: 18 },
+  listContent: { padding: SPACING.md, paddingBottom: SPACING.xl },
+  cardTitle: { fontWeight: FONT_WEIGHT.bold, color: COLORS.textPrimary, fontSize: FONT_SIZE.md },
+  cardSub: { color: COLORS.textSecondary, marginTop: 2, fontSize: FONT_SIZE.sm },
 
-  busRow: { flexDirection: 'row', gap: 10, alignItems: 'center', padding: 12, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 14, backgroundColor: 'white', marginBottom: 10 },
-  busPrimary: { fontWeight: '900', color: '#111827' },
-  busSecondary: { color: '#6B7280', marginTop: 2 },
-  busPill: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, overflow: 'hidden', fontWeight: '900' },
-  dangerBtn: { backgroundColor: '#DC2626', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12 },
-  dangerBtnText: { color: 'white', fontWeight: '900' },
+  busPrimary: { fontWeight: FONT_WEIGHT.bold, color: COLORS.textPrimary, fontSize: FONT_SIZE.md },
+  busSecondary: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm },
+  busPill: { alignSelf: 'flex-start', marginTop: 4, paddingHorizontal: 8, paddingVertical: 2, borderRadius: RADIUS.round },
+  busPillText: { fontWeight: FONT_WEIGHT.bold, fontSize: 10 },
 
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', padding: 18 },
-  modalCard: { backgroundColor: 'white', borderRadius: 14, padding: 14 },
-  modalTitle: { fontSize: 16, fontWeight: '900' },
-	  modalSummary: { marginTop: 6, color: '#374151', fontWeight: '800' },
-  modalLabel: { marginTop: 12, fontWeight: '900', color: '#374151' },
-  input: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginTop: 6,
-  },
-  modalRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 14 },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: SPACING.lg },
+  modalCard: { backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: SPACING.lg },
+  modalTitle: { fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.bold, marginBottom: SPACING.lg, color: COLORS.textPrimary, textAlign: 'center' },
+  modalLabel: { marginTop: SPACING.md, fontWeight: FONT_WEIGHT.bold, color: COLORS.textSecondary, fontSize: FONT_SIZE.xs, textTransform: 'uppercase', letterSpacing: 0.5 },
+  modalActions: { flexDirection: 'row', gap: SPACING.md, marginTop: SPACING.lg },
 
-  primaryBtn: { backgroundColor: '#111827', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12 },
-  primaryBtnText: { color: 'white', fontWeight: '900' },
-  secondaryBtn: { borderWidth: 1, borderColor: '#D1D5DB', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12 },
-  secondaryBtnText: { fontWeight: '900' },
-
-  assignedRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 },
-  pickRow: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  pickTitle: { fontWeight: '900', color: '#111827' },
-  pickSub: { color: '#6B7280', marginTop: 2 },
+  assignedRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginTop: SPACING.xs, paddingVertical: SPACING.xs, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  pickRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: SPACING.sm, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  pickTitle: { fontWeight: FONT_WEIGHT.bold, color: COLORS.textPrimary, fontSize: FONT_SIZE.md },
+  pickSub: { color: COLORS.textSecondary, fontSize: FONT_SIZE.sm },
 });
