@@ -2,11 +2,14 @@ import * as React from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
+import { Bus, Banknote } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { listAgreements } from '../api/agreements';
 import type { RootStackParamList } from '../navigation/types';
 import type { AgreementResponse } from '../types/api';
+import { ScreenContainer } from '../components/ScreenContainer';
+import { ListCard } from '../components/ListCard';
 
 function parseDdMmYyyy(value: string): Date | null {
   const parts = value.split('/').map((p) => p.trim());
@@ -66,8 +69,12 @@ export function BookingsScreen({ navigation }: Props) {
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{t('bookings.title')}</Text>
+    <ScreenContainer style={styles.container}>
+      {/* Custom Header (Optional if using Stack header, but we can make it nicer here) */}
+      <View style={styles.header}>
+        <Text style={styles.title}>{t('bookings.title')}</Text>
+        <Text style={styles.subtitle}>{items.length} {t('common.active', 'Active')} Bookings</Text>
+      </View>
 
       {error && items.length === 0 ? (
         <View style={styles.stateBox}>
@@ -83,7 +90,7 @@ export function BookingsScreen({ navigation }: Props) {
 
       {loading && items.length === 0 ? (
         <View style={styles.stateBox}>
-          <ActivityIndicator />
+          <ActivityIndicator size="large" color="#2563EB" />
           <Text style={styles.note}>{t('bookings.loading')}</Text>
         </View>
       ) : null}
@@ -93,37 +100,66 @@ export function BookingsScreen({ navigation }: Props) {
         keyExtractor={(item) => item.id}
         refreshing={loading}
         onRefresh={load}
-        contentContainerStyle={items.length === 0 ? styles.listEmptyContainer : undefined}
+        contentContainerStyle={[
+          styles.listContent,
+          items.length === 0 && styles.listEmptyContainer
+        ]}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           !loading && !error ? <Text style={styles.note}>{t('bookings.empty')}</Text> : null
         }
         renderItem={({ item }) => (
-          <Pressable
-            style={styles.card}
+          <ListCard
+            title={item.customerName}
+            subtitle={`${item.fromDate} → ${item.toDate}`}
+            meta1={{
+              text: item.busType,
+              icon: <Bus size={14} color="#6B7280" />
+            }}
+            meta2={item.totalAmount != null ? {
+              text: item.totalAmount.toString(),
+              icon: <Banknote size={14} color="#6B7280" />
+            } : undefined}
+            status={{
+              text: 'Active',
+              color: '#059669',
+              bg: '#D1FAE5'
+            }}
             onPress={() => navigation.navigate('BookingDetails', { agreement: item })}
-          >
-            <Text style={styles.cardTitle}>{item.customerName}</Text>
-            <Text style={styles.cardSub}>{`${item.fromDate} → ${item.toDate}`}</Text>
-            <View style={styles.cardRow}>
-              <Text style={styles.cardMeta}>{item.busType}</Text>
-              {item.totalAmount != null ? (
-                <Text style={styles.cardMeta}>{`${t('agreement.totalAmount')}: ${item.totalAmount}`}</Text>
-              ) : null}
-            </View>
-          </Pressable>
+          />
         )}
       />
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 10 },
-  title: { fontSize: 18, fontWeight: '800' },
-  note: { color: '#6b7280', textAlign: 'center' },
+  container: {
+    paddingHorizontal: 0, // Reset default padding from previous style
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  listContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  note: { color: '#6b7280', textAlign: 'center', marginTop: 10 },
   noteSmall: { color: '#6b7280', fontSize: 12, textAlign: 'center' },
 
-  stateBox: { paddingVertical: 18, gap: 10, alignItems: 'center' },
+  stateBox: { paddingVertical: 40, gap: 10, alignItems: 'center' },
   retryBtn: {
     backgroundColor: '#111827',
     paddingVertical: 10,
@@ -133,18 +169,5 @@ const styles = StyleSheet.create({
   retryBtnText: { color: 'white', fontSize: 14, fontWeight: '700' },
 
   listEmptyContainer: { flexGrow: 1, justifyContent: 'center' },
-
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  cardTitle: { fontSize: 16, fontWeight: '800', marginBottom: 4, color: '#111827' },
-  cardSub: { color: '#374151', marginBottom: 8 },
-  cardRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
-  cardMeta: { color: '#6b7280', fontWeight: '600' },
 });
 

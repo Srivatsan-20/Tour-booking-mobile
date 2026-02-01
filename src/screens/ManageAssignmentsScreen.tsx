@@ -13,6 +13,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
+import { Bus, Calendar, ChevronLeft, ChevronRight, Plus, RefreshCw, Trash2, X } from 'lucide-react-native';
 
 import type { RootStackParamList } from '../navigation/types';
 import type { BusResponse, ScheduleAgreementDto, ScheduleResponse } from '../types/api';
@@ -20,6 +21,8 @@ import { getSchedule } from '../api/schedule';
 import { assignBusToAgreement, unassignBusFromAgreement } from '../api/agreements';
 import { createBus, deleteBus, listBuses } from '../api/buses';
 import { ApiError } from '../api/ApiError';
+import { ScreenContainer } from '../components/ScreenContainer';
+import { ListCard } from '../components/ListCard';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ManageAssignments'>;
 
@@ -127,11 +130,6 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
   React.useLayoutEffect(() => {
     navigation.setOptions({
       title: t('manageAssignments.title'),
-      headerRight: () => (
-        <Pressable onPress={() => navigation.popToTop()} style={{ paddingHorizontal: 10 }}>
-          <Text style={{ fontWeight: '900' }}>{t('common.home')}</Text>
-        </Pressable>
-      ),
     });
   }, [navigation, t]);
 
@@ -167,14 +165,14 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
     return tours.filter(isTourUnassignedOrPartial);
   }, [tourFilter, tours]);
 
-	  const selectedBusSummary = React.useMemo(() => {
-	    if (!selected) return null;
-	    const required = requiredBusesCount(selected);
-	    const assigned = selected.assignedBusIds?.length ?? 0;
-	    const pending = Math.max(0, required - assigned);
-	    const statusText = pending <= 0 ? t('manageAssignments.allAssigned') : t('manageAssignments.notAssigned', { pending });
-	    return { required, assigned, pending, statusText };
-	  }, [selected]);
+  const selectedBusSummary = React.useMemo(() => {
+    if (!selected) return null;
+    const required = requiredBusesCount(selected);
+    const assigned = selected.assignedBusIds?.length ?? 0;
+    const pending = Math.max(0, required - assigned);
+    const statusText = pending <= 0 ? t('manageAssignments.allAssigned') : t('manageAssignments.notAssigned', { pending });
+    return { required, assigned, pending, statusText };
+  }, [selected]);
 
   function conflictInfo(busId: string, target: ScheduleAgreementDto) {
     if (!schedule) return null;
@@ -276,47 +274,50 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <ScreenContainer style={{ flex: 1, paddingHorizontal: 0 }}>
       <View style={styles.topBar}>
         <View style={styles.monthRow}>
-          <Pressable style={styles.smallBtn} onPress={() => setMonthAnchor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}>
-            <Text style={styles.smallBtnText}>{'<'}</Text>
+          <Pressable style={styles.iconBtn} onPress={() => setMonthAnchor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}>
+            <ChevronLeft size={20} color="#374151" />
           </Pressable>
           <Text numberOfLines={1} ellipsizeMode="tail" style={styles.monthTitle}>
             {monthTitle}
           </Text>
-          <Pressable style={styles.smallBtn} onPress={() => setMonthAnchor((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}>
-            <Text style={styles.smallBtnText}>{'>'}</Text>
+          <Pressable style={styles.iconBtn} onPress={() => setMonthAnchor((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}>
+            <ChevronRight size={20} color="#374151" />
           </Pressable>
         </View>
 
         <View style={styles.actionsRow}>
-          <Pressable style={styles.smallBtnOutline} onPress={load} disabled={loading}>
-            <Text style={styles.smallBtnOutlineText}>{t('common.refresh')}</Text>
+          <Pressable style={styles.actionBtn} onPress={load} disabled={loading}>
+            <RefreshCw size={16} color="#374151" />
           </Pressable>
-          <Pressable style={styles.smallBtnOutline} onPress={() => setAddBusOpen(true)}>
-            <Text style={styles.smallBtnOutlineText}>{t('manageAssignments.addBus')}</Text>
+          <Pressable style={[styles.actionBtn, { backgroundColor: '#111827' }]} onPress={() => setAddBusOpen(true)}>
+            <Plus size={16} color="white" />
+            <Text style={styles.addBusText}>{t('manageAssignments.addBus')}</Text>
           </Pressable>
         </View>
       </View>
 
-      <View style={styles.tabs}>
-        <Pressable style={[styles.tabBtn, tab === 'unassigned' && styles.tabBtnActive]} onPress={() => setTab('unassigned')}>
-          <Text style={[styles.tabText, tab === 'unassigned' && styles.tabTextActive]}>
-            {t('manageAssignments.tabUnassigned')} ({tours.length})
-          </Text>
-        </Pressable>
-        <Pressable style={[styles.tabBtn, tab === 'buses' && styles.tabBtnActive]} onPress={() => setTab('buses')}>
-          <Text style={[styles.tabText, tab === 'buses' && styles.tabTextActive]}>
-            {t('manageAssignments.tabBuses')} ({buses.length})
-          </Text>
-        </Pressable>
+      <View style={styles.tabsContainer}>
+        <View style={styles.tabs}>
+          <Pressable style={[styles.tabBtn, tab === 'unassigned' && styles.tabBtnActive]} onPress={() => setTab('unassigned')}>
+            <Text style={[styles.tabText, tab === 'unassigned' && styles.tabTextActive]}>
+              {t('manageAssignments.tabUnassigned')} ({tours.length})
+            </Text>
+          </Pressable>
+          <Pressable style={[styles.tabBtn, tab === 'buses' && styles.tabBtnActive]} onPress={() => setTab('buses')}>
+            <Text style={[styles.tabText, tab === 'buses' && styles.tabTextActive]}>
+              {t('manageAssignments.tabBuses')} ({buses.length})
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
       {loading && (
         <View style={styles.center}>
-          <ActivityIndicator />
-          <Text style={{ color: '#6B7280' }}>{t('common.loading')}</Text>
+          <ActivityIndicator size="large" color="#4F46E5" />
+          <Text style={{ color: '#6B7280', marginTop: 10 }}>{t('common.loading')}</Text>
         </View>
       )}
 
@@ -324,8 +325,8 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
         <View style={styles.center}>
           <Text style={styles.err}>{t('common.errorTitle')}</Text>
           <Text style={styles.errSub}>{error}</Text>
-          <Pressable style={styles.primaryBtn} onPress={load}>
-            <Text style={styles.primaryBtnText}>{t('common.retry')}</Text>
+          <Pressable style={styles.retryBtn} onPress={load}>
+            <Text style={styles.retryBtnText}>{t('common.retry')}</Text>
           </Pressable>
         </View>
       )}
@@ -333,53 +334,51 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
       {!loading && !error && tab === 'unassigned' && (
         <View style={{ flex: 1 }}>
           <View style={styles.filterRow}>
-            <Pressable
-              style={[styles.filterBtn, tourFilter === 'unassigned' && styles.filterBtnActive]}
-              onPress={() => setTourFilter('unassigned')}
-            >
-              <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.filterText, tourFilter === 'unassigned' && styles.filterTextActive]}>
-                {t('manageAssignments.filterUnassigned')} ({tourCounts.unassigned})
-              </Text>
-            </Pressable>
-            <Pressable style={[styles.filterBtn, tourFilter === 'assigned' && styles.filterBtnActive]} onPress={() => setTourFilter('assigned')}>
-              <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.filterText, tourFilter === 'assigned' && styles.filterTextActive]}>
-                {t('manageAssignments.filterAssigned')} ({tourCounts.assigned})
-              </Text>
-            </Pressable>
-            <Pressable style={[styles.filterBtn, tourFilter === 'all' && styles.filterBtnActive]} onPress={() => setTourFilter('all')}>
-              <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.filterText, tourFilter === 'all' && styles.filterTextActive]}>
-                {t('manageAssignments.filterAll')} ({tourCounts.all})
-              </Text>
-            </Pressable>
+            {['unassigned', 'assigned', 'all'].map((f) => (
+              <Pressable
+                key={f}
+                style={[styles.filterBtn, tourFilter === f && styles.filterBtnActive]}
+                onPress={() => setTourFilter(f as TourFilter)}
+              >
+                <Text style={[styles.filterText, tourFilter === f && styles.filterTextActive]}>
+                  {f === 'unassigned' ? t('manageAssignments.filterUnassigned') :
+                    f === 'assigned' ? t('manageAssignments.filterAssigned') :
+                      t('manageAssignments.filterAll')}
+                  {' '}({f === 'unassigned' ? tourCounts.unassigned : f === 'assigned' ? tourCounts.assigned : tourCounts.all})
+                </Text>
+              </Pressable>
+            ))}
           </View>
 
-          <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: 30 }}>
-            {tours.length === 0 ? (
-              <Text style={{ color: '#6B7280', textAlign: 'center', marginTop: 30 }}>{t('manageAssignments.noTours')}</Text>
-            ) : visibleTours.length === 0 ? (
-              <Text style={{ color: '#6B7280', textAlign: 'center', marginTop: 30 }}>
-                {tourFilter === 'assigned'
-                  ? t('manageAssignments.noAssigned')
-                  : tourFilter === 'unassigned'
-                    ? t('manageAssignments.noUnassigned')
-                    : t('manageAssignments.noTours')}
-              </Text>
+          <ScrollView contentContainerStyle={styles.listContent}>
+            {visibleTours.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>{t('manageAssignments.noTours')}</Text>
+              </View>
             ) : (
               visibleTours.map((a) => {
                 const required = requiredBusesCount(a);
                 const assigned = a.assignedBusIds?.length ?? 0;
                 return (
-                  <Pressable key={a.id} style={styles.card} onPress={() => setSelected(a)}>
-                    <Text numberOfLines={1} ellipsizeMode="tail" style={styles.cardTitle}>
-                      {a.customerName}
-                    </Text>
-                    <Text numberOfLines={1} ellipsizeMode="tail" style={styles.cardSub}>
-                      {a.fromDate} - {a.toDate}
-                    </Text>
-                    <Text numberOfLines={1} ellipsizeMode="tail" style={styles.cardSub}>
-                      {t('manageAssignments.buses')}: {assigned}/{required} • {a.busType}
-                    </Text>
-                  </Pressable>
+                  <ListCard
+                    key={a.id}
+                    title={a.customerName}
+                    subtitle={`${a.fromDate} - ${a.toDate}`}
+                    meta1={{
+                      text: `${t('manageAssignments.buses')}: ${assigned}/${required}`,
+                      icon: <Bus size={14} color="#6B7280" />
+                    }}
+                    status={assigned < required ? {
+                      text: 'Pending Bus',
+                      bg: '#FEF2F2',
+                      color: '#B91C1C'
+                    } : {
+                      text: 'Assigned',
+                      bg: '#ECFDF5',
+                      color: '#047857'
+                    }}
+                    onPress={() => setSelected(a)}
+                  />
                 );
               })
             )}
@@ -388,7 +387,7 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
       )}
 
       {!loading && !error && tab === 'buses' && (
-        <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: 30 }}>
+        <ScrollView contentContainerStyle={styles.listContent}>
           {buses
             .slice()
             .sort((a, b) => a.vehicleNumber.localeCompare(b.vehicleNumber))
@@ -399,14 +398,16 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.busPrimary}>{label.primary}</Text>
                     {!!label.secondary && <Text style={styles.busSecondary}>{label.secondary}</Text>}
-                    <Text style={[styles.busPill, { backgroundColor: b.isActive ? '#DCFCE7' : '#FEE2E2', color: b.isActive ? '#14532D' : '#7F1D1D' }]}>
-                      {b.isActive ? t('manageAssignments.active') : t('manageAssignments.inactive')}
-                    </Text>
+                    <View style={[styles.busPill, { backgroundColor: b.isActive ? '#DCFCE7' : '#FEE2E2' }]}>
+                      <Text style={{ color: b.isActive ? '#14532D' : '#7F1D1D', fontSize: 11, fontWeight: '700' }}>
+                        {b.isActive ? t('manageAssignments.active') : t('manageAssignments.inactive')}
+                      </Text>
+                    </View>
                   </View>
 
                   {b.isActive && (
-                    <Pressable style={styles.dangerBtn} onPress={() => onDeleteBus(b)}>
-                      <Text style={styles.dangerBtnText}>{t('manageAssignments.delete')}</Text>
+                    <Pressable style={styles.dangerIconBtn} onPress={() => onDeleteBus(b)}>
+                      <Trash2 size={18} color="#DC2626" />
                     </Pressable>
                   )}
                 </View>
@@ -419,33 +420,40 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
       <Modal visible={!!selected} transparent animationType="fade" onRequestClose={() => setSelected(null)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t('manageAssignments.assignTitle')}</Text>
-            <Text style={{ marginTop: 6, fontWeight: '900' }}>{selected?.customerName}</Text>
-            <Text numberOfLines={1} ellipsizeMode="tail" style={{ color: '#6B7280', marginTop: 2 }}>
-              {selected?.fromDate} - {selected?.toDate}
-            </Text>
-	            {!!selectedBusSummary && <Text style={styles.modalSummary}>{selectedBusSummary.statusText}</Text>}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('manageAssignments.assignTitle')}</Text>
+              <Pressable onPress={() => setSelected(null)}>
+                <X size={24} color="#374151" />
+              </Pressable>
+            </View>
 
-            <Text style={styles.modalLabel}>{t('manageAssignments.assignedBuses')}</Text>
+            <View style={styles.modalSubHeader}>
+              <Text style={styles.modalCustomer}>{selected?.customerName}</Text>
+              <Text style={styles.modalDate}>{selected?.fromDate} - {selected?.toDate}</Text>
+            </View>
+
+            {!!selectedBusSummary && <View style={styles.statusBox}><Text style={styles.modalSummary}>{selectedBusSummary.statusText}</Text></View>}
+
+            <Text style={styles.modalSectionTitle}>{t('manageAssignments.assignedBuses')}</Text>
             {(selected?.assignedBusIds?.length ?? 0) === 0 ? (
-              <Text style={{ color: '#6B7280', marginTop: 6 }}>{t('manageAssignments.none')}</Text>
+              <Text style={styles.emptyTextSmall}>{t('manageAssignments.none')}</Text>
             ) : (
               selected!.assignedBusIds.map((id) => {
                 const b = busById.get(id);
                 const title = b ? busLabel(b).primary : id;
                 return (
                   <View key={id} style={styles.assignedRow}>
-                    <Text style={{ flex: 1, fontWeight: '800' }}>{title}</Text>
-                    <Pressable style={styles.secondaryBtn} onPress={() => doUnassign(id)} disabled={busyAction}>
-                      <Text style={styles.secondaryBtnText}>{t('manageAssignments.unassign')}</Text>
+                    <Text style={styles.assignedBusText}>{title}</Text>
+                    <Pressable style={styles.unassignBtn} onPress={() => doUnassign(id)} disabled={busyAction}>
+                      <Text style={styles.unassignBtnText}>{t('manageAssignments.unassign')}</Text>
                     </Pressable>
                   </View>
                 );
               })
             )}
 
-            <Text style={styles.modalLabel}>{t('manageAssignments.assignBus')}</Text>
-            <ScrollView style={{ maxHeight: 220, marginTop: 6 }}>
+            <Text style={styles.modalSectionTitle}>{t('manageAssignments.assignBus')}</Text>
+            <ScrollView style={{ maxHeight: 220, marginTop: 8 }}>
               {(schedule?.buses ?? [])
                 .filter((b) => b.isActive)
                 .map((b) => {
@@ -460,24 +468,21 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
                       onPress={() => doAssign(b.id)}
                       disabled={disabled}
                     >
-                      <Text style={styles.pickTitle}>{label.primary}</Text>
-                      {!!label.secondary && <Text style={styles.pickSub}>{label.secondary}</Text>}
-                      {already && <Text style={styles.pickSub}>{t('manageAssignments.alreadyAssigned')}</Text>}
-                      {!!conflict && (
-                        <Text style={[styles.pickSub, { color: '#B45309' }]}>
-                          {t('manageAssignments.conflictWith')}: {conflict.customerName}
-                        </Text>
-                      )}
+                      <View>
+                        <Text style={styles.pickTitle}>{label.primary}</Text>
+                        {!!label.secondary && <Text style={styles.pickSub}>{label.secondary}</Text>}
+                        {already && <Text style={styles.pickSub}>{t('manageAssignments.alreadyAssigned')}</Text>}
+                        {!!conflict && (
+                          <Text style={[styles.pickSub, { color: '#B45309' }]}>
+                            {t('manageAssignments.conflictWith')}: {conflict.customerName}
+                          </Text>
+                        )}
+                      </View>
+                      {!disabled && !already && <Plus size={20} color="#4F46E5" />}
                     </Pressable>
                   );
                 })}
             </ScrollView>
-
-            <View style={styles.modalRow}>
-              <Pressable style={styles.secondaryBtn} onPress={() => setSelected(null)} disabled={busyAction}>
-                <Text style={styles.secondaryBtnText}>{t('common.close')}</Text>
-              </Pressable>
-            </View>
           </View>
         </View>
       </Modal>
@@ -505,107 +510,137 @@ export function ManageAssignmentsScreen({ navigation }: Props) {
           </View>
         </View>
       </Modal>
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
   topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    gap: 8,
-    flexWrap: 'wrap',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
-  },
-  monthRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexGrow: 1, flexShrink: 1, minWidth: 160 },
-  actionsRow: { flexDirection: 'row', gap: 8 },
-  monthTitle: { fontSize: 16, fontWeight: '800', flexShrink: 1 },
-  smallBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: '#111827',
+    backgroundColor: 'white',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  smallBtnText: { color: 'white', fontSize: 18, fontWeight: '900' },
-  smallBtnOutline: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-  },
-  smallBtnOutlineText: { fontWeight: '800' },
+  monthRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  monthTitle: { fontSize: 16, fontWeight: '800', color: '#111827', textAlign: 'center', flexShrink: 1 },
+  iconBtn: { padding: 8, borderRadius: 8, backgroundColor: '#F3F4F6' },
 
-  tabs: { flexDirection: 'row', padding: 10, gap: 10, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
-  tabBtn: { flex: 1, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
-  tabBtnActive: { backgroundColor: '#111827', borderColor: '#111827' },
-  tabText: { fontWeight: '900', color: '#111827' },
-  tabTextActive: { color: 'white' },
+  actionsRow: { flexDirection: 'row', gap: 10 },
+  actionBtn: {
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
+  addBusText: { fontSize: 13, fontWeight: '700', color: 'white' },
+
+  tabsContainer: { backgroundColor: 'white', paddingHorizontal: 20, paddingTop: 10 },
+  tabs: { flexDirection: 'row', padding: 4, backgroundColor: '#F3F4F6', borderRadius: 12 },
+  tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
+  tabBtnActive: { backgroundColor: 'white', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
+  tabText: { fontWeight: '600', color: '#6B7280', fontSize: 13 },
+  tabTextActive: { color: '#111827', fontWeight: '800' },
 
   filterRow: {
     flexDirection: 'row',
-    paddingHorizontal: 10,
-    paddingTop: 10,
-    gap: 8,
-    flexWrap: 'wrap',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 10,
   },
   filterBtn: {
-    minWidth: 120,
-    flexGrow: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 99,
+    backgroundColor: '#F3F4F6',
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-    backgroundColor: 'white',
+    borderColor: 'transparent'
   },
-  filterBtnActive: { backgroundColor: '#111827', borderColor: '#111827' },
-  filterText: { fontWeight: '900', color: '#111827' },
-  filterTextActive: { color: 'white' },
+  filterBtnActive: { backgroundColor: '#EEF2FF', borderColor: '#818CF8' },
+  filterText: { fontSize: 12, fontWeight: '700', color: '#4B5563' },
+  filterTextActive: { color: '#4F46E5' },
 
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20, gap: 10 },
   err: { fontWeight: '800', color: '#B91C1C' },
   errSub: { color: '#6B7280', textAlign: 'center' },
+  retryBtn: { marginTop: 10, backgroundColor: '#111827', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10 },
+  retryBtnText: { color: 'white', fontWeight: '700' },
 
-  card: { backgroundColor: 'white', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 10 },
-  cardTitle: { fontWeight: '900', color: '#111827', fontSize: 15 },
-  cardSub: { color: '#6B7280', marginTop: 2, lineHeight: 18 },
+  listContent: { padding: 20, gap: 10, paddingBottom: 40 },
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 40 },
+  emptyText: { color: '#9CA3AF', fontSize: 14, fontWeight: '500' },
 
-  busRow: { flexDirection: 'row', gap: 10, alignItems: 'center', padding: 12, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 14, backgroundColor: 'white', marginBottom: 10 },
-  busPrimary: { fontWeight: '900', color: '#111827' },
-  busSecondary: { color: '#6B7280', marginTop: 2 },
-  busPill: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, overflow: 'hidden', fontWeight: '900' },
-  dangerBtn: { backgroundColor: '#DC2626', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12 },
-  dangerBtnText: { color: 'white', fontWeight: '900' },
+  busRow: {
+    flexDirection: 'row',
+    gap: 14,
+    alignItems: 'center',
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 16,
+    backgroundColor: 'white',
+    marginBottom: 0
+  },
+  busPrimary: { fontWeight: '800', color: '#111827', fontSize: 15 },
+  busSecondary: { color: '#6B7280', fontSize: 13, marginTop: 2 },
+  busPill: { alignSelf: 'flex-start', marginTop: 8, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  dangerIconBtn: { padding: 10, backgroundColor: '#FEF2F2', borderRadius: 10 },
 
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', padding: 18 },
-  modalCard: { backgroundColor: 'white', borderRadius: 14, padding: 14 },
-  modalTitle: { fontSize: 16, fontWeight: '900' },
-	  modalSummary: { marginTop: 6, color: '#374151', fontWeight: '800' },
-  modalLabel: { marginTop: 12, fontWeight: '900', color: '#374151' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 16 },
+  modalCard: { backgroundColor: 'white', borderRadius: 20, padding: 20, maxHeight: '80%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: '#111827' },
+  modalSubHeader: { marginTop: 4, marginBottom: 16 },
+  modalCustomer: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  modalDate: { fontSize: 14, color: '#6B7280', marginTop: 2 },
+
+  statusBox: { backgroundColor: '#F3F4F6', padding: 10, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 10 },
+  modalSummary: { color: '#374151', fontWeight: '700', fontSize: 13 },
+
+  modalSectionTitle: { marginTop: 16, fontSize: 14, fontWeight: '700', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5 },
+  emptyTextSmall: { color: '#9CA3AF', marginTop: 8, fontStyle: 'italic' },
+
+  assignedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6'
+  },
+  assignedBusText: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  unassignBtn: { paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#FEF2F2', borderRadius: 8 },
+  unassignBtnText: { color: '#DC2626', fontSize: 12, fontWeight: '700' },
+
+  pickRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6'
+  },
+  pickTitle: { fontWeight: '700', color: '#111827', fontSize: 14 },
+  pickSub: { color: '#6B7280', fontSize: 12, marginTop: 1 },
+
+  modalLabel: { marginTop: 16, marginBottom: 6, fontWeight: '700', color: '#374151' },
   input: {
     borderWidth: 1,
     borderColor: '#D1D5DB',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginTop: 6,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    backgroundColor: '#F9FAFB'
   },
-  modalRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 14 },
-
-  primaryBtn: { backgroundColor: '#111827', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12 },
-  primaryBtnText: { color: 'white', fontWeight: '900' },
-  secondaryBtn: { borderWidth: 1, borderColor: '#D1D5DB', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12 },
-  secondaryBtnText: { fontWeight: '900' },
-
-  assignedRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 },
-  pickRow: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  pickTitle: { fontWeight: '900', color: '#111827' },
-  pickSub: { color: '#6B7280', marginTop: 2 },
+  modalRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 24 },
+  primaryBtn: { backgroundColor: '#4F46E5', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 10 },
+  primaryBtnText: { color: 'white', fontWeight: '700' },
+  secondaryBtn: { backgroundColor: '#F3F4F6', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 10 },
+  secondaryBtnText: { fontWeight: '700', color: '#374151' },
 });

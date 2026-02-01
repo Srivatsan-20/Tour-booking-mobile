@@ -153,7 +153,7 @@ export function TourAccountScreen({ route, navigation }: Props) {
   const [agreement, setAgreement] = React.useState<AgreementResponse | null>(null);
   const [accounts, setAccounts] = React.useState<AgreementAccountsResponse | null>(null);
   const [buses, setBuses] = React.useState<EditableBus[]>([]);
-	const [collapsedBus, setCollapsedBus] = React.useState<Record<string, boolean>>({});
+  const [collapsedBus, setCollapsedBus] = React.useState<Record<string, boolean>>({});
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
 
@@ -260,9 +260,9 @@ export function TourAccountScreen({ route, navigation }: Props) {
       </Card>
 
 
-		  {buses.map((b, idx) => {
-			const collapseKey = b.busId ?? `idx-${idx}`;
-			const isCollapsed = collapsedBus[collapseKey] ?? false;
+      {buses.map((b, idx) => {
+        const collapseKey = b.busId ?? `idx-${idx}`;
+        const isCollapsed = collapsedBus[collapseKey] ?? false;
         const totalLiters = (b.fuelEntries ?? []).reduce((s, f) => s + toNum(f.liters), 0);
         const startKm = b.startKm.trim() ? Number.parseInt(b.startKm, 10) : NaN;
         const endKm = b.endKm.trim() ? Number.parseInt(b.endKm, 10) : NaN;
@@ -270,218 +270,251 @@ export function TourAccountScreen({ route, navigation }: Props) {
         const distanceKm = hasDistance ? endKm - startKm : null;
         const mileage = distanceKm != null && totalLiters > 0 ? distanceKm / totalLiters : null;
 
-			return (
-			  <Card key={`${b.busId ?? 'none'}-${idx}`}>
-				<View style={styles.busHeaderRow}>
-					<Text style={styles.sectionTitle}>
-						{t('accounts.bus')} {idx + 1}: {b.label}
-					</Text>
-					<Pressable
-						style={styles.minimizeBtn}
-						onPress={() => setCollapsedBus((prev) => ({ ...prev, [collapseKey]: !isCollapsed }))}
-					>
-						<Text style={styles.minimizeBtnText}>
-							{isCollapsed ? t('accounts.expand') : t('accounts.minimize')}
-						</Text>
-					</Pressable>
-				</View>
-
-				{isCollapsed ? (
-					<View style={{ gap: 6 }}>
-						<Text style={styles.small}>
-							{t('accounts.driverBatta')}: {b.driverBatta?.trim() ? b.driverBatta : '0'}
-						</Text>
-						<View style={styles.mileageRow}>
-							<Text style={styles.mileageText}>
-								{t('accounts.distanceKm')}: {distanceKm == null ? '—' : String(distanceKm)}
-							</Text>
-							<Text style={styles.mileageText}>
-								{t('accounts.totalLiters')}: {totalLiters ? totalLiters.toFixed(2) : '0.00'}
-							</Text>
-							<Text style={styles.mileageText}>
-								{t('accounts.mileage')}: {mileage == null ? '—' : `${mileage.toFixed(2)} km/L`}
-							</Text>
-						</View>
-					</View>
-				) : (
-					<>
-						<LabeledInput
-            label={t('accounts.driverBatta')}
-            value={b.driverBatta}
-            onChangeText={(v) => {
-              const next = [...buses];
-              next[idx] = { ...next[idx], driverBatta: cleanDecimalInput(v) };
-              setBuses(next);
-            }}
-            keyboardType="numeric"
-					/>
-					<View style={styles.row2}>
-						<View style={{ flex: 1 }}>
-							<LabeledInput
-								label={t('accounts.startKm')}
-								value={b.startKm}
-								onChangeText={(v) => {
-									const next = [...buses];
-									next[idx] = { ...next[idx], startKm: cleanIntInput(v) };
-									setBuses(next);
-								}}
-								keyboardType="number-pad"
-							/>
-						</View>
-						<View style={{ flex: 1 }}>
-							<LabeledInput
-								label={t('accounts.endKm')}
-								value={b.endKm}
-								onChangeText={(v) => {
-									const next = [...buses];
-									next[idx] = { ...next[idx], endKm: cleanIntInput(v) };
-									setBuses(next);
-								}}
-								keyboardType="number-pad"
-							/>
-						</View>
-					</View>
-					<View style={styles.mileageRow}>
-						<Text style={styles.mileageText}>
-							{t('accounts.distanceKm')}: {distanceKm == null ? '—' : String(distanceKm)}
-						</Text>
-						<Text style={styles.mileageText}>
-							{t('accounts.totalLiters')}: {totalLiters ? totalLiters.toFixed(2) : '0.00'}
-						</Text>
-						<Text style={styles.mileageText}>
-							{t('accounts.mileage')}: {mileage == null ? '—' : `${mileage.toFixed(2)} km/L`}
-						</Text>
-					</View>
-
-
-          <Text style={styles.subTitle}>{t('accounts.fuel')}</Text>
-          {(b.fuelEntries ?? []).map((f, fIdx) => (
-            <View key={fIdx} style={styles.entryRow}>
-              <TextInput
-                style={[styles.input, { flex: 2 }]}
-                placeholder={t('accounts.place')}
-                value={f.place}
-			        onFocus={scrollOnFocus}
-                onChangeText={(v) => {
-                  const next = [...buses];
-                  const fuel = [...next[idx].fuelEntries];
-                  fuel[fIdx] = { ...fuel[fIdx], place: v };
-                  next[idx] = { ...next[idx], fuelEntries: fuel };
-                  setBuses(next);
-                }}
-              />
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                placeholder={t('accounts.liters')}
-                keyboardType="numeric"
-                value={f.liters}
-			        onFocus={scrollOnFocus}
-                onChangeText={(v) => {
-                  const next = [...buses];
-                  const fuel = [...next[idx].fuelEntries];
-                  fuel[fIdx] = { ...fuel[fIdx], liters: cleanDecimalInput(v) };
-                  next[idx] = { ...next[idx], fuelEntries: fuel };
-                  setBuses(next);
-                }}
-              />
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                placeholder={t('accounts.cost')}
-                keyboardType="numeric"
-                value={f.cost}
-			        onFocus={scrollOnFocus}
-                onChangeText={(v) => {
-                  const next = [...buses];
-                  const fuel = [...next[idx].fuelEntries];
-                  fuel[fIdx] = { ...fuel[fIdx], cost: cleanDecimalInput(v) };
-                  next[idx] = { ...next[idx], fuelEntries: fuel };
-                  setBuses(next);
-                }}
-              />
-              <Pressable
-                style={styles.removeBtn}
-                onPress={() => {
-                  const next = [...buses];
-                  const fuel = [...next[idx].fuelEntries];
-                  fuel.splice(fIdx, 1);
-                  next[idx] = { ...next[idx], fuelEntries: fuel };
-                  setBuses(next);
-                }}
-              >
-                <Text style={styles.removeBtnText}>{t('accounts.remove')}</Text>
-              </Pressable>
+        return (
+          <Card key={`${b.busId ?? 'none'}-${idx}`}>
+            <View style={styles.busHeaderRow}>
+              <Text style={styles.sectionTitle}>
+                {t('accounts.bus')} {idx + 1}: {b.label}
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <Pressable
+                  style={styles.minimizeBtn}
+                  onPress={() => {
+                    const next = [...buses];
+                    // basic confirmation could be added here
+                    next.splice(idx, 1);
+                    setBuses(next);
+                  }}
+                >
+                  <Text style={[styles.minimizeBtnText, { color: '#991b1b' }]}>X</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.minimizeBtn}
+                  onPress={() => setCollapsedBus((prev) => ({ ...prev, [collapseKey]: !isCollapsed }))}
+                >
+                  <Text style={styles.minimizeBtnText}>
+                    {isCollapsed ? t('accounts.expand') : t('accounts.minimize')}
+                  </Text>
+                </Pressable>
+              </View>
             </View>
-          ))}
-          <Pressable
-            style={styles.addRowBtn}
-            onPress={() => {
-              const next = [...buses];
-              next[idx] = { ...next[idx], fuelEntries: [...(next[idx].fuelEntries ?? []), { place: '', liters: '', cost: '' }] };
-              setBuses(next);
-            }}
-          >
-            <Text style={styles.addRowBtnText}>{t('accounts.addFuel')}</Text>
-          </Pressable>
 
-          <Text style={styles.subTitle}>{t('accounts.otherExpenses')}</Text>
-          {(b.otherExpenses ?? []).map((o, oIdx) => (
-            <View key={oIdx} style={styles.entryRow}>
-              <TextInput
-                style={[styles.input, { flex: 2 }]}
-                placeholder={t('accounts.description')}
-                value={o.description}
-			        onFocus={scrollOnFocus}
-                onChangeText={(v) => {
-                  const next = [...buses];
-                  const other = [...next[idx].otherExpenses];
-                  other[oIdx] = { ...other[oIdx], description: v };
-                  next[idx] = { ...next[idx], otherExpenses: other };
-                  setBuses(next);
-                }}
-              />
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                placeholder={t('accounts.amount')}
-                keyboardType="numeric"
-                value={o.amount}
-			        onFocus={scrollOnFocus}
-                onChangeText={(v) => {
-                  const next = [...buses];
-                  const other = [...next[idx].otherExpenses];
-                  other[oIdx] = { ...other[oIdx], amount: cleanDecimalInput(v) };
-                  next[idx] = { ...next[idx], otherExpenses: other };
-                  setBuses(next);
-                }}
-              />
-              <Pressable
-                style={styles.removeBtn}
-                onPress={() => {
-                  const next = [...buses];
-                  const other = [...next[idx].otherExpenses];
-                  other.splice(oIdx, 1);
-                  next[idx] = { ...next[idx], otherExpenses: other };
-                  setBuses(next);
-                }}
-              >
-                <Text style={styles.removeBtnText}>{t('accounts.remove')}</Text>
-              </Pressable>
-            </View>
-          ))}
-          <Pressable
-            style={styles.addRowBtn}
-            onPress={() => {
-              const next = [...buses];
-              next[idx] = { ...next[idx], otherExpenses: [...(next[idx].otherExpenses ?? []), { description: '', amount: '' }] };
-              setBuses(next);
-            }}
-          >
-            <Text style={styles.addRowBtnText}>{t('accounts.addOtherExpense')}</Text>
-          </Pressable>
-					</>
-				)}
-			</Card>
-		);
-	})}
+            {isCollapsed ? (
+              <View style={{ gap: 6 }}>
+                <Text style={styles.small}>
+                  {t('accounts.driverBatta')}: {b.driverBatta?.trim() ? b.driverBatta : '0'}
+                </Text>
+                <View style={styles.mileageRow}>
+                  <Text style={styles.mileageText}>
+                    {t('accounts.distanceKm')}: {distanceKm == null ? '—' : String(distanceKm)}
+                  </Text>
+                  <Text style={styles.mileageText}>
+                    {t('accounts.totalLiters')}: {totalLiters ? totalLiters.toFixed(2) : '0.00'}
+                  </Text>
+                  <Text style={styles.mileageText}>
+                    {t('accounts.mileage')}: {mileage == null ? '—' : `${mileage.toFixed(2)} km/L`}
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <>
+                <LabeledInput
+                  label={t('accounts.driverBatta')}
+                  value={b.driverBatta}
+                  onChangeText={(v) => {
+                    const next = [...buses];
+                    next[idx] = { ...next[idx], driverBatta: cleanDecimalInput(v) };
+                    setBuses(next);
+                  }}
+                  keyboardType="numeric"
+                />
+                <View style={styles.row2}>
+                  <View style={{ flex: 1 }}>
+                    <LabeledInput
+                      label={t('accounts.startKm')}
+                      value={b.startKm}
+                      onChangeText={(v) => {
+                        const next = [...buses];
+                        next[idx] = { ...next[idx], startKm: cleanIntInput(v) };
+                        setBuses(next);
+                      }}
+                      keyboardType="number-pad"
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <LabeledInput
+                      label={t('accounts.endKm')}
+                      value={b.endKm}
+                      onChangeText={(v) => {
+                        const next = [...buses];
+                        next[idx] = { ...next[idx], endKm: cleanIntInput(v) };
+                        setBuses(next);
+                      }}
+                      keyboardType="number-pad"
+                    />
+                  </View>
+                </View>
+                <View style={styles.mileageRow}>
+                  <Text style={styles.mileageText}>
+                    {t('accounts.distanceKm')}: {distanceKm == null ? '—' : String(distanceKm)}
+                  </Text>
+                  <Text style={styles.mileageText}>
+                    {t('accounts.totalLiters')}: {totalLiters ? totalLiters.toFixed(2) : '0.00'}
+                  </Text>
+                  <Text style={styles.mileageText}>
+                    {t('accounts.mileage')}: {mileage == null ? '—' : `${mileage.toFixed(2)} km/L`}
+                  </Text>
+                </View>
+
+
+                <Text style={styles.subTitle}>{t('accounts.fuel')}</Text>
+                {(b.fuelEntries ?? []).map((f, fIdx) => (
+                  <View key={fIdx} style={styles.entryRow}>
+                    <TextInput
+                      style={[styles.input, { flex: 2 }]}
+                      placeholder={t('accounts.place')}
+                      value={f.place}
+                      onFocus={scrollOnFocus}
+                      onChangeText={(v) => {
+                        const next = [...buses];
+                        const fuel = [...next[idx].fuelEntries];
+                        fuel[fIdx] = { ...fuel[fIdx], place: v };
+                        next[idx] = { ...next[idx], fuelEntries: fuel };
+                        setBuses(next);
+                      }}
+                    />
+                    <TextInput
+                      style={[styles.input, { flex: 1 }]}
+                      placeholder={t('accounts.liters')}
+                      keyboardType="numeric"
+                      value={f.liters}
+                      onFocus={scrollOnFocus}
+                      onChangeText={(v) => {
+                        const next = [...buses];
+                        const fuel = [...next[idx].fuelEntries];
+                        fuel[fIdx] = { ...fuel[fIdx], liters: cleanDecimalInput(v) };
+                        next[idx] = { ...next[idx], fuelEntries: fuel };
+                        setBuses(next);
+                      }}
+                    />
+                    <TextInput
+                      style={[styles.input, { flex: 1 }]}
+                      placeholder={t('accounts.cost')}
+                      keyboardType="numeric"
+                      value={f.cost}
+                      onFocus={scrollOnFocus}
+                      onChangeText={(v) => {
+                        const next = [...buses];
+                        const fuel = [...next[idx].fuelEntries];
+                        fuel[fIdx] = { ...fuel[fIdx], cost: cleanDecimalInput(v) };
+                        next[idx] = { ...next[idx], fuelEntries: fuel };
+                        setBuses(next);
+                      }}
+                    />
+                    <Pressable
+                      style={styles.removeBtn}
+                      onPress={() => {
+                        const next = [...buses];
+                        const fuel = [...next[idx].fuelEntries];
+                        fuel.splice(fIdx, 1);
+                        next[idx] = { ...next[idx], fuelEntries: fuel };
+                        setBuses(next);
+                      }}
+                    >
+                      <Text style={styles.removeBtnText}>{t('accounts.remove')}</Text>
+                    </Pressable>
+                  </View>
+                ))}
+                <Pressable
+                  style={styles.addRowBtn}
+                  onPress={() => {
+                    const next = [...buses];
+                    next[idx] = { ...next[idx], fuelEntries: [...(next[idx].fuelEntries ?? []), { place: '', liters: '', cost: '' }] };
+                    setBuses(next);
+                  }}
+                >
+                  <Text style={styles.addRowBtnText}>{t('accounts.addFuel')}</Text>
+                </Pressable>
+
+                <Text style={styles.subTitle}>{t('accounts.otherExpenses')}</Text>
+                {(b.otherExpenses ?? []).map((o, oIdx) => (
+                  <View key={oIdx} style={styles.entryRow}>
+                    <TextInput
+                      style={[styles.input, { flex: 2 }]}
+                      placeholder={t('accounts.description')}
+                      value={o.description}
+                      onFocus={scrollOnFocus}
+                      onChangeText={(v) => {
+                        const next = [...buses];
+                        const other = [...next[idx].otherExpenses];
+                        other[oIdx] = { ...other[oIdx], description: v };
+                        next[idx] = { ...next[idx], otherExpenses: other };
+                        setBuses(next);
+                      }}
+                    />
+                    <TextInput
+                      style={[styles.input, { flex: 1 }]}
+                      placeholder={t('accounts.amount')}
+                      keyboardType="numeric"
+                      value={o.amount}
+                      onFocus={scrollOnFocus}
+                      onChangeText={(v) => {
+                        const next = [...buses];
+                        const other = [...next[idx].otherExpenses];
+                        other[oIdx] = { ...other[oIdx], amount: cleanDecimalInput(v) };
+                        next[idx] = { ...next[idx], otherExpenses: other };
+                        setBuses(next);
+                      }}
+                    />
+                    <Pressable
+                      style={styles.removeBtn}
+                      onPress={() => {
+                        const next = [...buses];
+                        const other = [...next[idx].otherExpenses];
+                        other.splice(oIdx, 1);
+                        next[idx] = { ...next[idx], otherExpenses: other };
+                        setBuses(next);
+                      }}
+                    >
+                      <Text style={styles.removeBtnText}>{t('accounts.remove')}</Text>
+                    </Pressable>
+                  </View>
+                ))}
+                <Pressable
+                  style={styles.addRowBtn}
+                  onPress={() => {
+                    const next = [...buses];
+                    next[idx] = { ...next[idx], otherExpenses: [...(next[idx].otherExpenses ?? []), { description: '', amount: '' }] };
+                    setBuses(next);
+                  }}
+                >
+                  <Text style={styles.addRowBtnText}>{t('accounts.addOtherExpense')}</Text>
+                </Pressable>
+              </>
+            )}
+          </Card>
+        );
+      })}
+
+      <Pressable
+        style={styles.secondaryBtn}
+        onPress={() => {
+          setBuses((prev) => [
+            ...prev,
+            {
+              busId: null,
+              label: `Bus ${prev.length + 1}`,
+              driverBatta: '0',
+              startKm: '',
+              endKm: '',
+              fuelEntries: [],
+              otherExpenses: [],
+            },
+          ]);
+        }}
+      >
+        <Text style={styles.secondaryBtnText}>{t('action.addBus', 'Add Another Bus')}</Text>
+      </Pressable>
 
       <Card>
         <Text style={styles.sectionTitle}>{t('accounts.totalExpenses')}: {String(totals.totalExpenses)}</Text>
@@ -544,12 +577,12 @@ const styles = StyleSheet.create({
   bigMoney: { fontSize: 18, fontWeight: '900', color: '#111827' },
   label: { fontSize: 12, fontWeight: '800', color: '#374151' },
   input: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
-	row2: { flexDirection: 'row', gap: 10 },
-	mileageRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-	mileageText: { fontSize: 12, fontWeight: '800', color: '#374151' },
-	busHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
-	minimizeBtn: { backgroundColor: '#f3f4f6', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10 },
-	minimizeBtnText: { fontSize: 12, fontWeight: '900', color: '#111827' },
+  row2: { flexDirection: 'row', gap: 10 },
+  mileageRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  mileageText: { fontSize: 12, fontWeight: '800', color: '#374151' },
+  busHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
+  minimizeBtn: { backgroundColor: '#f3f4f6', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10 },
+  minimizeBtnText: { fontSize: 12, fontWeight: '900', color: '#111827' },
 
   entryRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   addRowBtn: { backgroundColor: '#f3f4f6', paddingVertical: 10, borderRadius: 12, alignItems: 'center' },

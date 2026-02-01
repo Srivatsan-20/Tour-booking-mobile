@@ -1,12 +1,13 @@
 import * as React from 'react';
-import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { User, Calendar, MapPin, Calculator, CreditCard, Ban, Briefcase, PlusCircle, Edit2, Wallet } from 'lucide-react-native';
 
-import { KeyboardAvoidingScrollView } from '../components/KeyboardAvoidingScrollView';
 import type { RootStackParamList } from '../navigation/types';
 import { addAdvanceToAgreement, cancelAgreement } from '../api/agreements';
 import type { AgreementResponse } from '../types/api';
+import { ScreenContainer } from '../components/ScreenContainer';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BookingDetails'>;
 
@@ -106,7 +107,7 @@ export function BookingDetailsScreen({ route, navigation }: Props) {
         onPress: async () => {
           setBusy(true);
           try {
-	            await cancelAgreement(agreement.id);
+            await cancelAgreement(agreement.id);
             Alert.alert(t('common.successTitle'), t('bookingDetails.cancelled'), [
               { text: t('common.ok'), onPress: () => navigation.goBack() },
             ]);
@@ -121,101 +122,95 @@ export function BookingDetailsScreen({ route, navigation }: Props) {
   };
 
   return (
-    <KeyboardAvoidingScrollView contentContainerStyle={styles.container}>
-      {isCancelled ? (
-        <View style={styles.cancelledBanner}>
-          <Text style={styles.cancelledBannerText}>
-            {t('bookingDetails.cancelled')} {t('cancelledTours.cancelledAt')}: {formatCancelledAt(agreement.cancelledAtUtc)}
-          </Text>
-        </View>
-      ) : null}
-
-      <Card>
-        <Text style={styles.cardTitle}>{t('agreement.customerDetails')}</Text>
-        <Row label={t('agreement.customerName')} value={agreement.customerName} />
-        <Row label={t('agreement.phone')} value={agreement.phone} />
-      </Card>
-
-      <Card>
-        <Text style={styles.cardTitle}>{t('agreement.tripDetails')}</Text>
-        <Row label={t('agreement.fromDate')} value={agreement.fromDate} />
-        <Row label={t('agreement.toDate')} value={agreement.toDate} />
-        <Row label={t('agreement.totalDays')} value={totalDays == null ? '-' : String(totalDays)} />
-        <Row label={t('agreement.busType')} value={agreement.busType} />
-        <Row label={t('agreement.busCount')} value={agreement.busCount == null ? '-' : String(agreement.busCount)} />
-        <Row label={t('agreement.passengers')} value={agreement.passengers == null ? '-' : String(agreement.passengers)} />
-        <Row label={t('agreement.placesToCover')} value={agreement.placesToCover} />
-      </Card>
-
-      <Card>
-        <Text style={styles.cardTitle}>{t('agreement.rentDetails')}</Text>
-        <Row label={t('agreement.useIndividualBusRates')} value={yesNo(agreement.useIndividualBusRates)} />
-
-        {!agreement.useIndividualBusRates ? (
-          <>
-            <Row label={t('agreement.perDayRent')} value={money(agreement.perDayRent)} />
-            <Row label={t('agreement.includeMountainRent')} value={yesNo(agreement.includeMountainRent)} />
-            {agreement.includeMountainRent ? (
-              <Row label={t('agreement.mountainRent')} value={money(agreement.mountainRent)} />
-            ) : null}
-          </>
-        ) : (
-          <View style={{ gap: 12 }}>
-            {(agreement.busRates ?? []).map((r, idx) => (
-              <View key={idx} style={styles.busRateCard}>
-                <Text style={styles.busRateTitle}>
-                  {t('agreement.bus')} {idx + 1}
-                </Text>
-                <Row label={t('agreement.perDayRent')} value={money(r.perDayRent)} />
-                <Row label={t('agreement.includeMountainRent')} value={yesNo(r.includeMountainRent)} />
-                {r.includeMountainRent ? <Row label={t('agreement.mountainRent')} value={money(r.mountainRent)} /> : null}
-              </View>
-            ))}
+    <ScreenContainer style={{ paddingHorizontal: 0 }}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {isCancelled ? (
+          <View style={styles.cancelledBanner}>
+            <Ban size={20} color="#991b1b" />
+            <Text style={styles.cancelledBannerText}>
+              {t('bookingDetails.cancelled')} {t('cancelledTours.cancelledAt')}: {formatCancelledAt(agreement.cancelledAtUtc)}
+            </Text>
           </View>
-        )}
-      </Card>
+        ) : null}
 
-      <Card>
-        <Text style={styles.cardTitle}>{t('agreement.paymentDetails')}</Text>
-        <Row label={t('agreement.totalAmount')} value={money(agreement.totalAmount)} />
-        <Row label={t('agreement.advancePaid')} value={money(agreement.advancePaid)} />
-        <Row label={t('agreement.balance')} value={money(agreement.balance)} />
-        <Row label={t('agreement.notes')} value={agreement.notes || '-'} />
-      </Card>
+        <Card title={t('agreement.customerDetails')} icon={<User size={18} color="#4F46E5" />}>
+          <Row label={t('agreement.customerName')} value={agreement.customerName} />
+          <Row label={t('agreement.phone')} value={agreement.phone} />
+        </Card>
 
-      <View style={styles.actionsRow}>
-        <Pressable
-          style={[styles.primaryBtn, busy || isCancelled ? styles.btnDisabled : null]}
-          disabled={busy || isCancelled}
-          onPress={() => setAdvanceModalOpen(true)}
-        >
-          <Text style={styles.primaryBtnText}>{t('bookingDetails.addAdvance')}</Text>
-        </Pressable>
+        <Card title={t('agreement.tripDetails')} icon={<Calendar size={18} color="#4F46E5" />}>
+          <Row label={t('agreement.fromDate')} value={agreement.fromDate} />
+          <Row label={t('agreement.toDate')} value={agreement.toDate} />
+          <Row label={t('agreement.totalDays')} value={totalDays == null ? '-' : String(totalDays)} />
+          <Row label={t('agreement.busType')} value={agreement.busType} />
+          <Row label={t('agreement.busCount')} value={agreement.busCount == null ? '-' : String(agreement.busCount)} />
+          <Row label={t('agreement.passengers')} value={agreement.passengers == null ? '-' : String(agreement.passengers)} />
+          <Row label={t('agreement.placesToCover')} value={agreement.placesToCover} isLast />
+        </Card>
 
-        <Pressable
-          style={[styles.secondaryBtn, busy ? styles.btnDisabled : null]}
-          disabled={busy}
-          onPress={() => navigation.navigate('TourAccount', { agreementId: agreement.id })}
-        >
-          <Text style={styles.secondaryBtnText}>{t('bookingDetails.accountsButton')}</Text>
-        </Pressable>
+        <Card title={t('agreement.rentDetails')} icon={<Calculator size={18} color="#4F46E5" />}>
+          <Row label={t('agreement.useIndividualBusRates')} value={yesNo(agreement.useIndividualBusRates)} />
 
-        <Pressable
-          style={[styles.secondaryBtn, busy || isCancelled ? styles.btnDisabled : null]}
-          disabled={busy || isCancelled}
-          onPress={() => navigation.navigate('BookingEdit', { agreement })}
-        >
-          <Text style={styles.secondaryBtnText}>{t('bookingDetails.alterButton')}</Text>
-        </Pressable>
+          {!agreement.useIndividualBusRates ? (
+            <>
+              <Row label={t('agreement.perDayRent')} value={money(agreement.perDayRent)} />
+              <Row label={t('agreement.includeMountainRent')} value={yesNo(agreement.includeMountainRent)} />
+              <Row label={t('agreement.mountainRent')} value={money(agreement.mountainRent)} isLast={!agreement.includeMountainRent} />
+            </>
+          ) : (
+            <View style={{ gap: 12, marginTop: 8 }}>
+              {(agreement.busRates ?? []).map((r, idx) => (
+                <View key={idx} style={styles.busRateCard}>
+                  <Text style={styles.busRateTitle}>
+                    {t('agreement.bus')} {idx + 1}
+                  </Text>
+                  <Row label={t('agreement.perDayRent')} value={money(r.perDayRent)} />
+                  <Row label={t('agreement.includeMountainRent')} value={yesNo(r.includeMountainRent)} />
+                  <Row label={t('agreement.mountainRent')} value={money(r.mountainRent)} isLast />
+                </View>
+              ))}
+            </View>
+          )}
+        </Card>
 
-        <Pressable
-          style={[styles.dangerBtn, busy || isCancelled ? styles.btnDisabled : null]}
-          disabled={busy || isCancelled}
-          onPress={onCancelTour}
-        >
-          <Text style={styles.dangerBtnText}>{t('bookingDetails.cancelButton')}</Text>
-        </Pressable>
-      </View>
+        <Card title={t('agreement.paymentDetails')} icon={<CreditCard size={18} color="#4F46E5" />}>
+          <Row label={t('agreement.totalAmount')} value={money(agreement.totalAmount)} />
+          <Row label={t('agreement.advancePaid')} value={money(agreement.advancePaid)} />
+          <Row label={t('agreement.balance')} value={money(agreement.balance)} highlight />
+          <Row label={t('agreement.notes')} value={agreement.notes || '-'} isLast />
+        </Card>
+
+        <View style={styles.actionsGrid}>
+          <ActionButton
+            label={t('bookingDetails.addAdvance')}
+            icon={<PlusCircle size={20} color="white" />}
+            onPress={() => setAdvanceModalOpen(true)}
+            disabled={busy || isCancelled}
+            variant="primary"
+          />
+          <ActionButton
+            label={t('bookingDetails.accountsButton')}
+            icon={<Wallet size={20} color="white" />}
+            onPress={() => navigation.navigate('TourAccount', { agreementId: agreement.id })}
+            disabled={busy}
+            variant="secondary"
+          />
+          <ActionButton
+            label={t('bookingDetails.alterButton')}
+            icon={<Edit2 size={20} color="white" />}
+            onPress={() => navigation.navigate('BookingEdit', { agreement })}
+            disabled={busy || isCancelled}
+            variant="secondary"
+          />
+          <ActionButton
+            label={t('bookingDetails.cancelButton')}
+            icon={<Ban size={20} color="white" />}
+            onPress={onCancelTour}
+            disabled={busy || isCancelled}
+            variant="danger"
+          />
+        </View>
+      </ScrollView>
 
       <Modal transparent visible={advanceModalOpen} animationType="fade" onRequestClose={() => setAdvanceModalOpen(false)}>
         <KeyboardAvoidingView
@@ -251,60 +246,116 @@ export function BookingDetailsScreen({ route, navigation }: Props) {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </KeyboardAvoidingScrollView>
+    </ScreenContainer>
   );
 }
 
-function Card({ children }: { children: React.ReactNode }) {
-  return <View style={styles.card}>{children}</View>;
-}
-
-function Row({ label, value }: { label: string; value: string }) {
+function Card({ children, title, icon }: { children: React.ReactNode; title: string, icon?: React.ReactNode }) {
   return (
-    <View style={styles.row}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value}>{value || '-'}</Text>
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        {icon}
+        <Text style={styles.cardTitle}>{title}</Text>
+      </View>
+      <View style={styles.cardContent}>
+        {children}
+      </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { padding: 16, gap: 12 },
-  cancelledBanner: {
-    backgroundColor: '#fef2f2',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#fecaca',
-  },
-  cancelledBannerText: { color: '#991b1b', fontWeight: '800' },
-  card: { backgroundColor: 'white', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#eee', gap: 10 },
-  cardTitle: { fontSize: 14, fontWeight: '800', color: '#111827' },
-  row: { gap: 2 },
-  label: { fontSize: 12, fontWeight: '700', color: '#374151' },
-  value: { fontSize: 14 },
+function Row({ label, value, isLast, highlight }: { label: string; value: string, isLast?: boolean, highlight?: boolean }) {
+  return (
+    <View style={[styles.row, !isLast && styles.rowBorder]}>
+      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.value, highlight && styles.valueHighlight]}>{value || '-'}</Text>
+    </View>
+  );
+}
 
-  busRateCard: { backgroundColor: '#f9fafb', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#e5e7eb' },
+function ActionButton({ label, icon, onPress, disabled, variant }: { label: string; icon: React.ReactNode; onPress: () => void; disabled?: boolean; variant: 'primary' | 'secondary' | 'danger' }) {
+  const getBg = () => {
+    if (disabled) return '#E5E7EB';
+    switch (variant) {
+      case 'primary': return '#4F46E5';
+      case 'secondary': return '#111827';
+      case 'danger': return '#DC2626';
+    }
+  };
+
+  return (
+    <Pressable
+      style={[styles.actionBtn, { backgroundColor: getBg() }]}
+      disabled={disabled}
+      onPress={onPress}
+    >
+      {icon}
+      <Text style={[styles.actionBtnText, disabled && { color: '#9CA3AF' }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  scrollContent: { padding: 16, gap: 16, paddingBottom: 40 },
+  cancelledBanner: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#FAC7C7',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  cancelledBannerText: { color: '#991b1b', fontWeight: '700', flexShrink: 1 },
+
+  card: { backgroundColor: 'white', borderRadius: 16, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'hidden' },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, backgroundColor: '#F9FAFB', borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  cardContent: { padding: 14 },
+
+  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10 },
+  rowBorder: { borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  label: { fontSize: 13, fontWeight: '500', color: '#6B7280' },
+  value: { fontSize: 14, fontWeight: '600', color: '#111827' },
+  valueHighlight: { color: '#4F46E5', fontWeight: '800' },
+
+  busRateCard: { backgroundColor: '#F9FAFB', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#E5E7EB' },
   busRateTitle: { fontSize: 13, fontWeight: '800', color: '#111827', marginBottom: 6 },
 
-  actionsRow: { gap: 10 },
-  primaryBtn: { backgroundColor: '#111827', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  primaryBtnText: { color: 'white', fontSize: 16, fontWeight: '700' },
-  secondaryBtn: { backgroundColor: '#f3f4f6', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  secondaryBtnText: { color: '#111827', fontSize: 16, fontWeight: '800' },
-  dangerBtn: { backgroundColor: '#b91c1c', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  dangerBtnText: { color: 'white', fontSize: 16, fontWeight: '800' },
-  btnDisabled: { opacity: 0.6 },
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 8
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    flexBasis: '45%', // Ensure it fits 2 per row easily but grows
+    flexGrow: 1,
+  },
+  actionBtnText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '700',
+    flex: 1,
+    textAlign: 'center',
+  },
 
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', padding: 16 },
-  modalCard: { backgroundColor: 'white', borderRadius: 14, padding: 14, gap: 10 },
-  modalTitle: { fontSize: 16, fontWeight: '800' },
-  input: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
-  inputMultiline: { minHeight: 80, textAlignVertical: 'top' },
-  modalActionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 4 },
-  modalBtn: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, backgroundColor: '#f3f4f6' },
-  modalBtnPrimary: { backgroundColor: '#111827' },
-  modalBtnText: { fontWeight: '800', color: '#111827' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+  modalCard: { backgroundColor: 'white', borderRadius: 16, padding: 20, gap: 16, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: '#111827' },
+  input: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, fontSize: 16, backgroundColor: '#F9FAFB' },
+  inputMultiline: { minHeight: 100, textAlignVertical: 'top' },
+  modalActionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 10 },
+  modalBtn: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#F3F4F6' },
+  modalBtnPrimary: { backgroundColor: '#4F46E5' },
+  modalBtnText: { fontWeight: '700', color: '#374151' },
   modalBtnTextPrimary: { color: 'white' },
 });
-

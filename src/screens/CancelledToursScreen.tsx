@@ -2,11 +2,14 @@ import * as React from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
+import { CalendarX } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { listAgreements } from '../api/agreements';
 import type { RootStackParamList } from '../navigation/types';
 import type { AgreementResponse } from '../types/api';
+import { ScreenContainer } from '../components/ScreenContainer';
+import { ListCard } from '../components/ListCard';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CancelledTours'>;
 
@@ -54,8 +57,11 @@ export function CancelledToursScreen({ navigation }: Props) {
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{t('cancelledTours.title')}</Text>
+    <ScreenContainer style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>{t('cancelledTours.title')}</Text>
+        <Text style={styles.subtitle}>{items.length} {t('common.cancelled', 'Cancelled')}</Text>
+      </View>
 
       {error && items.length === 0 ? (
         <View style={styles.stateBox}>
@@ -71,7 +77,7 @@ export function CancelledToursScreen({ navigation }: Props) {
 
       {loading && items.length === 0 ? (
         <View style={styles.stateBox}>
-          <ActivityIndicator />
+          <ActivityIndicator size="large" color="#DC2626" />
           <Text style={styles.note}>{t('cancelledTours.loading')}</Text>
         </View>
       ) : null}
@@ -81,32 +87,60 @@ export function CancelledToursScreen({ navigation }: Props) {
         keyExtractor={(item) => item.id}
         refreshing={loading}
         onRefresh={load}
-        contentContainerStyle={items.length === 0 ? styles.listEmptyContainer : undefined}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.listContent,
+          items.length === 0 && styles.listEmptyContainer
+        ]}
         ListEmptyComponent={!loading && !error ? <Text style={styles.note}>{t('cancelledTours.empty')}</Text> : null}
         renderItem={({ item }) => (
-          <Pressable
-            style={styles.card}
+          <ListCard
+            title={item.customerName}
+            subtitle={`${item.fromDate} → ${item.toDate}`}
+            meta1={{
+              text: `${t('cancelledTours.cancelledAt')}: ${formatCancelledAt(item.cancelledAtUtc)}`,
+              icon: <CalendarX size={14} color="#EF4444" />
+            }}
+            status={{
+              text: 'Cancelled',
+              bg: '#FEF2F2',
+              color: '#B91C1C'
+            }}
             onPress={() => navigation.navigate('BookingDetails', { agreement: item })}
-          >
-            <Text style={styles.cardTitle}>{item.customerName}</Text>
-            <Text style={styles.cardSub}>{`${item.fromDate} → ${item.toDate}`}</Text>
-            <Text style={styles.cardMeta}>{`${t('cancelledTours.cancelledAt')}: ${formatCancelledAt(
-              item.cancelledAtUtc,
-            )}`}</Text>
-          </Pressable>
+          />
         )}
       />
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 10 },
-  title: { fontSize: 18, fontWeight: '800' },
-  note: { color: '#6b7280', textAlign: 'center' },
+  container: {
+    paddingHorizontal: 0,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  listContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  note: { color: '#6b7280', textAlign: 'center', marginTop: 10 },
   noteSmall: { color: '#6b7280', fontSize: 12, textAlign: 'center' },
 
-  stateBox: { paddingVertical: 18, gap: 10, alignItems: 'center' },
+  stateBox: { paddingVertical: 40, gap: 10, alignItems: 'center' },
   retryBtn: {
     backgroundColor: '#111827',
     paddingVertical: 10,
@@ -114,18 +148,5 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   retryBtnText: { color: 'white', fontSize: 14, fontWeight: '700' },
-
   listEmptyContainer: { flexGrow: 1, justifyContent: 'center' },
-
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  cardTitle: { fontSize: 16, fontWeight: '800', marginBottom: 4, color: '#111827' },
-  cardSub: { color: '#374151', marginBottom: 8 },
-  cardMeta: { color: '#6b7280', fontWeight: '600' },
 });

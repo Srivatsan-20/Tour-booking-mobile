@@ -11,12 +11,15 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
+import { Bus, Calendar, DollarSign, RefreshCw } from 'lucide-react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 
 import type { RootStackParamList } from '../navigation/types';
 import type { AccountsSummaryItem } from '../types/accounts';
 import { listAccounts } from '../api/accounts';
+import { ScreenContainer } from '../components/ScreenContainer';
+import { ListCard } from '../components/ListCard';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AccountsSummary'>;
 
@@ -98,64 +101,76 @@ export function AccountsSummaryScreen({ navigation }: Props) {
   const renderItem = ({ item }: { item: AccountsSummaryItem }) => {
     const profit = item.profitOrLoss;
     const isProfit = profit >= 0;
+
     return (
-      <Pressable
-        style={styles.card}
+      <ListCard
+        title={item.customerName}
+        subtitle={`${item.fromDate} - ${item.toDate}`}
+        meta1={{
+          text: item.busType,
+          icon: <Bus size={14} color="#6B7280" />
+        }}
+        meta2={{
+          text: `${t('accounts.profitOrLoss')}: ${fmtMoney(item.profitOrLoss)}`,
+          icon: <DollarSign size={14} color={isProfit ? '#059669' : '#DC2626'} />,
+          // Highlight profit/loss
+        }}
+        status={item.isCancelled ? {
+          text: t('allTours.statusCancelled'),
+          bg: '#FEF2F2',
+          color: '#B91C1C'
+        } : undefined}
         onPress={() => navigation.navigate('TourAccount', { agreementId: item.agreementId })}
-      >
-        <View style={styles.cardTop}>
-          <Text style={styles.customer}>{item.customerName}</Text>
-          {item.isCancelled ? <Text style={styles.cancelledBadge}>{t('allTours.statusCancelled')}</Text> : null}
-        </View>
-        <Text style={styles.small}>
-          {item.fromDate} - {item.toDate} • {item.busType}
-        </Text>
-        <View style={styles.row}>
-          <Text style={styles.small}>{t('accounts.income')}: {fmtMoney(item.incomeTotalAmount)}</Text>
-          <Text style={styles.small}>{t('accounts.totalExpenses')}: {fmtMoney(item.totalExpenses)}</Text>
-        </View>
-        <Text style={[styles.profit, isProfit ? styles.profitPos : styles.profitNeg]}>
-          {t('accounts.profitOrLoss')}: {fmtMoney(item.profitOrLoss)}
-        </Text>
-      </Pressable>
+      />
     );
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.filters}>
-        <Pressable style={styles.filterChip} onPress={() => openPicker('from')}>
-          <Text style={styles.filterChipText}>
-            {t('accounts.filterFrom')}: {from ? formatDateDDMMYYYY(from) : '-'}
-          </Text>
-        </Pressable>
-        <Pressable style={styles.filterChip} onPress={() => openPicker('to')}>
-          <Text style={styles.filterChipText}>
-            {t('accounts.filterTo')}: {to ? formatDateDDMMYYYY(to) : '-'}
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[styles.filterChip, includeCancelled ? styles.filterChipOn : null]}
-          onPress={() => setIncludeCancelled((v) => !v)}
-        >
-          <Text style={styles.filterChipText}>{t('accounts.includeCancelled')}</Text>
-        </Pressable>
+    <ScreenContainer style={{ flex: 1 }}>
+      <View style={styles.filtersPanel}>
+        <Text style={styles.filterTitle}>{t('common.filters', 'Filters')}</Text>
+        <View style={styles.filterRow}>
+          <Pressable style={styles.filterChip} onPress={() => openPicker('from')}>
+            <Calendar size={14} color="#4B5563" />
+            <Text style={styles.filterChipText}>
+              {t('accounts.filterFrom')}: {from ? formatDateDDMMYYYY(from) : '-'}
+            </Text>
+          </Pressable>
+          <Pressable style={styles.filterChip} onPress={() => openPicker('to')}>
+            <Calendar size={14} color="#4B5563" />
+            <Text style={styles.filterChipText}>
+              {t('accounts.filterTo')}: {to ? formatDateDDMMYYYY(to) : '-'}
+            </Text>
+          </Pressable>
+        </View>
 
-        <Pressable style={styles.refreshBtn} onPress={load}>
-          <Text style={styles.refreshBtnText}>{t('common.refresh')}</Text>
-        </Pressable>
+        <View style={styles.filterRow}>
+          <Pressable
+            style={[styles.filterChip, includeCancelled ? styles.filterChipOn : null]}
+            onPress={() => setIncludeCancelled((v) => !v)}
+          >
+            <Text style={[styles.filterChipText, includeCancelled && { color: '#4F46E5' }]}>
+              {t('accounts.includeCancelled')}
+            </Text>
+          </Pressable>
+
+          <Pressable style={styles.refreshBtn} onPress={load}>
+            <RefreshCw size={14} color="white" />
+            <Text style={styles.refreshBtnText}>{t('common.refresh')}</Text>
+          </Pressable>
+        </View>
       </View>
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator />
+          <ActivityIndicator size="large" color="#4F46E5" />
           <Text style={styles.small}>{t('common.loading')}</Text>
         </View>
       ) : error ? (
         <View style={styles.center}>
           <Text style={styles.error}>{error}</Text>
-          <Pressable style={styles.refreshBtn} onPress={load}>
-            <Text style={styles.refreshBtnText}>{t('common.retry')}</Text>
+          <Pressable style={styles.retryBtn} onPress={load}>
+            <Text style={styles.retryBtnText}>{t('common.retry')}</Text>
           </Pressable>
         </View>
       ) : (
@@ -164,6 +179,7 @@ export function AccountsSummaryScreen({ navigation }: Props) {
           keyExtractor={(x) => x.agreementId}
           renderItem={renderItem}
           contentContainerStyle={{ padding: 14, gap: 10 }}
+          ListEmptyComponent={<Text style={styles.emptyText}>{t('common.noData', 'No accounts found.')}</Text>}
         />
       )}
 
@@ -202,30 +218,70 @@ export function AccountsSummaryScreen({ navigation }: Props) {
           />
         )
       ) : null}
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  filters: { padding: 14, gap: 8, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  filterChip: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, backgroundColor: '#f3f4f6' },
-  filterChipOn: { backgroundColor: '#e0e7ff' },
-  filterChipText: { fontWeight: '700', color: '#111827' },
-  refreshBtn: { backgroundColor: '#111827', paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
-  refreshBtnText: { color: 'white', fontWeight: '800' },
+  filtersPanel: {
+    padding: 16,
+    gap: 12,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB'
+  },
+  filterTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  filterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  filterChipOn: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#818CF8',
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151'
+  },
+
+  refreshBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#111827',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  refreshBtnText: {
+    fontSize: 13,
+    color: 'white',
+    fontWeight: '700'
+  },
 
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, padding: 16 },
   error: { color: '#b91c1c', fontWeight: '700', textAlign: 'center' },
-  card: { backgroundColor: 'white', borderWidth: 1, borderColor: '#eee', borderRadius: 12, padding: 12, gap: 6 },
-  cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  customer: { fontSize: 16, fontWeight: '900', color: '#111827', flex: 1 },
-  cancelledBadge: { fontSize: 11, fontWeight: '900', color: '#991b1b' },
-  small: { fontSize: 12, color: '#374151', fontWeight: '700' },
-  row: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' },
-  profit: { fontSize: 13, fontWeight: '900' },
-  profitPos: { color: '#065f46' },
-  profitNeg: { color: '#b91c1c' },
+  retryBtn: { backgroundColor: '#111827', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
+  retryBtnText: { color: 'white', fontWeight: '700' },
+  small: { fontSize: 13, color: '#6B7280' },
+  emptyText: { textAlign: 'center', color: '#6B7280', marginTop: 20 },
 
   pickerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', padding: 16 },
   pickerCard: { backgroundColor: 'white', borderRadius: 14, padding: 14, gap: 10 },
