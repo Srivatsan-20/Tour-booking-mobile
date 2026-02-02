@@ -10,8 +10,12 @@ using TourBooking.Api.Models;
 
 namespace TourBooking.Api.Controllers;
 
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+
 [ApiController]
 [Route("api/agreements")]
+[Authorize]
 public sealed class AgreementsController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -23,12 +27,14 @@ public sealed class AgreementsController : ControllerBase
         _db = db;
     }
 
+    private int CurrentUserId => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
     [HttpGet]
 	public async Task<ActionResult<List<AgreementResponse>>> List(
 	    [FromQuery] bool includeCancelled,
 	    CancellationToken cancellationToken)
     {
-		var query = _db.Agreements.AsNoTracking();
+		var query = _db.Agreements.AsNoTracking().Where(x => x.UserId == CurrentUserId);
 		if (!includeCancelled)
 		{
 		    query = query.Where(x => !x.IsCancelled);
@@ -48,7 +54,7 @@ public sealed class AgreementsController : ControllerBase
     {
         var entity = await _db.Agreements
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == CurrentUserId, cancellationToken);
 
         if (entity is null)
         {
@@ -110,6 +116,7 @@ public sealed class AgreementsController : ControllerBase
 			IsCancelled = false,
 			CancelledAtUtc = null,
             CreatedAtUtc = DateTime.UtcNow,
+            UserId = CurrentUserId,
         };
 
         _db.Agreements.Add(entity);
@@ -127,7 +134,7 @@ public sealed class AgreementsController : ControllerBase
         CancellationToken cancellationToken)
     {
         var entity = await _db.Agreements
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == CurrentUserId, cancellationToken);
 
         if (entity is null)
         {
@@ -286,7 +293,7 @@ public sealed class AgreementsController : ControllerBase
         [FromBody] AgreementAssignBusRequest request,
         CancellationToken cancellationToken)
     {
-        var agreement = await _db.Agreements.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var agreement = await _db.Agreements.FirstOrDefaultAsync(x => x.Id == id && x.UserId == CurrentUserId, cancellationToken);
         if (agreement is null) return NotFound();
         if (agreement.IsCancelled) return Conflict("Agreement is cancelled");
 
@@ -295,7 +302,7 @@ public sealed class AgreementsController : ControllerBase
             return BadRequest("busCount must be set before assigning buses");
         }
 
-        var bus = await _db.Buses.FirstOrDefaultAsync(x => x.Id == request.BusId, cancellationToken);
+        var bus = await _db.Buses.FirstOrDefaultAsync(x => x.Id == request.BusId && x.UserId == CurrentUserId, cancellationToken);
         if (bus is null) return NotFound("Bus not found");
         if (!bus.IsActive) return Conflict("Bus is inactive");
 
@@ -338,7 +345,7 @@ public sealed class AgreementsController : ControllerBase
         [FromBody] AgreementAssignBusRequest request,
         CancellationToken cancellationToken)
     {
-        var agreement = await _db.Agreements.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var agreement = await _db.Agreements.FirstOrDefaultAsync(x => x.Id == id && x.UserId == CurrentUserId, cancellationToken);
         if (agreement is null) return NotFound();
         if (agreement.IsCancelled) return Conflict("Agreement is cancelled");
 
@@ -375,7 +382,7 @@ public sealed class AgreementsController : ControllerBase
         }
 
         var entity = await _db.Agreements
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == CurrentUserId, cancellationToken);
 
         if (entity is null)
         {
@@ -406,11 +413,10 @@ public sealed class AgreementsController : ControllerBase
         return ToResponse(entity);
     }
 
-    [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         var entity = await _db.Agreements
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == CurrentUserId, cancellationToken);
 
         if (entity is null)
         {

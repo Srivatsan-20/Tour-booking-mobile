@@ -10,6 +10,7 @@ public sealed class AppDbContext : DbContext
     {
     }
 
+    public DbSet<User> Users => Set<User>();
     public DbSet<Agreement> Agreements => Set<Agreement>();
 
     public DbSet<Bus> Buses => Set<Bus>();
@@ -22,8 +23,19 @@ public sealed class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        var user = modelBuilder.Entity<User>();
+        user.HasKey(x => x.Id);
+        user.Property(x => x.Username).HasMaxLength(100).IsRequired();
+        user.HasIndex(x => x.Username).IsUnique();
+        user.Property(x => x.Email).HasMaxLength(200);
+
         var agreement = modelBuilder.Entity<Agreement>();
         agreement.HasKey(x => x.Id);
+        
+        agreement.HasOne(x => x.User)
+            .WithMany()
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.NoAction);
 
         agreement.Property(x => x.CustomerName).HasMaxLength(200).IsRequired();
         agreement.Property(x => x.Phone).HasMaxLength(50);
@@ -33,7 +45,8 @@ public sealed class AppDbContext : DbContext
 
         agreement.Property(x => x.BusType).HasMaxLength(50);
 
-        agreement.Property(x => x.PlacesToCover).HasMaxLength(2000);
+        // agreement.Property(x => x.PlacesToCover).HasMaxLength(2000); // Removed limit
+        agreement.Property(x => x.PlacesToCover); // Defaults to nvarchar(max) for SQL Server
         agreement.Property(x => x.Notes).HasMaxLength(4000);
 
 	    agreement.Property(x => x.IsCancelled)
@@ -66,6 +79,7 @@ public sealed class AppDbContext : DbContext
 
 		var busExpense = modelBuilder.Entity<BusExpense>();
 		busExpense.HasKey(x => x.Id);
+		busExpense.Property(x => x.DisplayOrder).HasDefaultValue(0);
 		busExpense.Property(x => x.DriverBatta).HasColumnType("decimal(18,2)").HasDefaultValue(0m);
 		busExpense.Property(x => x.Days).HasDefaultValue(0);
 		busExpense.HasOne(x => x.TripExpense)
@@ -99,7 +113,15 @@ public sealed class AppDbContext : DbContext
         var bus = modelBuilder.Entity<Bus>();
         bus.HasKey(x => x.Id);
         bus.Property(x => x.VehicleNumber).HasMaxLength(50).IsRequired();
-        bus.HasIndex(x => x.VehicleNumber).IsUnique();
+        
+        // Multi-tenancy: VehicleNumber must be unique per User.
+        // If UserId is null, it's global/legacy.
+        bus.HasIndex(x => new { x.UserId, x.VehicleNumber }).IsUnique();
+        
+        bus.HasOne(x => x.User)
+            .WithMany()
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.NoAction);
         bus.Property(x => x.Name).HasMaxLength(100);
         bus.Property(x => x.IsActive).HasDefaultValue(true);
         bus.Property(x => x.CreatedAtUtc).HasDefaultValueSql("GETUTCDATE()");

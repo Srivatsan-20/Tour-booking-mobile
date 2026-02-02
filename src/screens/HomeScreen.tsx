@@ -10,16 +10,20 @@ import {
   XCircle,
   Bus,
   ClipboardList,
-  PieChart
+  PieChart,
+  User,
+  LogOut
 } from 'lucide-react-native';
 
 import type { RootStackParamList } from '../navigation/types';
 import { DashboardCard } from '../components/DashboardCard';
+import { useAuth } from '../context/AuthContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export function HomeScreen({ navigation }: Props) {
   const { t } = useTranslation();
+  const { logout, user } = useAuth();
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -101,16 +105,33 @@ export function HomeScreen({ navigation }: Props) {
 
         {/* Section: Finance */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('home.section.finance', 'Finance & Reports')}</Text>
+          <Text style={styles.sectionTitle}>{t('home.section.account', 'Account')}</Text>
 
           <DashboardCard
-            title={t('home.accounts')}
+            title={t('home.profile', 'Company Profile')}
+            subtitle={t('home.profileDesc', 'Edit branding details')}
+            icon={<User size={24} color="#4F46E5" />}
+            color="#4F46E5"
+            onPress={() => navigation.navigate('Profile')}
+          />
+
+          <DashboardCard
+            title={t('home.financials')}
             subtitle={t('home.accountsDesc', 'View earnings and expenses')}
             icon={<PieChart size={24} color="#DB2777" />}
             color="#DB2777"
             onPress={() => navigation.navigate('AccountsSummary')}
           />
         </View>
+
+        {/* Logout Button */}
+        <DashboardCard
+          title={t('auth.logout')}
+          subtitle={user?.username || ''}
+          icon={<LogOut size={24} color="#DC2626" />}
+          color="#DC2626"
+          onPress={logout}
+        />
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Version 1.0.0</Text>

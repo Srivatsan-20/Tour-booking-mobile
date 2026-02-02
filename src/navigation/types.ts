@@ -2,7 +2,13 @@ import type { AgreementDraft } from '../types/agreement';
 import type { AgreementResponse } from '../types/api';
 
 export type RootStackParamList = {
+  // Auth
+  Login: undefined;
+  Register: undefined;
+
+  // Main App
   Home: undefined;
+  Profile: undefined;
   AgreementForm: undefined;
   AgreementPreview: { draft: AgreementDraft };
   Bookings: undefined;

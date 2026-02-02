@@ -4,6 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { AppNavigator } from './src/navigation/AppNavigator';
+import { AuthProvider } from './src/context/AuthContext';
 import { bootstrapI18n } from './src/i18n';
 
 export default function App() {
@@ -22,10 +23,12 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <AppNavigator />
-      <StatusBar style="auto" />
-    </NavigationContainer>
+    <AuthProvider>
+      <NavigationContainer>
+        <AppNavigator />
+        <StatusBar style="auto" />
+      </NavigationContainer>
+    </AuthProvider>
   );
 }
 

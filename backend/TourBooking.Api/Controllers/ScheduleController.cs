@@ -8,8 +8,12 @@ using TourBooking.Api.Data;
 
 namespace TourBooking.Api.Controllers;
 
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+
 [ApiController]
 [Route("api/schedule")]
+[Authorize]
 public sealed class ScheduleController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -18,6 +22,8 @@ public sealed class ScheduleController : ControllerBase
     {
         _db = db;
     }
+
+    private int CurrentUserId => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
     [HttpGet]
     public async Task<ActionResult<ScheduleResponse>> Get(
@@ -38,7 +44,7 @@ public sealed class ScheduleController : ControllerBase
         // Dates are stored as dd/MM/yyyy strings, so we filter in-memory.
         var allAgreements = await _db.Agreements
             .AsNoTracking()
-            .Where(x => !x.IsCancelled)
+            .Where(x => !x.IsCancelled && x.UserId == CurrentUserId)
             .ToListAsync(cancellationToken);
 
         var overlapping = new List<(Guid Id, string CustomerName, string FromDate, string ToDate, string BusType, int? BusCount)>();
@@ -68,7 +74,7 @@ public sealed class ScheduleController : ControllerBase
 	    var assignedBusIds = assignments.Select(x => x.BusId).Distinct().ToList();
 	    var buses = await _db.Buses
 	        .AsNoTracking()
-	        .Where(x => x.IsActive || assignedBusIds.Contains(x.Id))
+	        .Where(x => (x.IsActive || assignedBusIds.Contains(x.Id)) && x.UserId == CurrentUserId)
 	        .OrderBy(x => x.VehicleNumber)
 	        .Select(x => new BusResponse
 	        {

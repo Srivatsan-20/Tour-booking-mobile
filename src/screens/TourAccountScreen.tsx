@@ -517,9 +517,9 @@ export function TourAccountScreen({ route, navigation }: Props) {
       </Pressable>
 
       <Card>
-        <Text style={styles.sectionTitle}>{t('accounts.totalExpenses')}: {String(totals.totalExpenses)}</Text>
+        <Text style={styles.sectionTitle}>{t('accounts.totalExpenses')}: {totals.totalExpenses == null ? '₹0.00' : '₹' + totals.totalExpenses.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
         <Text style={[styles.sectionTitle, isProfit ? styles.profitPos : styles.profitNeg]}>
-          {t('accounts.profitOrLoss')}: {String(totals.profitOrLoss)}
+          {t('accounts.profitOrLoss')}: {totals.profitOrLoss == null ? '₹0.00' : '₹' + totals.profitOrLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </Text>
       </Card>
 

@@ -9,8 +9,12 @@ using TourBooking.Api.Models;
 
 namespace TourBooking.Api.Controllers;
 
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+
 [ApiController]
 [Route("api")]
+[Authorize]
 public sealed class AccountsController : ControllerBase
 {
 	private readonly AppDbContext _db;
@@ -20,6 +24,8 @@ public sealed class AccountsController : ControllerBase
 		_db = db;
 	}
 
+    private int CurrentUserId => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
 	// Per-agreement accounts
 	[HttpGet("agreements/{agreementId:guid}/accounts")]
 	public async Task<ActionResult<AgreementAccountsResponse>> GetAgreementAccounts(
@@ -28,7 +34,7 @@ public sealed class AccountsController : ControllerBase
 	{
 		var agreement = await _db.Agreements
 			.AsNoTracking()
-			.FirstOrDefaultAsync(x => x.Id == agreementId, cancellationToken);
+			.FirstOrDefaultAsync(x => x.Id == agreementId && x.UserId == CurrentUserId, cancellationToken);
 
 		if (agreement is null)
 		{
@@ -73,53 +79,79 @@ public sealed class AccountsController : ControllerBase
 		CancellationToken cancellationToken)
 	{
 		var agreement = await _db.Agreements
-			.FirstOrDefaultAsync(x => x.Id == agreementId, cancellationToken);
+			.AsNoTracking()
+			.FirstOrDefaultAsync(x => x.Id == agreementId && x.UserId == CurrentUserId, cancellationToken);
 
 		if (agreement is null)
 		{
 			return NotFound();
 		}
 
-		var trip = await _db.TripExpenses
+		// Check if TripExpense exists
+		var existingTripId = await _db.TripExpenses
 			.Where(x => x.AgreementId == agreementId)
-			.Include(x => x.BusExpenses)
-				.ThenInclude(x => x.FuelEntries)
-			.Include(x => x.BusExpenses)
-				.ThenInclude(x => x.OtherExpenses)
+			.Select(x => (Guid?)x.Id)
 			.FirstOrDefaultAsync(cancellationToken);
 
-		if (trip is null)
+		Guid tripId;
+		
+		if (existingTripId is null)
 		{
-			trip = new TripExpense
+			// Create new trip
+			tripId = Guid.NewGuid();
+			var newTrip = new TripExpense
 			{
-				Id = Guid.NewGuid(),
+				Id = tripId,
 				AgreementId = agreementId,
 				CreatedAtUtc = DateTime.UtcNow,
 				UpdatedAtUtc = DateTime.UtcNow,
 			};
-			_db.TripExpenses.Add(trip);
+			_db.TripExpenses.Add(newTrip);
 		}
 		else
 		{
-			trip.UpdatedAtUtc = DateTime.UtcNow;
-
-			// Replace all child rows (simple + safe for this app)
-			if (trip.BusExpenses.Count > 0)
-			{
-				_db.BusExpenses.RemoveRange(trip.BusExpenses);
-			}
-			trip.BusExpenses = new List<BusExpense>();
+			// Delete all existing expense data using ExecuteDelete (bypasses change tracker)
+			tripId = existingTripId.Value;
+			
+			// Delete in correct order (children first)
+			await _db.FuelEntries
+				.Where(f => _db.BusExpenses
+					.Where(b => b.TripExpenseId == tripId)
+					.Select(b => b.Id)
+					.Contains(f.BusExpenseId))
+				.ExecuteDeleteAsync(cancellationToken);
+			
+			await _db.OtherExpenses
+				.Where(o => _db.BusExpenses
+					.Where(b => b.TripExpenseId == tripId)
+					.Select(b => b.Id)
+					.Contains(o.BusExpenseId))
+				.ExecuteDeleteAsync(cancellationToken);
+			
+			await _db.BusExpenses
+				.Where(x => x.TripExpenseId == tripId)
+				.ExecuteDeleteAsync(cancellationToken);
+			
+			// Update the trip's timestamp using ExecuteUpdate (also bypasses change tracker)
+			await _db.TripExpenses
+				.Where(x => x.Id == tripId)
+				.ExecuteUpdateAsync(
+					setters => setters.SetProperty(t => t.UpdatedAtUtc, DateTime.UtcNow),
+					cancellationToken);
 		}
 
 		var tripDays = ComputeTripDaysInclusive(agreement.FromDate, agreement.ToDate);
 
+		// Add new expense data
 		var busExpenses = request.BusExpenses ?? new List<UpsertBusExpenseRequest>();
-		foreach (var be in busExpenses)
+		for (var i = 0; i < busExpenses.Count; i++)
 		{
+			var be = busExpenses[i];
 			var busExpense = new BusExpense
 			{
 				Id = Guid.NewGuid(),
-				TripExpenseId = trip.Id,
+				TripExpenseId = tripId,
+				DisplayOrder = i,
 				BusId = ParseGuid(be.BusId),
 				DriverBatta = ParseDecimal(be.DriverBatta) ?? 0m,
 				// Days comes from the booking date range, so the UI doesn't need to send it.
@@ -149,7 +181,7 @@ public sealed class AccountsController : ControllerBase
 				});
 			}
 
-			trip.BusExpenses.Add(busExpense);
+			_db.BusExpenses.Add(busExpense);
 		}
 
 		await _db.SaveChangesAsync(cancellationToken);
@@ -210,7 +242,7 @@ public sealed class AccountsController : ControllerBase
 			return BadRequest("to must be >= from");
 		}
 
-		var query = _db.Agreements.AsNoTracking();
+		var query = _db.Agreements.AsNoTracking().Where(x => x.UserId == CurrentUserId);
 		if (!includeCancelled)
 		{
 			query = query.Where(x => !x.IsCancelled);
@@ -290,7 +322,10 @@ public sealed class AccountsController : ControllerBase
 
 		if (trip is not null)
 		{
-			foreach (var be in trip.BusExpenses.OrderBy(x => x.Bus?.VehicleNumber))
+			// Order by BusId (nulls last) to maintain consistent order
+			// This ensures expenses are returned in the same order they were saved
+			// Order by DisplayOrder to maintain consistent visual order (fixes unassigned bus swapping)
+			foreach (var be in trip.BusExpenses.OrderBy(x => x.DisplayOrder))
 			{
 				var fuelTotal = be.FuelEntries.Sum(x => x.Cost);
 				var otherTotal = be.OtherExpenses.Sum(x => x.Amount);

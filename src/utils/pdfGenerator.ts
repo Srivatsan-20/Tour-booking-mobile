@@ -5,6 +5,13 @@ import { Alert, Platform } from 'react-native';
 import type { AgreementDraft } from '../types/agreement';
 import type { AgreementResponse } from '../types/api';
 
+export type BrandingOptions = {
+  companyName?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+};
+
 type AgreementData = {
   customerName: string;
   phone: string;
@@ -90,10 +97,10 @@ function formatMoney(amount: string | number | null | undefined): string {
 
 const RESOURCES = {
   en: {
-    companyName: 'SRI SAI SENTHIL TOURIST & TRAVELS',
-    regdNo: 'Regd. CST No. 2013/33/605/02020/GS',
-    address: 'No. 59/7-1, TMS Complex, Sannasami Naidu Street, Dharmapuri - 636701',
-    email: 'gomanravi@gmail.com',
+    companyName: '',
+    regdNo: '',
+    address: '',
+    email: '',
     phoneLabel: 'Cell',
     documentTitle: 'TOUR BOOKING AGREEMENT',
 
@@ -113,6 +120,7 @@ const RESOURCES = {
     vehicle: 'Vehicle',
     passengers: 'Passengers',
     bus: 'Bus',
+    description: 'Description', // Added
 
     // Table
     vehicleCol: 'Vehicle',
@@ -142,10 +150,10 @@ const RESOURCES = {
     ]
   },
   ta: {
-    companyName: 'ஸ்ரீ சாய் செந்தல் டூரிஸ்ட் & டிராவல்ஸ்',
-    regdNo: 'Regd. CST No. 2013/33/605/02020/GS',
-    address: 'நெ. 59/7-1, TMS காம்ப்ளக்ஸ், சின்னசாமி நாயுடு தெரு, தருமபுரி - 636701',
-    email: 'gomanravi@gmail.com',
+    companyName: '',
+    regdNo: '',
+    address: '',
+    email: '',
     phoneLabel: 'செல்',
     documentTitle: 'சுற்றுலா முன்பதிவு ஒப்பந்தம்',
 
@@ -165,6 +173,7 @@ const RESOURCES = {
     vehicle: 'வாகனம்',
     passengers: 'பயணிகள்',
     bus: 'பஸ்',
+    description: 'விவரம்',
 
     // Table
     vehicleCol: 'வாகனம்',
@@ -195,182 +204,356 @@ const RESOURCES = {
   }
 };
 
-function generateHtml(data: AgreementData, lang: 'en' | 'ta'): string {
+function generateHtml(data: AgreementData, lang: 'en' | 'ta', branding?: BrandingOptions): string {
   const R = RESOURCES[lang];
 
+  // Resolve Branding with Fallbacks
+  const coin = (v: string | undefined, fallback: string) => (v && v.trim().length > 0 ? v : fallback);
+
+  const companyName = coin(branding?.companyName, '[YOUR COMPANY NAME]');
+  const companyAddress = coin(branding?.address, '');
+  const companyPhone = coin(branding?.phone, '-');
+  const companyEmail = coin(branding?.email, '');
+
   const busRatesRows = data.useIndividualBusRates && data.busRates
-    ? data.busRates.map((rate, i) => `
+    ? (data.busRates || []).map((rate, i) => `
         <tr>
           <td>${R.bus} ${i + 1}</td>
-          <td>${formatMoney(rate.perDayRent)}</td>
-          <td>${rate.includeMountainRent ? formatMoney(rate.mountainRent) : '-'}</td>
+          <td class="amount-col">${formatMoney(rate.perDayRent)}</td>
+          <td class="amount-col">${rate.includeMountainRent ? formatMoney(rate.mountainRent) : '-'}</td>
         </tr>
       `).join('')
     : `
         <tr>
-            <td colspan="3" style="text-align: center; font-style: italic;">${lang === 'ta' ? 'நிலையான வாடகை' : 'Standard Rate Applied'}</td>
+            <td style="font-style: italic;">${data.busType} (${data.busCount || 1})</td>
+            <td class="amount-col">${formatMoney(data.perDayRent)}</td>
+            <td class="amount-col">${data.includeMountainRent ? formatMoney(data.mountainRent) : '-'}</td>
         </tr>
-    `;
-
-  // Calculate rent details for the summary table
-  const rentBreakdownHtml = data.useIndividualBusRates
-    ? ''
-    : `
-        <tr>
-            <td><strong>${R.perDayRent}</strong></td>
-            <td class="text-right">${formatMoney(data.perDayRent)}</td>
-        </tr>
-        ${data.includeMountainRent ? `
-        <tr>
-            <td><strong>${R.mountainRent}</strong></td>
-            <td class="text-right">${formatMoney(data.mountainRent)}</td>
-        </tr>
-        ` : ''}
     `;
 
   const termsHtml = R.terms.map(t => `<li>${t}</li>`).join('');
 
   return `
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <style>
-      @page { margin: 20px; }
-      body { font-family: 'Helvetica', sans-serif; font-size: 12px; color: #333; line-height: 1.5; }
-      
-      .header { text-align: center; margin-bottom: 20px; padding: 20px; background-color: #fffde7; border: 1px solid #f0f0f0; border-radius: 8px; }
-      .phone-line { text-align: right; font-weight: bold; font-size: 11px; margin-bottom: 5px; }
-      .company-name { font-size: ${lang === 'ta' ? '24px' : '26px'}; font-weight: bold; color: #d32f2f; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
-      .regd-no { font-weight: bold; font-size: 11px; margin-bottom: 5px; }
-      .company-details { font-size: 11px; color: #000; font-weight: 600; }
-      .email { font-weight: bold; margin-top: 3px; }
-      
-      .document-title { font-size: 16px; font-weight: bold; text-align: center; margin: 15px 0; text-decoration: underline; text-transform: uppercase; }
+<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${R.documentTitle}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;600;700&display=swap');
+    @page { margin: 40px; } /* Safer margin for printing */
+    body { 
+      font-family: 'Helvetica Neue', 'Helvetica', 'Noto Sans Tamil', sans-serif;
+      font-size: 12px;
+      line-height: 1.6; /* Better readability */
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
 
-      .grid-container { display: flex; justify-content: space-between; margin-bottom: 15px; gap: 15px; }
-      .box { flex: 1; border: 1px solid #777; padding: 10px; border-radius: 4px; }
-      .box-title { font-size: 13px; font-weight: bold; border-bottom: 1px solid #ddd; margin-bottom: 8px; padding-bottom: 4px; color: #000; }
-      
-      .row { display: flex; justify-content: space-between; margin-bottom: 4px; }
-      .label { font-weight: bold; color: #555; }
-      .value { text-align: right; font-weight: 600; color: #000; }
+    .container {
+      /* Removed fixed border to avoid awkward page splits */
+      /* min-height: 90vh; */
+      padding: 0 10px;
+    }
 
-      table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 15px; }
-      th, td { border: 1px solid #999; padding: 6px; text-align: left; font-size: 11px; }
-      th { background-color: #fce4ec; font-weight: bold; }
-      .text-right { text-align: right; }
-      .total-row td { background-color: #fce4ec; font-weight: bold; font-size: 13px; }
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 3px double #1a365d; /* Professional finish */
+      padding-bottom: 20px;
+    }
+    .company-name {
+      font-size: 26px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #1a365d;
+      margin-bottom: 8px;
+    }
+    .company-details {
+      font-size: 12px;
+      color: #444;
+      line-height: 1.4;
+    }
+    
+    .doc-title {
+      font-size: 20px;
+      font-weight: 700;
+      text-align: center;
+      margin: 20px 0 30px 0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      text-decoration: none;
+      border-bottom: 1px solid #ccc;
+      display: inline-block;
+      padding-bottom: 5px;
+    }
+    .doc-title-container { text-align: center; } /* Helper to center inline-block */
 
-      .section-title { font-size: 13px; font-weight: bold; margin-top: 15px; margin-bottom: 5px; color: #d32f2f; border-bottom: 1px solid #eee; padding-bottom: 2px; }
-      
-      .terms { font-size: 10px; color: #444; text-align: justify; margin-top: 20px; border: 1px solid #eee; padding: 10px; background: #fafafa; }
-      .terms ul, .terms ol { padding-left: 20px; margin: 5px 0 0 0; }
-      
-      .signatures { margin-top: 50px; display: flex; justify-content: space-between; page-break-inside: avoid; }
-      .signature-box { text-align: center; width: 40%; }
-      .signature-line { border-top: 1px solid #000; margin-top: 40px; padding-top: 5px; font-weight: bold; font-size: 11px; }
-      
-      .footer { text-align: center; font-size: 9px; color: #999; margin-top: 30px; }
-    </style>
-  </head>
-  <body>
+    /* Sections */
+    .section {
+      margin-bottom: 25px; /* More breathing room */
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1a365d;
+      background-color: transparent;
+      padding: 5px 0;
+      border-bottom: 2px solid #e5e7eb;
+      border-left: none; /* Cleaner look */
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+
+    /* Grid for details */
+    .flex-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 40px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      margin-bottom: 20px;
+    }
+    .flex-col {
+      flex: 1;
+    }
+
+    .row {
+      display: flex;
+      margin-bottom: 8px;
+      align-items: flex-start;
+    }
+    .label {
+      font-weight: 600;
+      width: 140px;
+      color: #555;
+      flex-shrink: 0;
+    }
+    .value {
+      flex: 1;
+      font-weight: 500;
+      color: #000;
+      word-wrap: break-word;
+      overflow-wrap: anywhere; /* aggressively break long words/URLs */
+      word-break: break-word;
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Subtle depth */
+    }
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 10px; /* More padding */
+      text-align: left;
+    }
+    th {
+      background-color: #f3f4f6;
+      font-weight: 700;
+      color: #374151;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+    .amount-col {
+      text-align: right;
+      font-family: 'Courier New', Courier, monospace; /* Align numbers better */
+    }
+
+    /* Payment Summary Box - Cleaner floating look */
+    .payment-box {
+      border: 1px solid #e5e7eb;
+      background-color: #f9fafb;
+      padding: 15px;
+      width: 320px;
+      margin-left: auto;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      border-radius: 4px;
+    }
+    .pay-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .pay-row.total {
+      border-top: 2px solid #d1d5db;
+      padding-top: 8px;
+      margin-top: 8px;
+      font-weight: 800;
+      font-size: 15px;
+      color: #1a365d;
+    }
+
+    /* Footer Signatures - More space */
+    .footer-sigs {
+      margin-top: 60px;
+      display: flex;
+      justify-content: space-between;
+      gap: 60px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .signature-box {
+      text-align: center;
+      flex: 1;
+    }
+    .signature-line {
+      border-top: 1px solid #000; 
+      padding-top: 8px; 
+      font-weight: 600; 
+      font-size: 12px;
+      margin-top: 50px; /* Space for signature */
+    }
+
+    .terms-and-signatures {
+       page-break-inside: avoid;
+       break-inside: avoid;
+       margin-top: 30px;
+    }
+
+    .terms {
+      margin-top: 20px;
+      margin-bottom: 40px;
+      font-size: 10px;
+      color: #666;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 15px;
+      background-color: transparent; /* Remove background box */
+      border: none;
+    }
+    .terms h4 {
+      margin-bottom: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #333;
+    }
+    .terms ul {
+      padding-left: 18px;
+      margin: 0;
+    }
+    .terms li {
+      margin-bottom: 4px;
+    }
+
+    .meta-footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 9px;
+      color: #9ca3af;
+      border-top: 1px solid #f3f4f6;
+      padding-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
     
     <div class="header">
-      <div class="phone-line">${R.phoneLabel}: 94438 49013, 94430 56816</div>
-      <div class="company-name">${R.companyName}</div>
-      <div class="regd-no">${R.regdNo}</div>
-      <div class="company-details">${R.address}</div>
-      <div class="company-details email">Email: ${R.email}</div>
-    </div>
-
-    <div class="document-title">${R.documentTitle}</div>
-
-    <div class="grid-container">
-      <div class="box">
-        <div class="box-title">${R.customerDetails}</div>
-        <div class="row"><span class="label">${R.name}:</span><span class="value">${data.customerName}</span></div>
-        <div class="row"><span class="label">${R.contact}:</span><span class="value">${data.phone}</span></div>
-        <div class="row"><span class="label">${R.bookingDate}:</span><span class="value">${new Date().toLocaleDateString()}</span></div>
-      </div>
-      <div class="box">
-        <div class="box-title">${R.tripOverview}</div>
-        <div class="row"><span class="label">${R.tripDate}:</span><span class="value">${data.fromDate} - ${data.toDate}</span></div>
-        <div class="row"><span class="label">${R.places}:</span><span class="value">${data.placesToCover}</span></div>
-        <div class="row"><span class="label">${R.vehicle}:</span><span class="value">${data.busType} (${data.busCount})</span></div>
-        <div class="row"><span class="label">${R.passengers}:</span><span class="value">${data.passengers || '-'}</span></div>
+      <div class="company-name">${companyName}</div>
+      <div class="company-details">
+        ${companyAddress}<br/>
+        ${R.contact}: ${companyPhone} ${companyEmail ? '| ' + companyEmail : ''}
       </div>
     </div>
 
-    ${data.useIndividualBusRates && data.busRates ? `
-    <div class="section-title">${R.busRates}</div>
-    <table>
-      <thead>
-        <tr>
-          <th>${R.vehicleCol}</th>
-          <th>${R.perDayRentCol}</th>
-          <th>${R.mountainRentCol}</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${busRatesRows}
-      </tbody>
-    </table>
-    ` : ''}
+    <div class="doc-title-container">
+        <div class="doc-title">${R.documentTitle}</div>
+    </div>
 
-    <div class="section-title">${R.paymentSummary}</div>
-    <table class="summary-table">
-      <tbody>
-        ${rentBreakdownHtml}
-        <tr>
-            <td><strong>${R.totalAmount}</strong></td>
-            <td class="text-right"><strong>${formatMoney(data.totalAmount)}</strong></td>
-        </tr>
-        <tr>
-            <td>${R.advancePaid}</td>
-            <td class="text-right">${formatMoney(data.advancePaid)}</td>
-        </tr>
-        <tr class="total-row">
-            <td>${R.balanceDue}</td>
-            <td class="text-right">${formatMoney(data.balance)}</td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="flex-row">
+      <div class="flex-col section">
+        <div class="section-title">${R.customerDetails}</div>
+        <div class="row"><span class="label">${R.name}:</span> <span class="value">${data.customerName}</span></div>
+        <div class="row"><span class="label">${R.contact}:</span> <span class="value">${data.phone}</span></div>
+        <div class="row"><span class="label">${R.passengers}:</span> <span class="value">${data.passengers || '-'}</span></div>
+      </div>
+      <div class="flex-col section">
+         <div class="section-title">${R.tripOverview}</div>
+         <div class="row"><span class="label">${R.tripDate}:</span> <span class="value">${data.fromDate} to ${data.toDate}</span></div>
+         <div class="row"><span class="label">${R.places}:</span> <span class="value">${data.placesToCover}</span></div>
+         <div class="row"><span class="label">${R.vehicle}:</span> <span class="value">${data.busType} x ${data.busCount || 1}</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">${R.busRates}</div>
+      <table>
+         <tr>
+           <th>${data.useIndividualBusRates ? R.vehicleCol : R.description}</th>
+           <th class="amount-col">${data.useIndividualBusRates ? R.perDayRentCol : R.perDayRent}</th>
+           <th class="amount-col">${data.useIndividualBusRates ? R.mountainRentCol : R.mountainRent}</th>
+         </tr>
+         ${busRatesRows}
+      </table>
+    </div>
+
+    <div class="section">
+      <div class="section-title">${R.paymentSummary}</div>
+      <div class="payment-box">
+         <div class="pay-row">
+           <span>${R.totalAmount}:</span>
+           <span>${formatMoney(data.totalAmount)}</span>
+         </div>
+         <div class="pay-row">
+           <span>${R.advancePaid}:</span>
+           <span>${formatMoney(data.advancePaid)}</span>
+         </div>
+         <div class="pay-row total">
+           <span>${R.balanceDue}:</span>
+           <span>${formatMoney(data.balance)}</span>
+         </div>
+      </div>
+    </div>
 
     ${data.notes ? `
-    <div class="section-title">${R.notes}</div>
-    <div style="border: 1px solid #ccc; padding: 10px; font-style: italic; font-size: 11px;">
-      ${data.notes}
-    </div>
-    ` : ''}
+    <div class="section">
+      <div class="section-title">${R.notes}</div>
+      <p>${data.notes}</p>
+    </div>` : ''}
 
-    <div class="terms">
-      <strong>${R.termsHeader}</strong>
-      <ol>
-        ${termsHtml}
-      </ol>
-    </div>
-
-    <div class="signatures">
-      <div class="signature-box">
-        <div class="signature-line">${R.customerSig}</div>
+    <div class="terms-and-signatures">
+      <div class="terms">
+        <h4>${R.termsHeader}</h4>
+        <ul>
+          ${termsHtml}
+        </ul>
       </div>
-      <div class="signature-box">
-        <div class="signature-line">${R.authSig}</div>
+
+      <div class="footer-sigs">
+         <div class="signature-box">
+           <div class="signature-line">${R.customerSig}</div>
+         </div>
+         <div class="signature-box">
+           <div class="signature-line">${R.authSig}</div>
+         </div>
       </div>
     </div>
 
-    <div class="footer">
-      ${R.generatedBy} ${new Date().toLocaleString()}
+    <div class="meta-footer">
+      ${R.generatedBy} ${new Date().toLocaleDateString(lang === 'ta' ? 'ta-IN' : 'en-IN')}
     </div>
-  </body>
+
+  </div>
+</body>
 </html>
   `;
 }
 
-export async function generateAndSharePdf(data: AgreementResponse | AgreementDraft, lang: 'en' | 'ta' = 'en') {
+export async function generateAndSharePdf(data: AgreementResponse | AgreementDraft, lang: 'en' | 'ta' = 'en', branding?: BrandingOptions) {
   try {
     const normalized = normalize(data);
-    const html = generateHtml(normalized, lang);
+    const html = generateHtml(normalized, lang, branding);
 
     const { uri } = await Print.printToFileAsync({ html });
 

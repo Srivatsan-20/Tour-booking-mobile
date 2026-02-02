@@ -7,8 +7,12 @@ using TourBooking.Api.Models;
 
 namespace TourBooking.Api.Controllers;
 
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+
 [ApiController]
 [Route("api/buses")]
+[Authorize]
 public sealed class BusesController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -18,10 +22,12 @@ public sealed class BusesController : ControllerBase
         _db = db;
     }
 
+    private int CurrentUserId => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
     [HttpGet]
     public async Task<ActionResult<List<BusResponse>>> List([FromQuery] bool includeInactive, CancellationToken cancellationToken)
     {
-        var query = _db.Buses.AsNoTracking();
+        var query = _db.Buses.AsNoTracking().Where(x => x.UserId == CurrentUserId);
         if (!includeInactive)
         {
             query = query.Where(x => x.IsActive);
@@ -51,7 +57,7 @@ public sealed class BusesController : ControllerBase
             return BadRequest("vehicleNumber is required");
         }
 
-        var exists = await _db.Buses.AnyAsync(x => x.VehicleNumber == vehicleNumber, cancellationToken);
+        var exists = await _db.Buses.AnyAsync(x => x.VehicleNumber == vehicleNumber && x.UserId == CurrentUserId, cancellationToken);
         if (exists)
         {
             return Conflict("vehicleNumber must be unique");
@@ -64,6 +70,7 @@ public sealed class BusesController : ControllerBase
             Name = string.IsNullOrWhiteSpace(request.Name) ? null : request.Name.Trim(),
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow,
+            UserId = CurrentUserId,
         };
 
         _db.Buses.Add(entity);
@@ -84,7 +91,7 @@ public sealed class BusesController : ControllerBase
 	[HttpDelete("{id:guid}")]
 	public async Task<ActionResult<BusResponse>> Delete(Guid id, CancellationToken cancellationToken)
 	{
-		var entity = await _db.Buses.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+		var entity = await _db.Buses.FirstOrDefaultAsync(x => x.Id == id && x.UserId == CurrentUserId, cancellationToken);
 		if (entity is null)
 		{
 			return NotFound();

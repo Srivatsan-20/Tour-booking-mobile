@@ -31,11 +31,16 @@ export async function request<T>(
 
     if (authToken) {
         (headers as any)['Authorization'] = `Bearer ${authToken}`;
+        console.log('🔑 Token added to request:', authToken.substring(0, 20) + '...');
+    } else {
+        console.warn('⚠️ No auth token available for request to:', path);
     }
 
     if (tenantId) {
         (headers as any)['Tenant-Id'] = tenantId;
     }
+
+    console.log('📡 API Request:', options.method || 'GET', url);
 
     const res = await fetch(url, {
         ...options,

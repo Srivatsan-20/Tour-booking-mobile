@@ -25,7 +25,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'AccountsSummary'>;
 
 function fmtMoney(n: number | null | undefined): string {
   if (n == null) return '-';
-  return String(n);
+  return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function formatDateDDMMYYYY(date: Date): string {

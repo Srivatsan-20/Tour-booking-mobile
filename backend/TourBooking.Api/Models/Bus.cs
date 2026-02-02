@@ -4,6 +4,9 @@ public sealed class Bus
 {
     public Guid Id { get; set; }
 
+    public int? UserId { get; set; }
+    public User? User { get; set; }
+
     // Vehicle number shown to users (must be unique).
     public string VehicleNumber { get; set; } = string.Empty;
 

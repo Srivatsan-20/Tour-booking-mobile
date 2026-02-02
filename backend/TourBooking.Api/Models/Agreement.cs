@@ -3,6 +3,9 @@ namespace TourBooking.Api.Models;
 public sealed class Agreement
 {
     public Guid Id { get; set; }
+    
+    public int? UserId { get; set; }
+    public User? User { get; set; }
 
     public string CustomerName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;

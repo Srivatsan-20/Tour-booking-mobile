@@ -1,6 +1,9 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
-
 using TourBooking.Api.Data;
+using TourBooking.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +28,23 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString);
 });
 
+builder.Services.AddScoped<ITokenService, TokenService>();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        var keyStr = builder.Configuration["Jwt:Key"] ?? "super_secret_key_change_me_in_prod_12345_must_be_long_enough";
+        var key = Encoding.UTF8.GetBytes(keyStr);
+        
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            ValidateIssuer = false,
+            ValidateAudience = false
+        };
+    });
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -34,6 +54,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("DevCors");
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 

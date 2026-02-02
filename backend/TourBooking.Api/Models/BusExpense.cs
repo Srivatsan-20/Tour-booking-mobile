@@ -15,6 +15,7 @@ public sealed class BusExpense
 	public int Days { get; set; }
 	public int? StartKm { get; set; }
 	public int? EndKm { get; set; }
+	public int DisplayOrder { get; set; }
 
 	public List<FuelEntry> FuelEntries { get; set; } = new();
 	public List<OtherExpense> OtherExpenses { get; set; } = new();

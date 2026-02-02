@@ -73,7 +73,7 @@ function computeTripDaysInclusive(fromDate: string, toDate: string): number | nu
 
 function formatMoney(n: number): string {
   const normalized = Object.is(n, -0) ? 0 : n;
-  return String(Number(normalized.toFixed(2)));
+  return '₹' + normalized.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function syncIndividualBusRates(draft: AgreementDraft): AgreementDraft {
@@ -298,7 +298,7 @@ export function AgreementFormScreen({ navigation }: Props) {
             <Field label={t('agreement.busCount')} value={draft.busCount} onChangeText={set('busCount')} keyboardType="number-pad" placeholder="e.g. 1" />
             <Field label={t('agreement.passengers')} value={draft.passengers} onChangeText={set('passengers')} keyboardType="number-pad" placeholder="e.g. 20" />
           </View>
-          <Field label={t('agreement.placesToCover')} value={draft.placesToCover} onChangeText={set('placesToCover')} placeholder="e.g. Ooty, Mysore" />
+          <Field label={t('agreement.placesToCover')} value={draft.placesToCover} onChangeText={set('placesToCover')} multiline placeholder="e.g. Ooty, Mysore" />
         </Section>
 
         <Section title={t('agreement.rentDetails')} icon={<DollarSign size={18} color="#4F46E5" />}>

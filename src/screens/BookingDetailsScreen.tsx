@@ -8,6 +8,8 @@ import type { RootStackParamList } from '../navigation/types';
 import { addAdvanceToAgreement, cancelAgreement } from '../api/agreements';
 import type { AgreementResponse } from '../types/api';
 import { ScreenContainer } from '../components/ScreenContainer';
+import { generateAndSharePdf } from '../utils/pdfGenerator';
+import { useAuth } from '../context/AuthContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BookingDetails'>;
 
@@ -59,6 +61,7 @@ function computeTripDaysInclusive(fromDate: string, toDate: string): number | nu
 
 export function BookingDetailsScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [agreement, setAgreement] = React.useState<AgreementResponse>(route.params.agreement);
 
   const isCancelled = agreement.isCancelled;
@@ -210,6 +213,58 @@ export function BookingDetailsScreen({ route, navigation }: Props) {
             variant="danger"
           />
         </View>
+
+        <View style={{ marginTop: 16, gap: 10 }}>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 4 }}>
+            {t('bookingDetails.downloadAgreement', 'Download Agreement')}
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={{ flex: 1 }}>
+              <ActionButton
+                label="PDF (English)"
+                icon={<Briefcase size={18} color="white" />}
+                onPress={() => {
+                  if (!user?.companyName) {
+                    Alert.alert('Missing Profile', 'Your Company Name is missing. Please go to Profile and Save it.');
+                    return;
+                  }
+                  // Debug: Remove this later
+                  // Alert.alert('Debug', `Generating for: ${user.companyName}`);
+
+                  generateAndSharePdf(agreement, 'en', {
+                    companyName: user?.companyName,
+                    address: user?.companyAddress,
+                    phone: user?.companyPhone,
+                    email: user?.email
+                  });
+                }}
+                disabled={busy}
+                variant="primary"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <ActionButton
+                label="PDF (தமிழ்)"
+                icon={<Briefcase size={18} color="white" />}
+                onPress={() => {
+                  if (!user?.companyName) {
+                    Alert.alert('Missing Profile', 'Your Company Name is missing. Please go to Profile and Save it.');
+                    return;
+                  }
+                  generateAndSharePdf(agreement, 'ta', {
+                    companyName: user?.companyName,
+                    address: user?.companyAddress,
+                    phone: user?.companyPhone,
+                    email: user?.email
+                  });
+                }}
+                disabled={busy}
+                variant="primary"
+                style={{ backgroundColor: '#059669' }} // Green for Tamil
+              />
+            </View>
+          </View>
+        </View>
       </ScrollView>
 
       <Modal transparent visible={advanceModalOpen} animationType="fade" onRequestClose={() => setAdvanceModalOpen(false)}>
@@ -314,10 +369,10 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 15, fontWeight: '700', color: '#111827' },
   cardContent: { padding: 14 },
 
-  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, alignItems: 'flex-start' }, /* aligned top for multiline */
   rowBorder: { borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  label: { fontSize: 13, fontWeight: '500', color: '#6B7280' },
-  value: { fontSize: 14, fontWeight: '600', color: '#111827' },
+  label: { fontSize: 13, fontWeight: '500', color: '#6B7280', flex: 0.4, paddingRight: 8 },
+  value: { fontSize: 14, fontWeight: '600', color: '#111827', flex: 0.6, textAlign: 'right' },
   valueHighlight: { color: '#4F46E5', fontWeight: '800' },
 
   busRateCard: { backgroundColor: '#F9FAFB', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#E5E7EB' },

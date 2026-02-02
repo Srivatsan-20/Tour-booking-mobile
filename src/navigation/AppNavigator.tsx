@@ -15,13 +15,22 @@ import { BusAvailabilityScreen } from '../screens/BusAvailabilityScreen';
 import { ManageAssignmentsScreen } from '../screens/ManageAssignmentsScreen';
 import { AccountsSummaryScreen } from '../screens/AccountsSummaryScreen';
 import { TourAccountScreen } from '../screens/TourAccountScreen';
+import { LoginScreen } from '../screens/LoginScreen';
+import { RegisterScreen } from '../screens/RegisterScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { useAuth } from '../context/AuthContext';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function AppNavigator() {
   const { t } = useTranslation();
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return null; // Or a loading screen
+  }
 
   return (
     <Stack.Navigator
@@ -37,25 +46,35 @@ export function AppNavigator() {
                 <Text style={styles.homeBtnText}>{t('common.home')}</Text>
               </Pressable>
             ) : null}
-						{/* Hide language toggle on Manage Assignments to avoid header clutter */}
-						{route.name !== 'ManageAssignments' ? <LanguageToggle /> : null}
+            {/* Hide language toggle on Manage Assignments to avoid header clutter */}
+            {route.name !== 'ManageAssignments' ? <LanguageToggle /> : null}
           </View>
         ),
       })}
     >
-      <Stack.Screen name="Home" component={HomeScreen} />
-      <Stack.Screen name="AgreementForm" component={AgreementFormScreen} />
-      <Stack.Screen name="AgreementPreview" component={AgreementPreviewScreen} />
-      <Stack.Screen name="Bookings" component={BookingsScreen} />
-      <Stack.Screen name="AllTours" component={AllToursScreen} />
-      <Stack.Screen name="CancelledTours" component={CancelledToursScreen} />
-      <Stack.Screen name="BusAvailability" component={BusAvailabilityScreen} />
-      <Stack.Screen name="ManageAssignments" component={ManageAssignmentsScreen} />
-      <Stack.Screen name="BookingDetails" component={BookingDetailsScreen} />
-      <Stack.Screen name="BookingEdit" component={BookingEditScreen} />
+      {!user ? (
+        <>
+          <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
+        </>
+      ) : (
+        <>
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="Profile" component={ProfileScreen} />
+          <Stack.Screen name="AgreementForm" component={AgreementFormScreen} />
+          <Stack.Screen name="AgreementPreview" component={AgreementPreviewScreen} />
+          <Stack.Screen name="Bookings" component={BookingsScreen} />
+          <Stack.Screen name="AllTours" component={AllToursScreen} />
+          <Stack.Screen name="CancelledTours" component={CancelledToursScreen} />
+          <Stack.Screen name="BusAvailability" component={BusAvailabilityScreen} />
+          <Stack.Screen name="ManageAssignments" component={ManageAssignmentsScreen} />
+          <Stack.Screen name="BookingDetails" component={BookingDetailsScreen} />
+          <Stack.Screen name="BookingEdit" component={BookingEditScreen} />
 
-      <Stack.Screen name="AccountsSummary" component={AccountsSummaryScreen} />
-      <Stack.Screen name="TourAccount" component={TourAccountScreen} />
+          <Stack.Screen name="AccountsSummary" component={AccountsSummaryScreen} />
+          <Stack.Screen name="TourAccount" component={TourAccountScreen} />
+        </>
+      )}
     </Stack.Navigator>
   );
 }

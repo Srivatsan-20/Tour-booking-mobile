@@ -516,7 +516,7 @@ function computeTotalAmountMaybe(input: {
 
 function formatMoney(n: number): string {
   const normalized = Object.is(n, -0) ? 0 : n;
-  return String(Number(normalized.toFixed(2)));
+  return '₹' + normalized.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function Section({ title, children, icon }: { title: string; children: React.ReactNode; icon?: React.ReactNode }) {
