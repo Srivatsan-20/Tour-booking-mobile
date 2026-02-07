@@ -260,7 +260,6 @@ export function BookingDetailsScreen({ route, navigation }: Props) {
                 }}
                 disabled={busy}
                 variant="primary"
-                style={{ backgroundColor: '#059669' }} // Green for Tamil
               />
             </View>
           </View>

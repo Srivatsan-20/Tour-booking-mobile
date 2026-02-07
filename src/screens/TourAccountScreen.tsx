@@ -7,16 +7,33 @@ import {
   Text,
   TextInput,
   View,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  LayoutAnimation,
+  UIManager
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { ChevronDown, ChevronUp, Plus, Trash2, FileText, Share2, Save, RefreshCw } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import type { RootStackParamList } from '../navigation/types';
 import { getAgreementById } from '../api/agreements';
 import { getAgreementAccounts, upsertAgreementAccounts } from '../api/accounts';
 import type { AgreementResponse, BusResponse } from '../types/api';
 import type { AgreementAccountsResponse } from '../types/accounts';
-import { KeyboardAvoidingScrollView, useScrollToFocusedInput } from '../components/KeyboardAvoidingScrollView';
+import { ScreenContainer } from '../components/ScreenContainer';
+import { Theme } from '../constants/Theme';
+import { generateAccountPdf } from '../utils/accountPdfGenerator';
+import { useAuth } from '../context/AuthContext';
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android') {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+}
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TourAccount'>;
 
@@ -30,6 +47,10 @@ type EditableBus = {
   endKm: string;
   fuelEntries: EditableFuel[];
   otherExpenses: EditableOther[];
+  // Transient fields for UI (mapped to otherExpenses on save)
+  tolls: string;
+  parking: string;
+  permit: string;
 };
 
 function cleanDecimalInput(s: string): string {
@@ -60,12 +81,30 @@ function busLabel(bus: BusResponse): string {
   return `${bus.vehicleNumber}${name}`;
 }
 
+// Helper to extract specific expenses from the list
+function findExpense(others: EditableOther[], key: string): string {
+  const found = others.find(o => o.description === key);
+  return found ? found.amount : '';
+}
+
+function filterOutSpecialExpenses(others: EditableOther[]): EditableOther[] {
+  const keys = ['Tolls', 'Parking', 'Permit/RTO'];
+  return others.filter(o => !keys.includes(o.description));
+}
+
 function buildInitialBuses(accounts: AgreementAccountsResponse): EditableBus[] {
   const required = accounts.requiredBusCount > 0 ? accounts.requiredBusCount : 1;
   const assigned = accounts.assignedBuses ?? [];
 
   const existing = (accounts.busExpenses ?? []).map((be, idx) => {
     const label = be.busVehicleNumber ? `${be.busVehicleNumber}${be.busName ? ` (${be.busName})` : ''}` : `Bus ${idx + 1}`;
+
+    // Extract special expenses
+    const rawOthers = (be.otherExpenses ?? []).map((o) => ({
+      description: o.description ?? '',
+      amount: String(o.amount ?? 0),
+    }));
+
     return {
       busId: be.busId ?? null,
       label,
@@ -77,78 +116,57 @@ function buildInitialBuses(accounts: AgreementAccountsResponse): EditableBus[] {
         liters: String(f.liters ?? 0),
         cost: String(f.cost ?? 0),
       })),
-      otherExpenses: (be.otherExpenses ?? []).map((o) => ({
-        description: o.description ?? '',
-        amount: String(o.amount ?? 0),
-      })),
+      otherExpenses: filterOutSpecialExpenses(rawOthers),
+      tolls: findExpense(rawOthers, 'Tolls'),
+      parking: findExpense(rawOthers, 'Parking'),
+      permit: findExpense(rawOthers, 'Permit/RTO'),
     } as EditableBus;
   });
 
   if (existing.length > 0) {
-    // Ensure we have rows for assigned buses.
     const byBusId = new Set(existing.map((x) => x.busId).filter(Boolean) as string[]);
     const appended: EditableBus[] = [];
     for (const b of assigned) {
       if (!byBusId.has(b.id)) {
-        appended.push({
-          busId: b.id,
-          label: busLabel(b),
-          driverBatta: '0',
-          startKm: '',
-          endKm: '',
-          fuelEntries: [],
-          otherExpenses: [],
-        });
+        appended.push(createEmptyBus(b.id, busLabel(b)));
       }
     }
     const out = [...existing, ...appended];
     while (out.length < required) {
-      out.push({
-        busId: null,
-        label: `Bus ${out.length + 1}`,
-        driverBatta: '0',
-        startKm: '',
-        endKm: '',
-        fuelEntries: [],
-        otherExpenses: [],
-      });
+      out.push(createEmptyBus(null, `Bus ${out.length + 1}`));
     }
     return out;
   }
 
-  // No expenses saved yet: create rows for assigned buses first, then pad.
   const rows: EditableBus[] = [];
   for (const b of assigned) {
-    rows.push({
-      busId: b.id,
-      label: busLabel(b),
-      driverBatta: '0',
-      startKm: '',
-      endKm: '',
-      fuelEntries: [],
-      otherExpenses: [],
-    });
+    rows.push(createEmptyBus(b.id, busLabel(b)));
   }
   while (rows.length < required) {
-    rows.push({
-      busId: null,
-      label: `Bus ${rows.length + 1}`,
-      driverBatta: '0',
-      startKm: '',
-      endKm: '',
-      fuelEntries: [],
-      otherExpenses: [],
-    });
+    rows.push(createEmptyBus(null, `Bus ${rows.length + 1}`));
   }
   return rows;
+}
+
+function createEmptyBus(busId: string | null, label: string): EditableBus {
+  return {
+    busId,
+    label,
+    driverBatta: '0',
+    startKm: '',
+    endKm: '',
+    fuelEntries: [],
+    otherExpenses: [],
+    tolls: '',
+    parking: '',
+    permit: '',
+  };
 }
 
 export function TourAccountScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
   const { agreementId } = route.params;
-
-  // Used for the inline TextInputs (fuel/other rows) to ensure they scroll above the keyboard.
-  const scrollOnFocus = useScrollToFocusedInput(90);
+  const { user } = useAuth(); // Added useAuth
 
   const [agreement, setAgreement] = React.useState<AgreementResponse | null>(null);
   const [accounts, setAccounts] = React.useState<AgreementAccountsResponse | null>(null);
@@ -157,10 +175,7 @@ export function TourAccountScreen({ route, navigation }: Props) {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
 
-  React.useEffect(() => {
-    navigation.setOptions({ title: t('accounts.tourTitle') });
-  }, [navigation, t]);
-
+  // Initial Load
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
@@ -182,12 +197,26 @@ export function TourAccountScreen({ route, navigation }: Props) {
     void load();
   }, [load]);
 
+  // Headers
+  React.useEffect(() => {
+    navigation.setOptions({
+      title: t('accounts.tourTitle'),
+      headerRight: () => (
+        <Pressable onPress={load} disabled={loading} style={{ marginRight: 8 }}>
+          <RefreshCw size={20} color={Theme.colors.primary} />
+        </Pressable>
+      )
+    });
+  }, [navigation, t, loading, load]);
+
+  // Calculations
   const totals = React.useMemo(() => {
     const totalExpenses = buses.reduce((sum, b) => {
       const driver = toNum(b.driverBatta);
       const fuel = (b.fuelEntries ?? []).reduce((s, f) => s + toNum(f.cost), 0);
       const other = (b.otherExpenses ?? []).reduce((s, o) => s + toNum(o.amount), 0);
-      return sum + driver + fuel + other;
+      const special = toNum(b.tolls) + toNum(b.parking) + toNum(b.permit);
+      return sum + driver + fuel + other + special;
     }, 0);
     const income = agreement?.totalAmount ?? accounts?.incomeTotalAmount ?? 0;
     const profitOrLoss = income - totalExpenses;
@@ -198,25 +227,33 @@ export function TourAccountScreen({ route, navigation }: Props) {
     setSaving(true);
     try {
       const payload = {
-        busExpenses: buses.map((b) => ({
-          busId: b.busId,
-          driverBatta: toDecOrNull(b.driverBatta),
-          startKm: toIntOrNull(b.startKm),
-          endKm: toIntOrNull(b.endKm),
-          fuelEntries: (b.fuelEntries ?? [])
-            .filter((f) => f.place.trim() || f.liters.trim() || f.cost.trim())
-            .map((f) => ({
-              place: f.place,
-              liters: toDecOrNull(f.liters),
-              cost: toDecOrNull(f.cost),
-            })),
-          otherExpenses: (b.otherExpenses ?? [])
-            .filter((o) => o.description.trim() || o.amount.trim())
-            .map((o) => ({
-              description: o.description,
-              amount: toDecOrNull(o.amount),
-            })),
-        })),
+        busExpenses: buses.map((b) => {
+          // Merge special expenses back into otherExpenses
+          const mergedOthers = [...(b.otherExpenses || [])];
+          if (b.tolls.trim()) mergedOthers.push({ description: 'Tolls', amount: b.tolls });
+          if (b.parking.trim()) mergedOthers.push({ description: 'Parking', amount: b.parking });
+          if (b.permit.trim()) mergedOthers.push({ description: 'Permit/RTO', amount: b.permit });
+
+          return {
+            busId: b.busId,
+            driverBatta: toDecOrNull(b.driverBatta),
+            startKm: toIntOrNull(b.startKm),
+            endKm: toIntOrNull(b.endKm),
+            fuelEntries: (b.fuelEntries ?? [])
+              .filter((f) => f.place.trim() || f.liters.trim() || f.cost.trim())
+              .map((f) => ({
+                place: f.place,
+                liters: toDecOrNull(f.liters),
+                cost: toDecOrNull(f.cost),
+              })),
+            otherExpenses: mergedOthers
+              .filter((o) => o.description.trim() || o.amount.trim())
+              .map((o) => ({
+                description: o.description,
+                amount: toDecOrNull(o.amount),
+              })),
+          };
+        }),
       };
 
       const updated = await upsertAgreementAccounts(agreementId, payload);
@@ -230,106 +267,103 @@ export function TourAccountScreen({ route, navigation }: Props) {
     }
   };
 
+  const onExportPdf = async () => {
+    if (!agreement || !accounts) return;
+
+    try {
+      // Fallback if company details are missing
+      const companyDetails = {
+        companyName: user?.companyName || 'Tour Operator',
+        address: user?.companyAddress || '',
+        phone: user?.companyPhone || '',
+        email: user?.email || '',
+      };
+
+      await generateAccountPdf(agreement, accounts, companyDetails);
+    } catch (e) {
+      Alert.alert(t('common.errorTitle'), 'Failed to generate PDF');
+      console.error(e);
+    }
+  };
+
+  const toggleCollapse = (key: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setCollapsedBus(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator />
+        <ActivityIndicator size="large" color={Theme.colors.primary} />
         <Text style={styles.small}>{t('common.loading')}</Text>
       </View>
     );
   }
 
   const isProfit = totals.profitOrLoss >= 0;
-  const assignedCount = accounts?.assignedBuses?.length ?? 0;
-  const requiredCount = accounts?.requiredBusCount ?? 1;
 
   return (
-    <KeyboardAvoidingScrollView contentContainerStyle={styles.container}>
-      <Card>
-        <Text style={styles.title}>{agreement?.customerName ?? '-'}</Text>
-        <Text style={styles.small}>{agreement?.fromDate ?? '-'} - {agreement?.toDate ?? '-'}</Text>
-        <Text style={styles.small}>{t('agreement.busType')}: {agreement?.busType ?? '-'}</Text>
-        <Text style={styles.small}>
-          {t('manageAssignments.assignedBuses')}: {assignedCount}/{requiredCount}
-        </Text>
-      </Card>
+    <View style={styles.container}>
+      {/* Sticky Summary Header */}
+      <View style={styles.summaryHeader}>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>{t('accounts.income')}</Text>
+          <Text style={[styles.summaryValue, { color: Theme.colors.success }]}>
+            ₹{totals.income.toLocaleString('en-IN')}
+          </Text>
+        </View>
+        <View style={[styles.summaryItem, { borderLeftWidth: 1, borderLeftColor: '#e5e7eb', borderRightWidth: 1, borderRightColor: '#e5e7eb' }]}>
+          <Text style={styles.summaryLabel}>{t('accounts.totalExpenses')}</Text>
+          <Text style={[styles.summaryValue, { color: Theme.colors.danger }]}>
+            ₹{totals.totalExpenses.toLocaleString('en-IN')}
+          </Text>
+        </View>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>{t('accounts.profitOrLoss')}</Text>
+          <Text style={[styles.summaryValue, isProfit ? { color: Theme.colors.success } : { color: Theme.colors.danger }]}>
+            ₹{totals.profitOrLoss.toLocaleString('en-IN')}
+          </Text>
+        </View>
+      </View>
 
-      <Card>
-        <Text style={styles.sectionTitle}>{t('accounts.income')}</Text>
-        <Text style={styles.bigMoney}>{String(totals.income)}</Text>
-      </Card>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {buses.map((b, idx) => {
+          const collapseKey = b.busId ?? `idx-${idx}`;
+          const isCollapsed = collapsedBus[collapseKey] ?? false;
 
+          // Mileage Logic
+          const totalLiters = (b.fuelEntries ?? []).reduce((s, f) => s + toNum(f.liters), 0);
+          const startKm = b.startKm.trim() ? Number.parseInt(b.startKm, 10) : NaN;
+          const endKm = b.endKm.trim() ? Number.parseInt(b.endKm, 10) : NaN;
+          const hasDistance = Number.isFinite(startKm) && Number.isFinite(endKm) && endKm >= startKm;
+          const distanceKm = hasDistance ? endKm - startKm : null;
+          const mileage = distanceKm != null && totalLiters > 0 ? distanceKm / totalLiters : null;
+          const lowMileage = mileage != null && mileage < 3.0;
 
-      {buses.map((b, idx) => {
-        const collapseKey = b.busId ?? `idx-${idx}`;
-        const isCollapsed = collapsedBus[collapseKey] ?? false;
-        const totalLiters = (b.fuelEntries ?? []).reduce((s, f) => s + toNum(f.liters), 0);
-        const startKm = b.startKm.trim() ? Number.parseInt(b.startKm, 10) : NaN;
-        const endKm = b.endKm.trim() ? Number.parseInt(b.endKm, 10) : NaN;
-        const hasDistance = Number.isFinite(startKm) && Number.isFinite(endKm) && endKm >= startKm;
-        const distanceKm = hasDistance ? endKm - startKm : null;
-        const mileage = distanceKm != null && totalLiters > 0 ? distanceKm / totalLiters : null;
-
-        return (
-          <Card key={`${b.busId ?? 'none'}-${idx}`}>
-            <View style={styles.busHeaderRow}>
-              <Text style={styles.sectionTitle}>
-                {t('accounts.bus')} {idx + 1}: {b.label}
-              </Text>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <Pressable
-                  style={styles.minimizeBtn}
-                  onPress={() => {
-                    const next = [...buses];
-                    // basic confirmation could be added here
-                    next.splice(idx, 1);
-                    setBuses(next);
-                  }}
-                >
-                  <Text style={[styles.minimizeBtnText, { color: '#991b1b' }]}>X</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.minimizeBtn}
-                  onPress={() => setCollapsedBus((prev) => ({ ...prev, [collapseKey]: !isCollapsed }))}
-                >
-                  <Text style={styles.minimizeBtnText}>
-                    {isCollapsed ? t('accounts.expand') : t('accounts.minimize')}
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-
-            {isCollapsed ? (
-              <View style={{ gap: 6 }}>
-                <Text style={styles.small}>
-                  {t('accounts.driverBatta')}: {b.driverBatta?.trim() ? b.driverBatta : '0'}
-                </Text>
-                <View style={styles.mileageRow}>
-                  <Text style={styles.mileageText}>
-                    {t('accounts.distanceKm')}: {distanceKm == null ? '—' : String(distanceKm)}
-                  </Text>
-                  <Text style={styles.mileageText}>
-                    {t('accounts.totalLiters')}: {totalLiters ? totalLiters.toFixed(2) : '0.00'}
-                  </Text>
-                  <Text style={styles.mileageText}>
-                    {t('accounts.mileage')}: {mileage == null ? '—' : `${mileage.toFixed(2)} km/L`}
-                  </Text>
+          return (
+            <View key={`${b.busId ?? 'none'}-${idx}`} style={styles.busCard}>
+              <Pressable
+                style={styles.busHeader}
+                onPress={() => toggleCollapse(collapseKey)}
+              >
+                <Text style={styles.busTitle}>{t('accounts.bus')} {idx + 1}: {b.label}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  {mileage != null && (
+                    <View style={[styles.badge, lowMileage ? styles.badgeDanger : styles.badgeSuccess]}>
+                      <Text style={[styles.badgeText, lowMileage ? styles.textDanger : styles.textSuccess]}>
+                        {mileage.toFixed(2)} km/L
+                      </Text>
+                    </View>
+                  )}
+                  {isCollapsed ? <ChevronDown size={20} color="#6b7280" /> : <ChevronUp size={20} color="#6b7280" />}
                 </View>
-              </View>
-            ) : (
-              <>
-                <LabeledInput
-                  label={t('accounts.driverBatta')}
-                  value={b.driverBatta}
-                  onChangeText={(v) => {
-                    const next = [...buses];
-                    next[idx] = { ...next[idx], driverBatta: cleanDecimalInput(v) };
-                    setBuses(next);
-                  }}
-                  keyboardType="numeric"
-                />
-                <View style={styles.row2}>
-                  <View style={{ flex: 1 }}>
+              </Pressable>
+
+              {!isCollapsed && (
+                <View style={styles.busContent}>
+                  {/* Odometer Section */}
+                  <SectionLabel title={t('accounts.odometer')} />
+                  <View style={styles.row}>
                     <LabeledInput
                       label={t('accounts.startKm')}
                       value={b.startKm}
@@ -339,9 +373,8 @@ export function TourAccountScreen({ route, navigation }: Props) {
                         setBuses(next);
                       }}
                       keyboardType="number-pad"
+                      style={{ flex: 1 }}
                     />
-                  </View>
-                  <View style={{ flex: 1 }}>
                     <LabeledInput
                       label={t('accounts.endKm')}
                       value={b.endKm}
@@ -351,251 +384,358 @@ export function TourAccountScreen({ route, navigation }: Props) {
                         setBuses(next);
                       }}
                       keyboardType="number-pad"
+                      style={{ flex: 1 }}
                     />
                   </View>
-                </View>
-                <View style={styles.mileageRow}>
-                  <Text style={styles.mileageText}>
-                    {t('accounts.distanceKm')}: {distanceKm == null ? '—' : String(distanceKm)}
-                  </Text>
-                  <Text style={styles.mileageText}>
-                    {t('accounts.totalLiters')}: {totalLiters ? totalLiters.toFixed(2) : '0.00'}
-                  </Text>
-                  <Text style={styles.mileageText}>
-                    {t('accounts.mileage')}: {mileage == null ? '—' : `${mileage.toFixed(2)} km/L`}
-                  </Text>
-                </View>
+                  {distanceKm !== null && (
+                    <Text style={styles.helperText}>Total Distance: {distanceKm} km</Text>
+                  )}
 
+                  {/* Expenses Section */}
+                  <SectionLabel title="Trip Expenses" style={{ marginTop: 16 }} />
+                  <LabeledInput
+                    label={t('accounts.driverBatta')}
+                    value={b.driverBatta}
+                    onChangeText={(v) => {
+                      const next = [...buses];
+                      next[idx] = { ...next[idx], driverBatta: cleanDecimalInput(v) };
+                      setBuses(next);
+                    }}
+                    keyboardType="numeric"
+                  />
 
-                <Text style={styles.subTitle}>{t('accounts.fuel')}</Text>
-                {(b.fuelEntries ?? []).map((f, fIdx) => (
-                  <View key={fIdx} style={styles.entryRow}>
-                    <TextInput
-                      style={[styles.input, { flex: 2 }]}
-                      placeholder={t('accounts.place')}
-                      value={f.place}
-                      onFocus={scrollOnFocus}
+                  <View style={styles.row}>
+                    <LabeledInput
+                      label="Tolls"
+                      value={b.tolls}
                       onChangeText={(v) => {
                         const next = [...buses];
-                        const fuel = [...next[idx].fuelEntries];
-                        fuel[fIdx] = { ...fuel[fIdx], place: v };
-                        next[idx] = { ...next[idx], fuelEntries: fuel };
+                        next[idx] = { ...next[idx], tolls: cleanDecimalInput(v) };
                         setBuses(next);
                       }}
-                    />
-                    <TextInput
-                      style={[styles.input, { flex: 1 }]}
-                      placeholder={t('accounts.liters')}
                       keyboardType="numeric"
-                      value={f.liters}
-                      onFocus={scrollOnFocus}
+                      style={{ flex: 1 }}
+                    />
+                    <LabeledInput
+                      label="Parking"
+                      value={b.parking}
                       onChangeText={(v) => {
                         const next = [...buses];
-                        const fuel = [...next[idx].fuelEntries];
-                        fuel[fIdx] = { ...fuel[fIdx], liters: cleanDecimalInput(v) };
-                        next[idx] = { ...next[idx], fuelEntries: fuel };
+                        next[idx] = { ...next[idx], parking: cleanDecimalInput(v) };
                         setBuses(next);
                       }}
-                    />
-                    <TextInput
-                      style={[styles.input, { flex: 1 }]}
-                      placeholder={t('accounts.cost')}
                       keyboardType="numeric"
-                      value={f.cost}
-                      onFocus={scrollOnFocus}
-                      onChangeText={(v) => {
-                        const next = [...buses];
-                        const fuel = [...next[idx].fuelEntries];
-                        fuel[fIdx] = { ...fuel[fIdx], cost: cleanDecimalInput(v) };
-                        next[idx] = { ...next[idx], fuelEntries: fuel };
-                        setBuses(next);
-                      }}
+                      style={{ flex: 1 }}
                     />
-                    <Pressable
-                      style={styles.removeBtn}
-                      onPress={() => {
+                  </View>
+                  <LabeledInput
+                    label="Permit / RTO"
+                    value={b.permit}
+                    onChangeText={(v) => {
+                      const next = [...buses];
+                      next[idx] = { ...next[idx], permit: cleanDecimalInput(v) };
+                      setBuses(next);
+                    }}
+                    keyboardType="numeric"
+                  />
+
+                  {/* Fuel Log */}
+                  <SectionLabel title={t('accounts.fuel')} style={{ marginTop: 16 }} />
+                  {(b.fuelEntries ?? []).map((f, fIdx) => (
+                    <View key={fIdx} style={styles.entryRow}>
+                      <TextInput
+                        style={[styles.input, { flex: 2 }]}
+                        placeholder={t('accounts.place')}
+                        value={f.place}
+                        onChangeText={(v) => {
+                          const next = [...buses];
+                          const fuel = [...next[idx].fuelEntries];
+                          fuel[fIdx] = { ...fuel[fIdx], place: v };
+                          next[idx] = { ...next[idx], fuelEntries: fuel };
+                          setBuses(next);
+                        }}
+                      />
+                      <TextInput
+                        style={[styles.input, { flex: 1 }]}
+                        placeholder="L"
+                        keyboardType="numeric"
+                        value={f.liters}
+                        onChangeText={(v) => {
+                          const next = [...buses];
+                          const fuel = [...next[idx].fuelEntries];
+                          fuel[fIdx] = { ...fuel[fIdx], liters: cleanDecimalInput(v) };
+                          next[idx] = { ...next[idx], fuelEntries: fuel };
+                          setBuses(next);
+                        }}
+                      />
+                      <TextInput
+                        style={[styles.input, { flex: 1.5 }]}
+                        placeholder="Cost"
+                        keyboardType="numeric"
+                        value={f.cost}
+                        onChangeText={(v) => {
+                          const next = [...buses];
+                          const fuel = [...next[idx].fuelEntries];
+                          fuel[fIdx] = { ...fuel[fIdx], cost: cleanDecimalInput(v) };
+                          next[idx] = { ...next[idx], fuelEntries: fuel };
+                          setBuses(next);
+                        }}
+                      />
+                      <Pressable onPress={() => {
                         const next = [...buses];
                         const fuel = [...next[idx].fuelEntries];
                         fuel.splice(fIdx, 1);
                         next[idx] = { ...next[idx], fuelEntries: fuel };
                         setBuses(next);
-                      }}
-                    >
-                      <Text style={styles.removeBtnText}>{t('accounts.remove')}</Text>
-                    </Pressable>
-                  </View>
-                ))}
-                <Pressable
-                  style={styles.addRowBtn}
-                  onPress={() => {
-                    const next = [...buses];
-                    next[idx] = { ...next[idx], fuelEntries: [...(next[idx].fuelEntries ?? []), { place: '', liters: '', cost: '' }] };
-                    setBuses(next);
-                  }}
-                >
-                  <Text style={styles.addRowBtnText}>{t('accounts.addFuel')}</Text>
-                </Pressable>
+                      }}>
+                        <Trash2 size={20} color={Theme.colors.danger} />
+                      </Pressable>
+                    </View>
+                  ))}
+                  <Pressable
+                    style={styles.addBtn}
+                    onPress={() => {
+                      const next = [...buses];
+                      next[idx] = { ...next[idx], fuelEntries: [...(next[idx].fuelEntries ?? []), { place: '', liters: '', cost: '' }] };
+                      setBuses(next);
+                    }}
+                  >
+                    <Plus size={16} color={Theme.colors.primary} />
+                    <Text style={styles.addBtnText}>{t('accounts.addFuel')}</Text>
+                  </Pressable>
 
-                <Text style={styles.subTitle}>{t('accounts.otherExpenses')}</Text>
-                {(b.otherExpenses ?? []).map((o, oIdx) => (
-                  <View key={oIdx} style={styles.entryRow}>
-                    <TextInput
-                      style={[styles.input, { flex: 2 }]}
-                      placeholder={t('accounts.description')}
-                      value={o.description}
-                      onFocus={scrollOnFocus}
-                      onChangeText={(v) => {
-                        const next = [...buses];
-                        const other = [...next[idx].otherExpenses];
-                        other[oIdx] = { ...other[oIdx], description: v };
-                        next[idx] = { ...next[idx], otherExpenses: other };
-                        setBuses(next);
-                      }}
-                    />
-                    <TextInput
-                      style={[styles.input, { flex: 1 }]}
-                      placeholder={t('accounts.amount')}
-                      keyboardType="numeric"
-                      value={o.amount}
-                      onFocus={scrollOnFocus}
-                      onChangeText={(v) => {
-                        const next = [...buses];
-                        const other = [...next[idx].otherExpenses];
-                        other[oIdx] = { ...other[oIdx], amount: cleanDecimalInput(v) };
-                        next[idx] = { ...next[idx], otherExpenses: other };
-                        setBuses(next);
-                      }}
-                    />
-                    <Pressable
-                      style={styles.removeBtn}
-                      onPress={() => {
+                  {/* Other Expenses */}
+                  <SectionLabel title={t('accounts.otherExpenses')} style={{ marginTop: 16 }} />
+                  {(b.otherExpenses ?? []).map((o, oIdx) => (
+                    <View key={oIdx} style={styles.entryRow}>
+                      <TextInput
+                        style={[styles.input, { flex: 2 }]}
+                        placeholder="Description"
+                        value={o.description}
+                        onChangeText={(v) => {
+                          const next = [...buses];
+                          const other = [...next[idx].otherExpenses];
+                          other[oIdx] = { ...other[oIdx], description: v };
+                          next[idx] = { ...next[idx], otherExpenses: other };
+                          setBuses(next);
+                        }}
+                      />
+                      <TextInput
+                        style={[styles.input, { flex: 1.5 }]}
+                        placeholder="Amt"
+                        keyboardType="numeric"
+                        value={o.amount}
+                        onChangeText={(v) => {
+                          const next = [...buses];
+                          const other = [...next[idx].otherExpenses];
+                          other[oIdx] = { ...other[oIdx], amount: cleanDecimalInput(v) };
+                          next[idx] = { ...next[idx], otherExpenses: other };
+                          setBuses(next);
+                        }}
+                      />
+                      <Pressable onPress={() => {
                         const next = [...buses];
                         const other = [...next[idx].otherExpenses];
                         other.splice(oIdx, 1);
                         next[idx] = { ...next[idx], otherExpenses: other };
                         setBuses(next);
-                      }}
-                    >
-                      <Text style={styles.removeBtnText}>{t('accounts.remove')}</Text>
-                    </Pressable>
-                  </View>
-                ))}
-                <Pressable
-                  style={styles.addRowBtn}
-                  onPress={() => {
-                    const next = [...buses];
-                    next[idx] = { ...next[idx], otherExpenses: [...(next[idx].otherExpenses ?? []), { description: '', amount: '' }] };
-                    setBuses(next);
-                  }}
-                >
-                  <Text style={styles.addRowBtnText}>{t('accounts.addOtherExpense')}</Text>
-                </Pressable>
-              </>
-            )}
-          </Card>
-        );
-      })}
+                      }}>
+                        <Trash2 size={20} color={Theme.colors.danger} />
+                      </Pressable>
+                    </View>
+                  ))}
+                  <Pressable
+                    style={styles.addBtn}
+                    onPress={() => {
+                      const next = [...buses];
+                      next[idx] = { ...next[idx], otherExpenses: [...(next[idx].otherExpenses ?? []), { description: '', amount: '' }] };
+                      setBuses(next);
+                    }}
+                  >
+                    <Plus size={16} color={Theme.colors.primary} />
+                    <Text style={styles.addBtnText}>{t('accounts.addOtherExpense')}</Text>
+                  </Pressable>
 
-      <Pressable
-        style={styles.secondaryBtn}
-        onPress={() => {
-          setBuses((prev) => [
-            ...prev,
-            {
-              busId: null,
-              label: `Bus ${prev.length + 1}`,
-              driverBatta: '0',
-              startKm: '',
-              endKm: '',
-              fuelEntries: [],
-              otherExpenses: [],
-            },
-          ]);
-        }}
-      >
-        <Text style={styles.secondaryBtnText}>{t('action.addBus', 'Add Another Bus')}</Text>
-      </Pressable>
+                </View>
+              )}
+            </View>
+          );
+        })}
 
-      <Card>
-        <Text style={styles.sectionTitle}>{t('accounts.totalExpenses')}: {totals.totalExpenses == null ? '₹0.00' : '₹' + totals.totalExpenses.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
-        <Text style={[styles.sectionTitle, isProfit ? styles.profitPos : styles.profitNeg]}>
-          {t('accounts.profitOrLoss')}: {totals.profitOrLoss == null ? '₹0.00' : '₹' + totals.profitOrLoss.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-        </Text>
-      </Card>
-
-      <View style={{ gap: 10 }}>
-        <Pressable style={[styles.primaryBtn, saving ? styles.btnDisabled : null]} disabled={saving} onPress={onSave}>
-          <Text style={styles.primaryBtnText}>{saving ? t('common.saving') : t('accounts.save')}</Text>
+        <Pressable
+          style={styles.secondaryBtn}
+          onPress={() => {
+            setBuses((prev) => [
+              ...prev,
+              createEmptyBus(null, `Bus ${prev.length + 1}`),
+            ]);
+          }}
+        >
+          <Plus size={18} color="#374151" />
+          <Text style={styles.secondaryBtnText}>{t('action.addBus', 'Add Another Bus')}</Text>
         </Pressable>
-        <Pressable style={styles.secondaryBtn} onPress={load} disabled={saving}>
-          <Text style={styles.secondaryBtnText}>{t('common.refresh')}</Text>
-        </Pressable>
-      </View>
-    </KeyboardAvoidingScrollView>
+
+        {/* Actions Footer */}
+        <View style={styles.footerActions}>
+          <Pressable style={styles.saveBtn} onPress={onSave} disabled={saving}>
+            <Save size={20} color="white" />
+            <Text style={styles.saveBtnText}>{saving ? t('common.saving') : t('accounts.save')}</Text>
+          </Pressable>
+
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <Pressable style={styles.actionIconBtn}>
+              <Share2 size={20} color="#4F46E5" />
+              <Text style={styles.actionIconText}>Share</Text>
+            </Pressable>
+            <Pressable style={styles.actionIconBtn} onPress={onExportPdf}>
+              <FileText size={20} color="#4F46E5" />
+              <Text style={styles.actionIconText}>PDF</Text>
+            </Pressable>
+          </View>
+        </View>
+
+      </ScrollView>
+    </View>
   );
 }
 
-function Card({ children }: { children: React.ReactNode }) {
-  return <View style={styles.card}>{children}</View>;
+// Components
+function SectionLabel({ title, style }: { title: string, style?: any }) {
+  return <Text style={[styles.sectionLabel, style]}>{title}</Text>;
 }
 
-function LabeledInput({
-  label,
-  value,
-  onChangeText,
-  keyboardType,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (v: string) => void;
-  keyboardType?: any;
-}) {
-  const scrollOnFocus = useScrollToFocusedInput(90);
+function LabeledInput({ label, value, onChangeText, keyboardType, style }: { label: string, value: string, onChangeText: (v: string) => void, keyboardType?: any, style?: any }) {
   return (
-    <View style={{ gap: 6 }}>
-      <Text style={styles.label}>{label}</Text>
+    <View style={[{ gap: 6 }, style]}>
+      <Text style={styles.inputLabel}>{label}</Text>
       <TextInput
         style={styles.input}
         value={value}
         onChangeText={onChangeText}
         keyboardType={keyboardType}
-        onFocus={scrollOnFocus}
+        placeholder="0"
+        placeholderTextColor="#9ca3af"
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 12 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
+  container: { flex: 1, backgroundColor: '#F3F4F6' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  small: { fontSize: 12, color: '#6b7280', marginTop: 8 },
 
-  card: { backgroundColor: 'white', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#eee', gap: 10 },
-  title: { fontSize: 16, fontWeight: '900', color: '#111827' },
-  sectionTitle: { fontSize: 14, fontWeight: '900', color: '#111827' },
-  subTitle: { marginTop: 6, fontSize: 13, fontWeight: '900', color: '#111827' },
-  small: { fontSize: 12, fontWeight: '700', color: '#374151' },
-  bigMoney: { fontSize: 18, fontWeight: '900', color: '#111827' },
-  label: { fontSize: 12, fontWeight: '800', color: '#374151' },
-  input: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
-  row2: { flexDirection: 'row', gap: 10 },
-  mileageRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  mileageText: { fontSize: 12, fontWeight: '800', color: '#374151' },
-  busHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
-  minimizeBtn: { backgroundColor: '#f3f4f6', paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10 },
-  minimizeBtnText: { fontSize: 12, fontWeight: '900', color: '#111827' },
+  // Sticky Header
+  summaryHeader: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  summaryItem: { flex: 1, alignItems: 'center' },
+  summaryLabel: { fontSize: 11, color: '#6b7280', textTransform: 'uppercase', fontWeight: '600' },
+  summaryValue: { fontSize: 16, fontWeight: '800', marginTop: 2 },
 
-  entryRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  addRowBtn: { backgroundColor: '#f3f4f6', paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
-  addRowBtnText: { fontWeight: '900', color: '#111827' },
-  removeBtn: { backgroundColor: '#fee2e2', paddingVertical: 10, paddingHorizontal: 10, borderRadius: 10 },
-  removeBtnText: { fontWeight: '900', color: '#991b1b', fontSize: 11 },
+  scrollContent: { padding: 16, paddingBottom: 100 },
 
-  primaryBtn: { backgroundColor: '#111827', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  primaryBtnText: { color: 'white', fontSize: 16, fontWeight: '800' },
-  secondaryBtn: { backgroundColor: '#f3f4f6', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  secondaryBtnText: { color: '#111827', fontSize: 16, fontWeight: '800' },
-  btnDisabled: { opacity: 0.6 },
+  // Bus Card
+  busCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    marginBottom: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  busHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#f9fafb',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  busTitle: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  busContent: { padding: 16, gap: 12 },
 
-  profitPos: { color: '#065f46' },
-  profitNeg: { color: '#b91c1c' },
+  // Inputs
+  sectionLabel: { fontSize: 13, fontWeight: '700', color: '#374151', textTransform: 'uppercase', letterSpacing: 0.5 },
+  inputLabel: { fontSize: 12, fontWeight: '500', color: '#6b7280' },
+  input: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: '#111827',
+    backgroundColor: 'white',
+  },
+  row: { flexDirection: 'row', gap: 12 },
+
+  // Tables / Lists
+  entryRow: { flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 8 },
+
+  // Buttons
+  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: 6 },
+  addBtnText: { color: Theme.colors.primary, fontWeight: '600', fontSize: 13 },
+
+  secondaryBtn: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    padding: 14,
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 12,
+    borderStyle: 'dashed',
+    marginBottom: 24,
+  },
+  secondaryBtnText: { color: '#374151', fontWeight: '600' },
+
+  // Bottom Actions
+  footerActions: {
+    gap: 16,
+  },
+  saveBtn: {
+    backgroundColor: Theme.colors.primary,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    padding: 16,
+    borderRadius: 12,
+  },
+  saveBtnText: { color: 'white', fontSize: 16, fontWeight: '700' },
+
+  actionIconBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'white',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  actionIconText: { fontWeight: '600', color: '#4F46E5' },
+
+  // Badges
+  badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
+  badgeSuccess: { backgroundColor: '#dcfce7' },
+  badgeDanger: { backgroundColor: '#fee2e2' },
+  badgeText: { fontSize: 11, fontWeight: '700' },
+  textSuccess: { color: '#166534' },
+  textDanger: { color: '#991b1b' },
+  helperText: { fontSize: 11, color: '#6b7280', marginTop: -4 },
 });
