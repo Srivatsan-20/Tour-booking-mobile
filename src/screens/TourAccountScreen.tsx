@@ -11,11 +11,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   LayoutAnimation,
-  UIManager
+  UIManager,
+  Share
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ChevronDown, ChevronUp, Plus, Trash2, FileText, Share2, Save, RefreshCw } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Plus, Trash2, Save, FileText, Share2, Link, RefreshCw, Ban, Pencil } from 'lucide-react-native';
+import { API_BASE_URL } from '../api/config';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import type { RootStackParamList } from '../navigation/types';
@@ -39,7 +41,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'TourAccount'>;
 
 type EditableFuel = { place: string; liters: string; cost: string };
 type EditableOther = { description: string; amount: string };
-type EditableBus = {
+type BusState = {
   busId: string | null;
   label: string;
   driverBatta: string;
@@ -92,7 +94,7 @@ function filterOutSpecialExpenses(others: EditableOther[]): EditableOther[] {
   return others.filter(o => !keys.includes(o.description));
 }
 
-function buildInitialBuses(accounts: AgreementAccountsResponse): EditableBus[] {
+function buildInitialBuses(accounts: AgreementAccountsResponse): BusState[] {
   const required = accounts.requiredBusCount > 0 ? accounts.requiredBusCount : 1;
   const assigned = accounts.assignedBuses ?? [];
 
@@ -120,12 +122,12 @@ function buildInitialBuses(accounts: AgreementAccountsResponse): EditableBus[] {
       tolls: findExpense(rawOthers, 'Tolls'),
       parking: findExpense(rawOthers, 'Parking'),
       permit: findExpense(rawOthers, 'Permit/RTO'),
-    } as EditableBus;
+    } as BusState;
   });
 
   if (existing.length > 0) {
     const byBusId = new Set(existing.map((x) => x.busId).filter(Boolean) as string[]);
-    const appended: EditableBus[] = [];
+    const appended: BusState[] = [];
     for (const b of assigned) {
       if (!byBusId.has(b.id)) {
         appended.push(createEmptyBus(b.id, busLabel(b)));
@@ -138,7 +140,7 @@ function buildInitialBuses(accounts: AgreementAccountsResponse): EditableBus[] {
     return out;
   }
 
-  const rows: EditableBus[] = [];
+  const rows: BusState[] = [];
   for (const b of assigned) {
     rows.push(createEmptyBus(b.id, busLabel(b)));
   }
@@ -148,7 +150,7 @@ function buildInitialBuses(accounts: AgreementAccountsResponse): EditableBus[] {
   return rows;
 }
 
-function createEmptyBus(busId: string | null, label: string): EditableBus {
+function createEmptyBus(busId: string | null, label: string): BusState {
   return {
     busId,
     label,
@@ -170,7 +172,7 @@ export function TourAccountScreen({ route, navigation }: Props) {
 
   const [agreement, setAgreement] = React.useState<AgreementResponse | null>(null);
   const [accounts, setAccounts] = React.useState<AgreementAccountsResponse | null>(null);
-  const [buses, setBuses] = React.useState<EditableBus[]>([]);
+  const [buses, setBuses] = React.useState<BusState[]>([]);
   const [collapsedBus, setCollapsedBus] = React.useState<Record<string, boolean>>({});
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
@@ -286,9 +288,112 @@ export function TourAccountScreen({ route, navigation }: Props) {
     }
   };
 
+  const onShareDriverLink = async (bus: BusState) => {
+    if (!bus.busId) {
+      Alert.alert(t('common.warning'), 'Please save this bus first to generate a driver link.');
+      return;
+    }
+
+    // Create token: AgreementId|BusId
+    // React Native 0.74+ (Expo 51+) provides global btoa.
+    let token = '';
+    try {
+      token = btoa(`${agreement?.id}|${bus.busId}`);
+    } catch (e) {
+      // Fallback or Alert if btoa fails (unlikely in modern RN)
+      Alert.alert('Error', 'Device incompatible: btoa missing');
+      return;
+    }
+
+    const link = `${API_BASE_URL}/driver.html?token=${token}`;
+    const message = `🚌 Driver Expense Link for ${bus.label}\n\nClick to add Fuel/Expenses:\n${link}`;
+
+    try {
+      await Share.share({
+        message,
+      });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to share link');
+    }
+  };
+
+  const onEndTour = async () => {
+    if (!agreement) return;
+
+    if (agreement.isCompleted) {
+      Alert.alert('Info', 'Tour is already ended.');
+      return;
+    }
+
+    Alert.alert(
+      'End Tour?',
+      'This will expire the driver expense link. Drivers won\'t be able to add new entries.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'End Tour',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await fetch(`${API_BASE_URL}/api/driver/end-tour/${agreement.id}`, { method: 'POST' });
+              if (!res.ok) throw new Error('Failed');
+              Alert.alert('Success', 'Tour ended. Link expired.');
+              load(); // Reload to update UI
+            } catch (e) {
+              Alert.alert('Error', 'Failed to end tour');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+
+
   const toggleCollapse = (key: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setCollapsedBus(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const onDeleteBus = (idx: number) => {
+    Alert.alert(
+      'Delete Bus?',
+      'Are you sure you want to remove this bus from the account?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            const next = [...buses];
+            next.splice(idx, 1);
+            setBuses(next);
+          }
+        }
+      ]
+    );
+  };
+
+  const onEditBusName = (idx: number, currentLabel: string) => {
+    Alert.prompt(
+      'Edit Bus Name',
+      'Enter a custom name for this bus:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Save',
+          onPress: (newLabel?: string) => {
+            if (newLabel && newLabel.trim()) {
+              const next = [...buses];
+              next[idx] = { ...next[idx], label: newLabel.trim() };
+              setBuses(next);
+            }
+          }
+        }
+      ],
+      'plain-text',
+      currentLabel
+    );
   };
 
   if (loading) {
@@ -329,7 +434,7 @@ export function TourAccountScreen({ route, navigation }: Props) {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {buses.map((b, idx) => {
           const collapseKey = b.busId ?? `idx-${idx}`;
-          const isCollapsed = collapsedBus[collapseKey] ?? false;
+          const isCollapsed = collapsedBus[collapseKey] ?? true; // Collapsed by default
 
           // Mileage Logic
           const totalLiters = (b.fuelEntries ?? []).reduce((s, f) => s + toNum(f.liters), 0);
@@ -346,8 +451,40 @@ export function TourAccountScreen({ route, navigation }: Props) {
                 style={styles.busHeader}
                 onPress={() => toggleCollapse(collapseKey)}
               >
-                <Text style={styles.busTitle}>{t('accounts.bus')} {idx + 1}: {b.label}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={styles.busTitle}>{t('accounts.bus')} {idx + 1}: {b.label}</Text>
+                  <Pressable
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      onEditBusName(idx, b.label);
+                    }}
+                    style={{ padding: 4 }}
+                  >
+                    <Pencil size={16} color="#6B7280" />
+                  </Pressable>
+                </View>
+
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <Pressable
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      onShareDriverLink(b);
+                    }}
+                    style={{ padding: 4, backgroundColor: '#EFF6FF', borderRadius: 6 }}
+                  >
+                    <Link size={18} color={Theme.colors.primary} />
+                  </Pressable>
+
+                  <Pressable
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      onDeleteBus(idx);
+                    }}
+                    style={{ padding: 4, backgroundColor: '#FEE2E2', borderRadius: 6 }}
+                  >
+                    <Trash2 size={18} color={Theme.colors.danger} />
+                  </Pressable>
+
                   {mileage != null && (
                     <View style={[styles.badge, lowMileage ? styles.badgeDanger : styles.badgeSuccess]}>
                       <Text style={[styles.badgeText, lowMileage ? styles.textDanger : styles.textSuccess]}>
@@ -590,6 +727,16 @@ export function TourAccountScreen({ route, navigation }: Props) {
             <Pressable style={styles.actionIconBtn} onPress={onExportPdf}>
               <FileText size={20} color="#4F46E5" />
               <Text style={styles.actionIconText}>PDF</Text>
+            </Pressable>
+
+            <Pressable
+              style={[styles.actionIconBtn, agreement?.isCompleted && { opacity: 0.6 }]}
+              onPress={onEndTour}
+            >
+              <Ban size={20} color={agreement?.isCompleted ? "#9CA3AF" : "#DC2626"} />
+              <Text style={[styles.actionIconText, { color: agreement?.isCompleted ? "#9CA3AF" : "#DC2626" }]}>
+                {agreement?.isCompleted ? 'Ended' : 'End Tour'}
+              </Text>
             </Pressable>
           </View>
         </View>

@@ -55,6 +55,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("DevCors");
 
+app.UseDefaultFiles(); // Allow index.html etc
+app.UseStaticFiles();  // Serve files from wwwroot
+
 app.UseAuthentication();
 app.UseAuthorization();
 

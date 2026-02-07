@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Driver Expense Entry</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #f3f4f6;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 20px;
+            margin-bottom: 5px;
+            color: #111827;
+        }
+
+        h3 {
+            font-size: 16px;
+            margin: 16px 0 8px 0;
+            text-align: left;
+            color: #374151;
+        }
+
+        p {
+            color: #6b7280;
+            margin-top: 0;
+            font-size: 14px;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 12px;
+            color: white;
+            transition: opacity 0.2s;
+        }
+
+        .btn:active {
+            opacity: 0.8;
+            transform: scale(0.98);
+        }
+
+        .btn-fuel {
+            background: #059669;
+        }
+
+        .btn-expense {
+            background: #4f46e5;
+        }
+
+        .btn-odometer {
+            background: #f59e0b;
+        }
+
+        .btn-cancel {
+            background: #9ca3af;
+            margin-top: 10px;
+        }
+
+        .btn-lang {
+            background: transparent;
+            color: #4f46e5;
+            border: 1px solid #4f46e5;
+            font-size: 14px;
+            padding: 8px;
+            width: auto;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .odometer-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .odometer-row input {
+            flex: 1;
+        }
+
+        .odometer-display {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .odometer-display .label {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .odometer-display .value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #111827;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .loading {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        #status {
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        .success {
+            color: #059669;
+        }
+
+        .error {
+            color: #dc2626;
+        }
+
+        /* History List */
+        .history-item {
+            border-bottom: 1px solid #e5e7eb;
+            padding: 10px 0;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .h-left {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .h-sub {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .h-right {
+            font-size: 14px;
+            font-weight: bold;
+            color: #111827;
+        }
+
+        .banner-ended {
+            background-color: #fee2e2;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <button class="btn btn-lang" onclick="toggleLang()">🌐 <span id="langLabel">தமிழ்</span></button>
+
+    <div id="loading" style="margin-top: 20px;">Loading...</div>
+
+    <div id="tourEnded" class="hidden banner-ended" data-key="tourEnded">⚠️ Tour Ended. Link Expired.</div>
+
+    <div id="main" class="hidden">
+        <div class="card">
+            <h1 id="busName">...</h1>
+            <p><span data-key="tripId">Trip ID</span>: <span id="tripId">...</span></p>
+        </div>
+
+        <!-- Odometer Display -->
+        <div class="card">
+            <h3 data-key="odometer">Odometer</h3>
+            <div class="odometer-display">
+                <div>
+                    <div class="label" data-key="startKm">Start KM</div>
+                    <div class="value" id="displayStartKm">0</div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="label" data-key="endKm">End KM</div>
+                    <div class="value" id="displayEndKm">0</div>
+                </div>
+            </div>
+            <button class="btn btn-odometer" onclick="showOdometerForm()">📊 <span data-key="updateOdometer">Update
+                    Odometer</span></button>
+        </div>
+
+        <div id="actionButtons">
+            <button class="btn btn-fuel" onclick="showForm('Fuel')">⛽ <span data-key="addFuel">Add Fuel</span></button>
+            <button class="btn btn-expense" onclick="showForm('Expense')">💸 <span data-key="addExpense">Add Other
+                    Expense</span></button>
+        </div>
+
+        <!-- History Section -->
+        <div class="card" style="margin-top: 20px;">
+            <h3 style="margin: 0 0 10px 0; font-size: 16px; text-align: left;" data-key="history">History</h3>
+            <div id="historyList">
+                <p style="text-align: center; font-style: italic;" data-key="noHistory">No entries yet</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="formSection" class="hidden">
+        <div class="card">
+            <h1 id="formTitle">Add Entry</h1>
+
+            <label class="lbl" data-key="amount">Amount (₹)</label>
+            <input type="number" id="amount" placeholder="5000" inputmode="numeric">
+
+            <div id="fuelFields" class="hidden">
+                <label class="lbl" data-key="liters">Liters</label>
+                <input type="number" id="liters" placeholder="50" inputmode="numeric">
+
+                <label class="lbl" data-key="place">Place / Station</label>
+                <input type="text" id="place" placeholder="Madurai Shell">
+            </div>
+
+            <div id="expenseFields" class="hidden">
+                <label class="lbl" data-key="type">Type</label>
+                <select id="expenseType">
+                    <option value="Tolls" data-key="optTolls">Tolls</option>
+                    <option value="Parking" data-key="optParking">Parking</option>
+                    <option value="Permit/RTO" data-key="optPermit">Permit/RTO</option>
+                    <option value="Food/Batta" data-key="optFood">Food/Batta</option>
+                    <option value="Repairs" data-key="optRepairs">Repairs</option>
+                    <option value="Other" data-key="optOther">Other</option>
+                </select>
+
+                <label class="lbl" data-key="description">Description (Optional)</label>
+                <input type="text" id="description" placeholder="...">
+            </div>
+
+            <div id="odometerFields" class="hidden">
+                <label class="lbl" data-key="startKm">Start KM</label>
+                <input type="number" id="inputStartKm" placeholder="0" inputmode="numeric">
+
+                <label class="lbl" data-key="endKm">End KM</label>
+                <input type="number" id="inputEndKm" placeholder="0" inputmode="numeric">
+            </div>
+
+            <button class="btn btn-fuel" id="submitBtn" onclick="submitEntry()"><span data-key="save">Save
+                    Entry</span></button>
+            <button class="btn btn-cancel" onclick="showMain()"><span data-key="cancel">Cancel</span></button>
+
+            <div id="status"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/driver';
+        let currentToken = '';
+        let currentType = '';
+        let currentLang = 'en';
+        let currentData = null;
+
+        const TRANSLATIONS = {
+            en: {
+                addFuel: "Add Fuel",
+                addExpense: "Add Other Expense",
+                updateOdometer: "Update Odometer",
+                history: "History",
+                noHistory: "No entries yet",
+                amount: "Amount (₹)",
+                liters: "Liters",
+                place: "Place / Station",
+                type: "Type",
+                description: "Description",
+                save: "Save Entry",
+                cancel: "Cancel",
+                tripId: "Trip ID",
+                odometer: "Odometer",
+                startKm: "Start KM",
+                endKm: "End KM",
+                tourEnded: "⚠️ Tour Ended. Link Expired.",
+                optTolls: "Tolls", optParking: "Parking", optPermit: "Permit/RTO",
+                optFood: "Food/Batta", optRepairs: "Repairs", optOther: "Other",
+                saving: "Saving...", saved: "✅ Saved Successfully!",
+                errorBg: "❌ Error Saving. Try again.",
+                enterAmount: "Please enter amount"
+            },
+            ta: {
+                addFuel: "எரிபொருள் சேர்",
+                addExpense: "மற்ற செலவு சேர்",
+                updateOdometer: "ஓடோமீட்டர் புதுப்பிக்கவும்",
+                history: "வரலாறு",
+                noHistory: "பதிவுகள் இல்லை",
+                amount: "தொகை (₹)",
+                liters: "லிட்டர்",
+                place: "இடம்",
+                type: "வகை",
+                description: "விளக்கம்",
+                save: "சேமி",
+                cancel: "ரத்து",
+                tripId: "ட்ரிப் ஐடி",
+                odometer: "ஓடோமீட்டர்",
+                startKm: "தொடக்க KM",
+                endKm: "இறுதி KM",
+                tourEnded: "⚠️ பயணம் முடிந்தது.",
+                optTolls: "சுங்கச்சாவடி", optParking: "பார்க்கிங்", optPermit: "பர்மிட்",
+                optFood: "உணவு", optRepairs: "பழுது", optOther: "மற்றவை",
+                saving: "சேமிக்கிறது...", saved: "✅ சேமிக்கப்பட்டது!",
+                errorBg: "❌ பிழை. மீண்டும் முயற்சிக்கவும்.",
+                enterAmount: "தொகையை உள்ளிடவும்"
+            }
+        };
+
+        function toggleLang() {
+            currentLang = currentLang === 'en' ? 'ta' : 'en';
+            document.getElementById('langLabel').innerText = currentLang === 'en' ? 'தமிழ்' : 'English';
+            applyLang();
+            localStorage.setItem('driverLang', currentLang);
+        }
+
+        function applyLang() {
+            const t = TRANSLATIONS[currentLang];
+            document.querySelectorAll('[data-key]').forEach(el => {
+                const key = el.getAttribute('data-key');
+                if (t[key]) el.innerText = t[key];
+            });
+        }
+
+        window.onload = async () => {
+            const savedLang = localStorage.getItem('driverLang');
+            if (savedLang) {
+                currentLang = savedLang;
+                document.getElementById('langLabel').innerText = currentLang === 'en' ? 'தமிழ்' : 'English';
+            }
+            applyLang();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            currentToken = urlParams.get('token');
+
+            if (!currentToken) {
+                document.getElementById('loading').innerText = 'Error: Invalid Link';
+                return;
+            }
+
+            await loadData();
+        };
+
+        async function loadData() {
+            try {
+                const res = await fetch(`${API_BASE}/validate/${currentToken}`);
+                if (!res.ok) throw new Error('Link Expired or Invalid');
+                const data = await res.json();
+                currentData = data;
+
+                document.getElementById('busName').innerText = data.busNumber;
+                document.getElementById('tripId').innerText = `#${data.tripId}`;
+
+                // Odometer
+                document.getElementById('displayStartKm').innerText = data.startKm || 0;
+                document.getElementById('displayEndKm').innerText = data.endKm || 0;
+
+                // History
+                renderHistory(data.history);
+
+                document.getElementById('loading').classList.add('hidden');
+
+                if (data.isCompleted) {
+                    document.getElementById('tourEnded').classList.remove('hidden');
+                    document.getElementById('main').classList.add('hidden');
+                    document.getElementById('actionButtons').classList.add('hidden');
+                    document.getElementById('main').classList.remove('hidden');
+                } else {
+                    document.getElementById('main').classList.remove('hidden');
+                    document.getElementById('actionButtons').classList.remove('hidden');
+                }
+
+            } catch (e) {
+                document.getElementById('loading').innerText = e.message;
+            }
+        }
+
+        function renderHistory(items) {
+            const list = document.getElementById('historyList');
+            list.innerHTML = '';
+            const t = TRANSLATIONS[currentLang];
+
+            if (!items || items.length === 0) {
+                list.innerHTML = `<p style="text-align: center; font-style: italic;">${t.noHistory}</p>`;
+                return;
+            }
+
+            items.slice().reverse().forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                const icon = item.type === 'Fuel' ? '⛽' : '💸';
+                div.innerHTML = `
+                    <div>
+                        <div class="h-left">${icon} ${item.type}</div>
+                        <div class="h-sub">${item.info || '-'}</div>
+                    </div>
+                    <div class="h-right">₹${item.amount}</div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function showForm(type) {
+            currentType = type;
+            const t = TRANSLATIONS[currentLang];
+
+            document.getElementById('main').classList.add('hidden');
+            document.getElementById('formSection').classList.remove('hidden');
+            document.getElementById('formTitle').innerText = `${type === 'Fuel' ? '⛽' : '💸'} ${t[type === 'Fuel' ? 'addFuel' : 'addExpense']}`;
+            document.getElementById('status').innerText = '';
+            document.getElementById('amount').value = '';
+
+            document.getElementById('fuelFields').classList.add('hidden');
+            document.getElementById('expenseFields').classList.add('hidden');
+            document.getElementById('odometerFields').classList.add('hidden');
+
+            if (type === 'Fuel') {
+                document.getElementById('fuelFields').classList.remove('hidden');
+            } else {
+                document.getElementById('expenseFields').classList.remove('hidden');
+            }
+        }
+
+        function showOdometerForm() {
+            currentType = 'Odometer';
+            const t = TRANSLATIONS[currentLang];
+
+            document.getElementById('main').classList.add('hidden');
+            document.getElementById('formSection').classList.remove('hidden');
+            document.getElementById('formTitle').innerText = `📊 ${t.updateOdometer}`;
+            document.getElementById('status').innerText = '';
+            document.getElementById('amount').value = '';
+
+            document.getElementById('fuelFields').classList.add('hidden');
+            document.getElementById('expenseFields').classList.add('hidden');
+            document.getElementById('odometerFields').classList.remove('hidden');
+
+            document.getElementById('inputStartKm').value = currentData?.startKm || 0;
+            document.getElementById('inputEndKm').value = currentData?.endKm || 0;
+        }
+
+        function showMain() {
+            document.getElementById('formSection').classList.add('hidden');
+            document.getElementById('main').classList.remove('hidden');
+        }
+
+        async function submitEntry() {
+            const t = TRANSLATIONS[currentLang];
+
+            let payload = { Token: currentToken };
+
+            if (currentType === 'Odometer') {
+                const startKm = parseInt(document.getElementById('inputStartKm').value) || 0;
+                const endKm = parseInt(document.getElementById('inputEndKm').value) || 0;
+
+                payload = {
+                    ...payload,
+                    Type: 'Fuel', // Dummy, backend ignores
+                    Amount: 0,
+                    StartKm: startKm,
+                    EndKm: endKm
+                };
+            } else {
+                const amount = document.getElementById('amount').value;
+                if (!amount) {
+                    alert(t.enterAmount);
+                    return;
+                }
+
+                payload = {
+                    ...payload,
+                    Type: currentType,
+                    Amount: parseFloat(amount),
+                    Liters: currentType === 'Fuel' ? parseFloat(document.getElementById('liters').value || 0) : null,
+                    Place: currentType === 'Fuel' ? document.getElementById('place').value : null,
+                    Category: currentType === 'Expense' ? document.getElementById('expenseType').value : null,
+                    Description: currentType === 'Expense' ? document.getElementById('description').value : null
+                };
+            }
+
+            const btn = document.getElementById('submitBtn');
+            btn.classList.add('loading');
+            btn.innerText = t.saving;
+
+            try {
+                const res = await fetch(`${API_BASE}/submit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) throw new Error('Failed to save');
+
+                document.getElementById('status').className = 'success';
+                document.getElementById('status').innerText = t.saved;
+
+                setTimeout(async () => {
+                    await loadData();
+                    showMain();
+                    btn.classList.remove('loading');
+                    btn.innerText = t.save;
+                }, 1000);
+            } catch (e) {
+                document.getElementById('status').className = 'error';
+                document.getElementById('status').innerText = t.errorBg;
+                btn.classList.remove('loading');
+                btn.innerText = t.save;
+            }
+        }
+    </script>
+</body>
+
+</html>

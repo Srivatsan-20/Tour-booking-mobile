@@ -36,6 +36,8 @@ public sealed class Agreement
     public bool IsCancelled { get; set; }
     public DateTime? CancelledAtUtc { get; set; }
 
+    public bool IsCompleted { get; set; } // For ending the tour
+
     public DateTime CreatedAtUtc { get; set; }
 
     public List<AgreementBusAssignment> BusAssignments { get; set; } = new();

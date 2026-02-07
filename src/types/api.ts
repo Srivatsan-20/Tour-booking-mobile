@@ -29,6 +29,7 @@ export type AgreementResponse = {
   // Bus assignments (optional; returned by some endpoints)
   assignedBuses?: AssignedBusDto[] | null;
   isCancelled: boolean;
+  isCompleted: boolean; // For ending tour
   cancelledAtUtc: string | null;
   createdAtUtc: string;
 };
