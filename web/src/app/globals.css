@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-gold: #FFD700;
+  --color-brand-bronze: #C5A059;
+  --color-brand-amber: #FFD700;
+  --color-bg-deep: #0a0a0a;
+  --color-bg-card: #141414;
+  --color-text-luxury: #F5F5F5;
+  --color-text-muted: #A0A0A0;
+
+  --font-serif: var(--font-playfair);
+  --font-sans: var(--font-outfit);
+
+  --animate-fade-in: fade-in 0.6s ease-out;
+  --animate-scale-in: scale-in 0.4s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #F5F5F5;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-outfit), sans-serif;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-playfair), serif;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gold-gradient {
+  background: linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-bg-gradient {
+  background: linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C);
+}
+
+.text-tactical {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #A0A0A0;
+}

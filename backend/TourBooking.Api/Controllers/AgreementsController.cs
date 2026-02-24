@@ -594,7 +594,12 @@ public sealed class AgreementsController : ControllerBase
     private static bool TryParseDdMmYyyy(string input, out DateOnly date)
     {
         var s = (input ?? string.Empty).Trim();
-        return DateOnly.TryParseExact(s, new[] { "dd/MM/yyyy", "d/M/yyyy" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out date);
+        var formats = new[] { "dd/MM/yyyy", "d/M/yyyy", "yyyy-MM-dd", "yyyy-M-d", "MM/dd/yyyy", "M/d/yyyy" };
+        var success = DateOnly.TryParseExact(s, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out date) ||
+                     DateOnly.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.None, out date);
+        
+        Console.WriteLine($"[DEBUG] Parsing date: '{s}', Result: {success}, Parsed: {date}");
+        return success;
     }
 
     private static bool OverlapsInclusive(DateOnly aFrom, DateOnly aTo, DateOnly bFrom, DateOnly bTo)

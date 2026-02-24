@@ -1,0 +1,15 @@
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5115
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /Users/admin/Documents/Win-Projects/AntiGravity/Tour-booking-mobile-1/backend/TourBooking.Api
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (37ms) [Parameters=[@__dto_Username_0='?' (Size = 100)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [u].[Id], [u].[CompanyAddress], [u].[CompanyEmail], [u].[CompanyName], [u].[CompanyPhone], [u].[Email], [u].[PasswordHash], [u].[Username]
+      FROM [Users] AS [u]
+      WHERE [u].[Username] = @__dto_Username_0
+info: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
