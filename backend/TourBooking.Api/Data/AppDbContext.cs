@@ -11,9 +11,9 @@ public sealed class AppDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
-    public DbSet<Agreement> Agreements => Set<Agreement>();
-
     public DbSet<Bus> Buses => Set<Bus>();
+    public DbSet<Agreement> Agreements => Set<Agreement>();
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
     public DbSet<AgreementBusAssignment> AgreementBusAssignments => Set<AgreementBusAssignment>();
 
 	public DbSet<TripExpense> TripExpenses => Set<TripExpense>();
@@ -23,6 +23,9 @@ public sealed class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<SystemSetting>()
+            .HasKey(x => x.Key);
+
         var user = modelBuilder.Entity<User>();
         user.HasKey(x => x.Id);
         user.Property(x => x.Username).HasMaxLength(100).IsRequired();
@@ -124,6 +127,9 @@ public sealed class AppDbContext : DbContext
             .OnDelete(DeleteBehavior.NoAction);
         bus.Property(x => x.Name).HasMaxLength(100);
         bus.Property(x => x.IsActive).HasDefaultValue(true);
+        bus.Property(x => x.BaseRate).HasColumnType("decimal(18,2)").HasDefaultValue(5000m);
+        bus.Property(x => x.BusType).HasMaxLength(50).HasDefaultValue("AC");
+        bus.Property(x => x.Capacity).HasDefaultValue(40);
         bus.Property(x => x.CreatedAtUtc).HasDefaultValueSql("GETUTCDATE()");
 
         var assignment = modelBuilder.Entity<AgreementBusAssignment>();
