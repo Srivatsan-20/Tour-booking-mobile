@@ -2,10 +2,8 @@
 
 import React from 'react';
 import { AgreementResponse } from '@/types/api';
-import {
-    User, Calendar, MapPin, Calculator, CreditCard,
-    X, Printer, Download, Mail, Phone, Building2
-} from 'lucide-react';
+import { X, Printer, Download, Mail, Phone } from 'lucide-react';
+import { generateAndDownloadPdf } from '@/lib/pdfGenerator';
 
 interface Props {
     agreement: AgreementResponse;
@@ -19,6 +17,20 @@ interface Props {
 }
 
 export default function AgreementPreview({ agreement, onClose, companyInfo }: Props) {
+
+    const handleDownloadPdf = async () => {
+        try {
+            await generateAndDownloadPdf(agreement, {
+                companyName: companyInfo.name,
+                address: companyInfo.address,
+                phone: companyInfo.phone,
+                email: companyInfo.email
+            });
+        } catch (err) {
+            alert("Failed to generate PDF. Please try again.");
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
             <div className="bg-white text-gray-900 w-full max-w-4xl max-h-[90vh] rounded-[2.5rem] overflow-hidden flex flex-col shadow-2xl animate-in zoom-in duration-300">
@@ -29,7 +41,7 @@ export default function AgreementPreview({ agreement, onClose, companyInfo }: Pr
                         <span className="px-3 py-1 bg-brand-gold/20 text-brand-gold text-[10px] font-bold uppercase rounded-full tracking-widest">Draft Authorization</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-600" title="Print">
+                        <button onClick={handleDownloadPdf} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-600" title="Print">
                             <Printer size={20} />
                         </button>
                         <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-600">
@@ -62,7 +74,7 @@ export default function AgreementPreview({ agreement, onClose, companyInfo }: Pr
                         {/* Title */}
                         <div className="text-center mb-12">
                             <h2 className="text-2xl font-serif font-bold uppercase tracking-[0.2em] border-y border-gray-100 py-3 mb-2">Transport Agreement</h2>
-                            <p className="text-gray-400 text-xs">Agreement Reference: {agreement.id.toUpperCase()}</p>
+                            <p className="text-gray-400 text-xs">Agreement Reference: {(agreement.id ?? '').toUpperCase()}</p>
                         </div>
 
                         {/* Grid Info */}
@@ -112,7 +124,7 @@ export default function AgreementPreview({ agreement, onClose, companyInfo }: Pr
                                     <h4 className="text-[10px] uppercase font-bold text-brand-gold mb-2 tracking-widest">Route Map</h4>
                                     <div className="border-l-2 border-gray-100 pl-4">
                                         <p className="text-sm text-gray-700 leading-relaxed italic">
-                                            "{agreement.placesToCover || 'Selected heritage sites as per itinerary.'}"
+                                            &quot;{agreement.placesToCover || 'Selected heritage sites as per itinerary.'}&quot;
                                         </p>
                                     </div>
                                 </section>
@@ -174,7 +186,10 @@ export default function AgreementPreview({ agreement, onClose, companyInfo }: Pr
                     >
                         Back to Manager
                     </button>
-                    <button className="gold-bg-gradient px-8 py-3 rounded-xl text-bg-deep font-bold flex items-center gap-2 hover:scale-105 transition-transform shadow-lg">
+                    <button
+                        onClick={handleDownloadPdf}
+                        className="gold-bg-gradient px-8 py-3 rounded-xl text-bg-deep font-bold flex items-center gap-2 hover:scale-105 transition-transform shadow-lg"
+                    >
                         <Download size={20} /> Download PDF Official
                     </button>
                 </div>

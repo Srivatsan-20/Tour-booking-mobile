@@ -49,23 +49,50 @@ export default function FleetAvailabilityPage() {
     // Change Bus Form
     const [newBusId, setNewBusId] = useState('');
 
+    // Normalize a raw schedule API object to always have camelCase fields,
+    // regardless of whether the backend sends PascalCase or camelCase.
+    const normalizeSchedule = (raw: any): ScheduleResponse => {
+        if (!raw) return raw;
+        const agreements = (raw.agreements || raw.Agreements || []).map((a: any) => ({
+            id: a.id ?? a.Id ?? '',
+            customerName: a.customerName ?? a.CustomerName ?? '',
+            fromDate: a.fromDate ?? a.FromDate ?? '',
+            toDate: a.toDate ?? a.ToDate ?? '',
+            busType: a.busType ?? a.BusType ?? '',
+            busCount: a.busCount ?? a.BusCount ?? null,
+            assignedBusIds: (a.assignedBusIds ?? a.AssignedBusIds ?? []).map((id: any) =>
+                typeof id === 'string' ? id.toLowerCase() : String(id).toLowerCase()
+            ),
+        }));
+        const buses = (raw.buses || raw.Buses || []).map((b: any) => ({
+            id: b.id ?? b.Id ?? '',
+            vehicleNumber: b.vehicleNumber ?? b.VehicleNumber ?? '',
+            name: b.name ?? b.Name ?? null,
+            isActive: b.isActive ?? b.IsActive ?? true,
+            busType: b.busType ?? b.BusType ?? '',
+            capacity: b.capacity ?? b.Capacity ?? 0,
+            baseRate: b.baseRate ?? b.BaseRate ?? 0,
+            homeCity: b.homeCity ?? b.HomeCity ?? null,
+            createdAtUtc: b.createdAtUtc ?? b.CreatedAtUtc ?? '',
+        }));
+        return { ...raw, agreements, buses };
+    };
+
     const loadSchedule = async () => {
         setLoading(true);
         try {
-            const start = new Date(startDate);
+            const start = new Date(startDate + 'T00:00:00');
             const end = new Date(start);
             end.setDate(start.getDate() + daysCount);
 
-            const [schedRes, allAgreements] = await Promise.all([
-                scheduleApi.get(startDate, end.toISOString().split('T')[0]),
+            const [rawSched, allAgreements] = await Promise.all([
+                scheduleApi.get(startDate, toLocalDateStr(end)),
                 agreementsApi.list()
             ]);
 
+            // Normalize to camelCase regardless of backend serialization
+            const schedRes = normalizeSchedule(rawSched);
             setData(schedRes);
-
-            // Filter agreements that need bus assignment (busCount > assignedBusIds.length)
-            // Note: Since schedule data is a snapshot, we use the list but it might not be perfect.
-            // Simplified: Show all active agreements that aren't cancelled.
             setUnassignedAgreements(allAgreements.filter(a => !a.isCancelled));
 
         } catch (error) {
@@ -79,9 +106,17 @@ export default function FleetAvailabilityPage() {
         loadSchedule();
     }, [startDate, daysCount]);
 
+    // Returns yyyy-MM-dd in LOCAL time (avoids UTC timezone shift)
+    const toLocalDateStr = (d: Date) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    };
+
     const dates = useMemo(() => {
         const arr = [];
-        const curr = new Date(startDate);
+        const curr = new Date(startDate + 'T00:00:00'); // local midnight
         for (let i = 0; i <= daysCount; i++) {
             arr.push(new Date(curr));
             curr.setDate(curr.getDate() + 1);
@@ -91,12 +126,22 @@ export default function FleetAvailabilityPage() {
 
     const isAssigned = (busId: string, date: Date) => {
         if (!data) return null;
-        const dateStr = date.toISOString().split('T')[0];
-        return data.agreements.find(a =>
-            a.assignedBusIds?.includes(busId) &&
-            dateStr >= a.fromDate.split('T')[0] &&
-            dateStr <= a.toDate.split('T')[0]
-        );
+        const dateStr = toLocalDateStr(date); // local yyyy-MM-dd (no UTC shift)
+
+        // Helper: parse dd/MM/yyyy -> yyyy-MM-dd for comparison
+        const parseDdMmYyyy = (s: string) => {
+            if (!s) return '';
+            const parts = s.split('/');
+            if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            return s.split('T')[0]; // fallback for iso strings
+        };
+
+        return data.agreements.find(a => {
+            if (!a.assignedBusIds?.includes(busId)) return false;
+            const from = parseDdMmYyyy(a.fromDate);
+            const to = parseDdMmYyyy(a.toDate);
+            return dateStr >= from && dateStr <= to;
+        }) ?? null;
     };
 
     const formatDate = (date: Date) => {
@@ -104,7 +149,7 @@ export default function FleetAvailabilityPage() {
     };
 
     const isToday = (date: Date) => {
-        return date.toISOString().split('T')[0] === new Date().toISOString().split('T')[0];
+        return toLocalDateStr(date) === toLocalDateStr(new Date());
     };
 
     // --- Action Handlers ---
@@ -154,7 +199,7 @@ export default function FleetAvailabilityPage() {
     };
 
     const handleCellClick = (busId: string, date: Date) => {
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = toLocalDateStr(date);
         const existing = isAssigned(busId, date);
         if (existing) {
             setSelectedAssignment({ agreement: existing, busId });
@@ -490,7 +535,9 @@ export default function FleetAvailabilityPage() {
                                 </button>
 
                                 <Link
-                                    href={`/track/${selectedAssignment.agreement.id}`}
+                                    href={selectedAssignment.agreement.id
+                                        ? `/bookings/${selectedAssignment.agreement.id}`
+                                        : '/bookings'}
                                     className="w-full p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-between group transition-all"
                                 >
                                     <div className="flex items-center gap-3">

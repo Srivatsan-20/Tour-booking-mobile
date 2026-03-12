@@ -7,6 +7,11 @@ export interface AuthResponse {
     companyName?: string;
     companyAddress?: string;
     companyPhone?: string;
+    upiLink?: string;
+    driverCharges?: number;
+    tollCharges?: number;
+    fastTagCharges?: number;
+    otherCharges?: number;
 }
 
 export const authApi = {

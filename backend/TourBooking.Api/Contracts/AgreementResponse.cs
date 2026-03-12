@@ -28,8 +28,13 @@ public sealed class AgreementResponse
     public List<AssignedBusDto>? AssignedBuses { get; set; }
 
     public bool IsCancelled { get; set; }
+    public bool IsCompleted { get; set; }
     public DateTime? CancelledAtUtc { get; set; }
     public DateTime CreatedAtUtc { get; set; }
+
+    public string? CompanyName { get; set; }
+    public string? CompanyAddress { get; set; }
+    public string? CompanyPhone { get; set; }
 }
 
 public sealed class AgreementBusRateDto

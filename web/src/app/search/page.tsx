@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import {
     Search as SearchIcon,
     ArrowRight,
@@ -16,7 +16,7 @@ import {
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function PublicSearchPage() {
+function SearchPageInner() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -27,19 +27,25 @@ export default function PublicSearchPage() {
         to: searchParams.get('to') || '',
         fromDate: searchParams.get('fromDate') || '',
         toDate: searchParams.get('toDate') || '',
-        tripType: 'AC'
+        tripType: searchParams.get('type') || ''  // empty = show all types
     });
 
     const handleSearch = async () => {
         setLoading(true);
         try {
             const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5115';
-            const typeParam = filters.tripType.toUpperCase() === 'AC' ? 'AC' : 'NON-AC';
+            const today = new Date().toISOString().split('T')[0];
+            // toDate must always be present — default to fromDate or today
+            const effectiveFrom = filters.fromDate || today;
+            const effectiveTo = filters.toDate || effectiveFrom;
             const url = new URL(`${baseUrl}/api/public/search`);
-            url.searchParams.set('fromDate', filters.fromDate || new Date().toISOString().split('T')[0]);
-            url.searchParams.set('toDate', filters.toDate || filters.fromDate || new Date().toISOString().split('T')[0]);
+            url.searchParams.set('fromDate', effectiveFrom);
+            url.searchParams.set('toDate', effectiveTo);
             if (filters.from) url.searchParams.set('city', filters.from);
-            url.searchParams.set('type', typeParam);
+            // Only filter by type when explicitly selected — don't default to AC
+            if (filters.tripType) {
+                url.searchParams.set('type', filters.tripType.toUpperCase());
+            }
 
             const res = await fetch(url.toString());
             if (res.ok) {
@@ -53,9 +59,40 @@ export default function PublicSearchPage() {
         }
     };
 
+    // Run search whenever URL params change (handles both initial load and navigation from homepage)
     useEffect(() => {
-        if (filters.fromDate) handleSearch();
-    }, []);
+        const today = new Date().toISOString().split('T')[0];
+        // Read DIRECTLY from searchParams (not from filters state which may be stale)
+        const fromDate = searchParams.get('fromDate') || today;
+        const toDate = searchParams.get('toDate') || fromDate;
+        const city = searchParams.get('from') || '';
+        const type = searchParams.get('type') || '';
+
+        // Sync filters UI state too
+        setFilters({
+            from: city,
+            to: searchParams.get('to') || '',
+            fromDate: fromDate,
+            toDate: toDate,
+            tripType: type,
+        });
+
+        // Fire the API call with guaranteed valid dates
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5115';
+        const url = new URL(`${baseUrl}/api/public/search`);
+        url.searchParams.set('fromDate', fromDate);
+        url.searchParams.set('toDate', toDate);
+        if (city) url.searchParams.set('city', city);
+        if (type) url.searchParams.set('type', type.toUpperCase());
+
+        setLoading(true);
+        fetch(url.toString())
+            .then(r => r.ok ? r.json() : [])
+            .then(data => setResults(Array.isArray(data) ? data : []))
+            .catch(() => setResults([]))
+            .finally(() => setLoading(false));
+
+    }, [searchParams]);
 
     return (
         <div className="min-h-screen bg-bg-deep pb-24">
@@ -63,13 +100,14 @@ export default function PublicSearchPage() {
             <div className="bg-bg-card/50 border-b border-white/5 pt-12 pb-8 px-6">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex flex-col md:flex-row gap-6 items-end">
-                        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4 w-full">
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-6 gap-4 w-full">
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase text-text-muted ml-2">Leaving From</label>
                                 <div className="relative">
                                     <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-gold" size={16} />
                                     <input
                                         value={filters.from}
+                                        placeholder="City..."
                                         onChange={e => setFilters({ ...filters, from: e.target.value })}
                                         className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 text-sm focus:border-brand-gold outline-none"
                                     />
@@ -78,16 +116,17 @@ export default function PublicSearchPage() {
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black uppercase text-text-muted ml-2">Going To</label>
                                 <div className="relative">
-                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-gold" size={16} />
+                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
                                     <input
                                         value={filters.to}
+                                        placeholder="Destination..."
                                         onChange={e => setFilters({ ...filters, to: e.target.value })}
                                         className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 text-sm focus:border-brand-gold outline-none"
                                     />
                                 </div>
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-black uppercase text-text-muted ml-2">Departure</label>
+                                <label className="text-[10px] font-black uppercase text-text-muted ml-2">Departure Date</label>
                                 <div className="relative">
                                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-gold" size={16} />
                                     <input
@@ -99,8 +138,27 @@ export default function PublicSearchPage() {
                                 </div>
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-black uppercase text-text-muted ml-2">Type</label>
-                                <div className="grid grid-cols-2 gap-2">
+                                <label className="text-[10px] font-black uppercase text-text-muted ml-2">Return Date</label>
+                                <div className="relative">
+                                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+                                    <input
+                                        type="date"
+                                        value={filters.toDate}
+                                        min={filters.fromDate}
+                                        onChange={e => setFilters({ ...filters, toDate: e.target.value })}
+                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 text-sm focus:border-brand-gold outline-none"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-1.5 md:col-span-2">
+                                <label className="text-[10px] font-black uppercase text-text-muted ml-2">Vehicle Type</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <button
+                                        onClick={() => setFilters({ ...filters, tripType: '' })}
+                                        className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filters.tripType === '' ? 'bg-brand-gold text-bg-deep shadow-lg' : 'bg-white/5 text-text-muted'}`}
+                                    >
+                                        All
+                                    </button>
                                     <button
                                         onClick={() => setFilters({ ...filters, tripType: 'AC' })}
                                         className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filters.tripType === 'AC' ? 'bg-brand-gold text-bg-deep shadow-lg' : 'bg-white/5 text-text-muted'}`}
@@ -108,10 +166,10 @@ export default function PublicSearchPage() {
                                         AC
                                     </button>
                                     <button
-                                        onClick={() => setFilters({ ...filters, tripType: 'Classic' })}
-                                        className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filters.tripType === 'Classic' ? 'bg-brand-gold text-bg-deep shadow-lg' : 'bg-white/5 text-text-muted'}`}
+                                        onClick={() => setFilters({ ...filters, tripType: 'NON-AC' })}
+                                        className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filters.tripType === 'NON-AC' ? 'bg-brand-gold text-bg-deep shadow-lg' : 'bg-white/5 text-text-muted'}`}
                                     >
-                                        Classic
+                                        NON-AC
                                     </button>
                                 </div>
                             </div>
@@ -224,6 +282,14 @@ export default function PublicSearchPage() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
+    );
+}
+
+export default function PublicSearchPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-bg-deep flex items-center justify-center"><Loader2 className="animate-spin text-brand-gold" size={48} /></div>}>
+            <SearchPageInner />
+        </Suspense>
     );
 }

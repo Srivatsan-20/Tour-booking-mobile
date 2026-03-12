@@ -1,7 +1,5 @@
 import { api } from './base';
 
-
-
 export interface LoginDto {
     username: string;
     password: string;
@@ -21,6 +19,11 @@ export interface UpdateProfileDto {
     companyAddress: string;
     companyPhone: string;
     email?: string;
+    upiLink?: string;
+    driverCharges?: number;
+    tollCharges?: number;
+    fastTagCharges?: number;
+    otherCharges?: number;
 }
 
 export interface AuthResponse {
@@ -31,6 +34,11 @@ export interface AuthResponse {
     companyAddress?: string;
     companyPhone?: string;
     email?: string;
+    upiLink?: string;
+    driverCharges?: number;
+    tollCharges?: number;
+    fastTagCharges?: number;
+    otherCharges?: number;
 }
 
 export const authApi = {

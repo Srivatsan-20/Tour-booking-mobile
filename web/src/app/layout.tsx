@@ -4,6 +4,7 @@ import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { AuthProvider } from "@/context/AuthContext";
+import { CustomerAuthProvider } from "@/context/CustomerAuthContext";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -31,11 +32,13 @@ export default function RootLayout({
         className={`${playfair.variable} ${outfit.variable} antialiased selection:bg-brand-gold/30 bg-bg-deep text-text-luxury min-h-screen flex flex-col`}
       >
         <AuthProvider>
-          <Navbar />
-          <main className="flex-grow">
-            {children}
-          </main>
-          <Footer />
+          <CustomerAuthProvider>
+            <Navbar />
+            <main className="flex-grow">
+              {children}
+            </main>
+            <Footer />
+          </CustomerAuthProvider>
         </AuthProvider>
       </body>
     </html>

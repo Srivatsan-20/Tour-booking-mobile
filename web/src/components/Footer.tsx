@@ -18,17 +18,17 @@ export const Footer = () => {
                     <ul className="space-y-4">
                         <li><Link href="/" className="text-text-muted hover:text-brand-gold text-sm transition-colors">Home</Link></li>
                         <li><Link href="/search" className="text-text-muted hover:text-brand-gold text-sm transition-colors">Search Fleet</Link></li>
-                        <li><Link href="/track" className="text-text-muted hover:text-brand-gold text-sm transition-colors">Track Journey</Link></li>
-                        <li><Link href="/about" className="text-text-muted hover:text-brand-gold text-sm transition-colors">About Us</Link></li>
+                        <li><Link href="/track" prefetch={false} className="text-text-muted hover:text-brand-gold text-sm transition-colors">Track Journey</Link></li>
+                        <li><Link href="/about" prefetch={false} className="text-text-muted hover:text-brand-gold text-sm transition-colors">About Us</Link></li>
                     </ul>
                 </div>
 
                 <div>
                     <h4 className="text-tactical mb-6">Fleet</h4>
                     <ul className="space-y-4">
-                        <li><Link href="/fleet/luxury-bus" className="text-text-muted hover:text-brand-gold text-sm transition-colors">Luxury Buses</Link></li>
-                        <li><Link href="/fleet/premium-vans" className="text-text-muted hover:text-brand-gold text-sm transition-colors">Premium Vans</Link></li>
-                        <li><Link href="/fleet/classic-sedans" className="text-text-muted hover:text-brand-gold text-sm transition-colors">Classic Sedans</Link></li>
+                        <li><Link href="/fleet/luxury-bus" prefetch={false} className="text-text-muted hover:text-brand-gold text-sm transition-colors">Luxury Buses</Link></li>
+                        <li><Link href="/fleet/premium-vans" prefetch={false} className="text-text-muted hover:text-brand-gold text-sm transition-colors">Premium Vans</Link></li>
+                        <li><Link href="/fleet/classic-sedans" prefetch={false} className="text-text-muted hover:text-brand-gold text-sm transition-colors">Classic Sedans</Link></li>
                     </ul>
                 </div>
 
@@ -36,8 +36,8 @@ export const Footer = () => {
                     <h4 className="text-tactical mb-6">Partners</h4>
                     <ul className="space-y-4">
                         <li><Link href="/dashboard" className="text-brand-gold hover:text-brand-amber font-bold text-sm transition-colors">Partner Dashboard</Link></li>
-                        <li><Link href="/legal/terms" className="text-text-muted hover:text-brand-gold text-sm transition-colors">Terms of Service</Link></li>
-                        <li><Link href="/legal/privacy" className="text-text-muted hover:text-brand-gold text-sm transition-colors">Privacy Policy</Link></li>
+                        <li><Link href="/legal/terms" prefetch={false} className="text-text-muted hover:text-brand-gold text-sm transition-colors">Terms of Service</Link></li>
+                        <li><Link href="/legal/privacy" prefetch={false} className="text-text-muted hover:text-brand-gold text-sm transition-colors">Privacy Policy</Link></li>
                     </ul>
                 </div>
             </div>

@@ -18,13 +18,17 @@ import {
     Download
 } from 'lucide-react';
 import Link from 'next/link';
+import { useCustomerAuth, getCustomerHeaders } from '@/context/CustomerAuthContext';
 import { generateAndDownloadPdf } from '@/lib/pdfGenerator';
 import { AgreementResponse } from '@/types/api';
+import Script from 'next/script';
 
 export default function PublicBookingPage() {
     const params = useParams();
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { customer } = useCustomerAuth();
+    const [bus, setBus] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [paymentStep, setPaymentStep] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -38,6 +42,8 @@ export default function PublicBookingPage() {
         toDate: searchParams.get('toDate') || '',
         busType: searchParams.get('type') || 'AC',
         passengers: '1',
+        from: searchParams.get('from') || '',
+        to: searchParams.get('to') || '',
         placesToCover: `${searchParams.get('from') || ''} to ${searchParams.get('to') || ''}`,
 
         // Detailed fields requested
@@ -50,6 +56,16 @@ export default function PublicBookingPage() {
         totalAmount: '0'
     });
 
+    useEffect(() => {
+        if (customer) {
+            setFormData(prev => ({
+                ...prev,
+                customerName: customer.name || prev.customerName,
+                phone: customer.phone || prev.phone
+            }));
+        }
+    }, [customer]);
+
     // Load Bus Data
     useEffect(() => {
         const fetchBus = async () => {
@@ -57,11 +73,16 @@ export default function PublicBookingPage() {
                 const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5115';
                 const res = await fetch(`${baseUrl}/api/public/bus/${params.busId}`);
                 if (res.ok) {
-                    const bus = await res.json();
+                    const busData = await res.json();
+                    setBus(busData);
                     setFormData(prev => ({
                         ...prev,
-                        perDayRent: bus.baseRate.toString(),
-                        busType: bus.busType || prev.busType
+                        perDayRent: busData.baseRate.toString(),
+                        driverCharges: busData.driverCharges.toString(),
+                        toll: busData.tollCharges.toString(),
+                        fastTag: busData.fastTagCharges.toString(),
+                        otherCharges: busData.otherCharges.toString(),
+                        busType: busData.busType || prev.busType
                     }));
                 }
             } catch (err) {
@@ -94,19 +115,81 @@ export default function PublicBookingPage() {
     const handlePayment = async () => {
         setLoading(true);
         try {
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5115';
+
+            if (formData.paymentType === 'Online') {
+                const razorpayId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_YOUR_KEY_ID';
+
+                // Bypass for placeholder key to allow testing the full flow
+                if (razorpayId === 'rzp_test_YOUR_KEY_ID') {
+                    console.log("Demo Mode: Simulating successful Razorpay payment...");
+                    setTimeout(() => finalizeBooking('pay_DEMO_' + Math.random().toString(36).substr(2, 9)), 1500);
+                    return;
+                }
+
+                // 1. Create Order
+                const orderRes = await fetch(`${baseUrl}/api/public/payment/create-order`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: parseFloat(formData.totalAmount) })
+                });
+
+                if (!orderRes.ok) throw new Error("Failed to create payment order");
+                const { orderId } = await orderRes.json();
+
+                // 2. Open Razorpay
+                const options = {
+                    key: razorpayId,
+                    amount: parseFloat(formData.totalAmount) * 100,
+                    currency: "INR",
+                    name: "Sri Sai Senthil Travels",
+                    description: "Heritage Bus Reservation",
+                    order_id: orderId,
+                    handler: async function (response: any) {
+                        // 3. Verify Payment & Finalize Booking
+                        finalizeBooking(response.razorpay_payment_id);
+                    },
+                    prefill: {
+                        name: formData.customerName,
+                        contact: formData.phone
+                    },
+                    theme: { color: "#C5A059" }
+                };
+
+                const rzp = new (window as any).Razorpay(options);
+                rzp.open();
+                setLoading(false);
+            } else {
+                // UPI or other manual confirmation
+                finalizeBooking();
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Payment initialization failed. Please try again.");
+            setLoading(false);
+        }
+    };
+
+    const finalizeBooking = async (paymentId?: string) => {
+        setLoading(true);
+        try {
             const payload = {
                 ...formData,
                 busId: params.busId,
                 perDayRent: parseFloat(formData.perDayRent),
                 mountainRent: parseFloat(formData.driverCharges) + parseFloat(formData.toll) + parseFloat(formData.fastTag) + parseFloat(formData.otherCharges),
                 notes: `Public Booking: Driver(${formData.driverCharges}), Toll(${formData.toll}), FastTag(${formData.fastTag}), Other(${formData.otherCharges})`,
-                totalAmount: parseFloat(formData.totalAmount)
+                totalAmount: parseFloat(formData.totalAmount),
+                paymentId: paymentId
             };
 
             const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5115';
             const res = await fetch(`${baseUrl}/api/public/book`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getCustomerHeaders()
+                },
                 body: JSON.stringify(payload)
             });
 
@@ -235,10 +318,20 @@ export default function PublicBookingPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Travel From</label>
-                                    <input readOnly className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 text-sm opacity-50 outline-none" value={formData.fromDate} />
+                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm focus:border-brand-gold outline-none" value={formData.from} onChange={e => setFormData({ ...formData, from: e.target.value })} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Travel To</label>
+                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm focus:border-brand-gold outline-none" value={formData.to} onChange={e => setFormData({ ...formData, to: e.target.value })} />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Departure Date</label>
+                                    <input readOnly className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 text-sm opacity-50 outline-none" value={formData.fromDate} />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Return Date</label>
                                     <input readOnly className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 text-sm opacity-50 outline-none" value={formData.toDate} />
                                 </div>
                             </div>
@@ -256,24 +349,24 @@ export default function PublicBookingPage() {
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Per Day Rent</label>
-                                    <input type="number" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm focus:border-brand-gold outline-none" value={formData.perDayRent} onChange={e => setFormData({ ...formData, perDayRent: e.target.value })} />
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1 underline decoration-brand-gold/30">Base Per Day Rent (Fixed)</label>
+                                    <input type="number" readOnly className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 text-sm opacity-60 outline-none cursor-not-allowed" value={formData.perDayRent} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Driver Charges</label>
-                                    <input type="number" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm focus:border-brand-gold outline-none" value={formData.driverCharges} onChange={e => setFormData({ ...formData, driverCharges: e.target.value })} />
+                                    <input type="number" readOnly className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 text-sm opacity-60 outline-none cursor-not-allowed" value={formData.driverCharges} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Toll Charges</label>
-                                    <input type="number" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm focus:border-brand-gold outline-none" value={formData.toll} onChange={e => setFormData({ ...formData, toll: e.target.value })} />
+                                    <input type="number" readOnly className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 text-sm opacity-60 outline-none cursor-not-allowed" value={formData.toll} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">FastTag</label>
-                                    <input type="number" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm focus:border-brand-gold outline-none" value={formData.fastTag} onChange={e => setFormData({ ...formData, fastTag: e.target.value })} />
+                                    <input type="number" readOnly className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 text-sm opacity-60 outline-none cursor-not-allowed" value={formData.fastTag} />
                                 </div>
                                 <div className="space-y-2 text-white">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Other Charges</label>
-                                    <input type="number" className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm focus:border-brand-gold outline-none" value={formData.otherCharges} onChange={e => setFormData({ ...formData, otherCharges: e.target.value })} />
+                                    <input type="number" readOnly className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 text-sm opacity-60 outline-none cursor-not-allowed" value={formData.otherCharges} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Payment Method</label>
@@ -331,13 +424,33 @@ export default function PublicBookingPage() {
                     </div>
                     <div>
                         <h2 className="text-3xl font-serif font-bold mb-4">Secure Payment</h2>
-                        <p className="text-text-muted">Please complete the payment of ₹{formData.totalAmount} to block your heritage vehicle.</p>
+                        <p className="text-text-muted">Choose your preferred payment method to secure your heritage vehicle.</p>
                     </div>
+
+                    {formData.paymentType === 'UPI' && bus?.upiLink && (
+                        <div className="p-8 bg-brand-gold/5 rounded-[2rem] border border-brand-gold/20 space-y-4">
+                            <p className="text-xs font-bold text-brand-gold uppercase tracking-widest">Pay via UPI</p>
+                            <div className="bg-white/10 p-4 rounded-xl font-bold text-white tracking-widest">
+                                {bus.upiLink}
+                            </div>
+                            <p className="text-[10px] text-text-muted italic">Transfer ₹{Number(formData.totalAmount).toLocaleString()} and click verify below.</p>
+                            <a
+                                href={`upi://pay?pa=${bus.upiLink}&pn=${bus.companyName}&am=${formData.totalAmount}&cu=INR`}
+                                className="block py-3 px-6 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white hover:bg-white/10 transition-all"
+                            >
+                                Open UPI App
+                            </a>
+                        </div>
+                    )}
 
                     <div className="p-6 bg-white/5 rounded-3xl border border-white/10 text-left space-y-4">
                         <div className="flex justify-between text-sm">
-                            <span className="text-text-muted font-bold">JOURNEY</span>
-                            <span className="text-white">{formData.placesToCover.split(' to ')[0]} ➔ {formData.placesToCover.split(' to ')[1]}</span>
+                            <span className="text-text-muted font-bold">VEHICLE</span>
+                            <span className="text-white font-bold">{bus?.name}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                            <span className="text-text-muted font-bold">TOTAL AMOUNT</span>
+                            <span className="text-brand-gold font-black">₹{Number(formData.totalAmount).toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                             <span className="text-text-muted font-bold">DATES</span>
@@ -353,15 +466,16 @@ export default function PublicBookingPage() {
                         {loading ? (
                             <><Loader2 className="animate-spin" size={20} /> Verifying...</>
                         ) : (
-                            <><ShieldCheck size={20} /> Secure & Pay ₹{Number(formData.totalAmount).toLocaleString()}</>
+                            <><ShieldCheck size={20} /> {formData.paymentType === 'Online' ? 'Pay Online & Confirm' : 'Confirm Payment & Secure'}</>
                         )}
                     </button>
 
                     <button onClick={() => setPaymentStep(false)} className="text-xs text-text-muted underline hover:text-white transition-colors">
-                        Go Back
+                        Go Back & Edit
                     </button>
                 </div>
             )}
+            <Script src="https://checkout.razorpay.com/v1/checkout.js" />
         </div>
     );
 }

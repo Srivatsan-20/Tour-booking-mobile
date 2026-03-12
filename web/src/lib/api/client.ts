@@ -19,7 +19,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
         headers['Authorization'] = `Bearer ${authToken}`;
     }
 
-    const response = await fetch(url, { ...options, headers });
+    const response = await fetch(url, { ...options, headers, cache: 'no-store' });
 
     if (!response.ok) {
         const errorBody = await response.text();
@@ -27,6 +27,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
         if (response.status === 401) {
             // Clear token if it's invalid
             setAuthToken(null);
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('s3t_auth');
+                window.location.href = '/auth/login';
+            }
         }
         throw new Error(`API Error: ${response.status} - ${errorBody}`);
     }

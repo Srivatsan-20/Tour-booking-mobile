@@ -15,17 +15,25 @@ import {
   MapPin,
   Settings
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { agreementsApi, busesApi, accountsApi } from '@/lib/api/services';
 import { BusResponse, AgreementResponse, AccountsSummaryItem } from '@/types/api';
 
 export default function PartnerDashboard() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
   const [buses, setBuses] = useState<BusResponse[]>([]);
   const [agreements, setAgreements] = useState<AgreementResponse[]>([]);
   const [summary, setSummary] = useState<AccountsSummaryItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/auth/login');
+    }
+  }, [user, isLoading, router]);
 
   useEffect(() => {
     async function loadData() {
@@ -48,9 +56,12 @@ export default function PartnerDashboard() {
     if (user) loadData();
   }, [user]);
 
+  // Single source of truth — active (not cancelled, not completed) agreements
+  const upcomingTours = agreements.filter(a => !a.isCompleted && !a.isCancelled);
+
   const stats = [
     { label: 'Active Fleet', value: buses.filter(b => b.isActive).length, icon: Bus, color: 'text-brand-gold', link: '/fleet' },
-    { label: 'Upcoming Tours', value: agreements.filter(a => !a.isCompleted && !a.isCancelled).length, icon: Calendar, color: 'text-blue-400', link: '/bookings' },
+    { label: 'Upcoming Tours', value: upcomingTours.length, icon: Calendar, color: 'text-blue-400', link: '/bookings' },
     { label: 'Monthly Revenue', value: `₹${summary.reduce((acc, curr) => acc + curr.incomeTotalAmount, 0).toLocaleString()}`, icon: TrendingUp, color: 'text-green-400', link: '/accounts/summary' },
     { label: 'Total Customers', value: summary.length, icon: Users, color: 'text-purple-400', link: '/bookings' },
   ];
@@ -94,7 +105,7 @@ export default function PartnerDashboard() {
           </div>
 
           <div className="space-y-4">
-            {agreements.filter(a => !a.isCompleted && !a.isCancelled).slice(0, 5).map((job) => (
+            {upcomingTours.slice(0, 5).map((job) => (
               <div key={job.id} className="glass p-6 rounded-2xl border-white/5 flex items-center justify-between group hover:bg-white/[0.02] transition-all">
                 <div className="flex items-center gap-6">
                   <div className="w-12 h-12 rounded-full bg-brand-gold/10 flex items-center justify-center text-brand-gold border border-brand-gold/10">
@@ -103,7 +114,7 @@ export default function PartnerDashboard() {
                   <div>
                     <h4 className="font-bold text-white group-hover:text-brand-gold transition-colors">{job.customerName}</h4>
                     <p className="text-xs text-text-muted flex items-center gap-2 mt-1">
-                      <MapPin size={10} /> {job.placesToCover.split(',')[0]} ➔ {job.fromDate}
+                      <MapPin size={10} /> {job.placesToCover?.split(',')[0] || '—'} ➔ {job.fromDate}
                     </p>
                   </div>
                 </div>
@@ -113,7 +124,7 @@ export default function PartnerDashboard() {
                 </div>
               </div>
             ))}
-            {agreements.length === 0 && (
+            {upcomingTours.length === 0 && (
               <div className="glass p-12 rounded-3xl text-center">
                 <AlertCircle size={40} className="mx-auto text-text-muted mb-4 opacity-20" />
                 <p className="text-text-muted">No upcoming journeys scheduled.</p>

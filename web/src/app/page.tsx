@@ -27,18 +27,24 @@ export default function LandingPage() {
     to: '',
     fromDate: '',
     toDate: '',
-    type: 'AC'
+    type: ''   // empty = show all types
   });
 
   const router = useRouter();
 
   const handleSearch = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const effectiveFrom = searchData.fromDate || today;
+    const effectiveTo = searchData.toDate || effectiveFrom;
+
     const params = new URLSearchParams();
     if (searchData.from) params.set('from', searchData.from);
     if (searchData.to) params.set('to', searchData.to);
-    if (searchData.fromDate) params.set('fromDate', searchData.fromDate);
-    if (searchData.toDate) params.set('toDate', searchData.toDate);
-    params.set('type', searchData.type);
+    // Always include both dates — the API requires toDate
+    params.set('fromDate', effectiveFrom);
+    params.set('toDate', effectiveTo);
+    // Only pass type if user explicitly selected one
+    if (searchData.type) params.set('type', searchData.type);
 
     router.push(`/search?${params.toString()}`);
   };
@@ -103,87 +109,87 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-2">Departure</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-2">Leaving From</label>
                   <div className="relative group">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-gold group-focus-within:scale-110 transition-transform" size={18} />
+                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-gold" size={18} />
                     <input
-                      type="text"
-                      placeholder="Ex: Bangalore"
+                      placeholder="Start city..."
                       value={searchData.from}
                       onChange={(e) => setSearchData({ ...searchData, from: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-gold focus:bg-white/[0.08] transition-all"
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-gold transition-all"
                     />
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-2">Destination</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-2">Going To</label>
                   <div className="relative group">
-                    <MapPinned className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-gold group-focus-within:scale-110 transition-transform" size={18} />
+                    <MapPinned className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
                     <input
-                      type="text"
-                      placeholder="Ex: Mysore"
+                      placeholder="Destination..."
                       value={searchData.to}
                       onChange={(e) => setSearchData({ ...searchData, to: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-gold focus:bg-white/[0.08] transition-all"
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-gold transition-all"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-2">Departure Date</label>
-                  <div className="relative group">
-                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-gold" size={18} />
-                    <input
-                      type="date"
-                      value={searchData.fromDate}
-                      onChange={(e) => setSearchData({ ...searchData, fromDate: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-gold transition-all appearance-none"
-                    />
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-2">Departure Date</label>
+                    <div className="relative group">
+                      <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-gold" size={18} />
+                      <input
+                        type="date"
+                        value={searchData.fromDate}
+                        onChange={(e) => setSearchData({ ...searchData, fromDate: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-gold transition-all appearance-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-2">Return Date (Optional)</label>
+                    <div className="relative group">
+                      <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
+                      <input
+                        type="date"
+                        value={searchData.toDate}
+                        onChange={(e) => setSearchData({ ...searchData, toDate: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-gold transition-all appearance-none"
+                      />
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-2">Return Date (Optional)</label>
-                  <div className="relative group">
-                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
-                    <input
-                      type="date"
-                      value={searchData.toDate}
-                      onChange={(e) => setSearchData({ ...searchData, toDate: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-brand-gold transition-all appearance-none"
-                    />
+
+                <div className="space-y-1.5 pb-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-2">Vehicle Category</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setSearchData({ ...searchData, type: 'AC' })}
+                      className={`flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-[11px] uppercase tracking-wider shadow-lg transition-all ${searchData.type === 'AC' ? 'bg-brand-gold text-bg-deep' : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'}`}
+                    >
+                      Air Conditioned
+                    </button>
+                    <button
+                      onClick={() => setSearchData({ ...searchData, type: 'NON-AC' })}
+                      className={`flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-[11px] uppercase tracking-wider transition-all ${searchData.type === 'NON-AC' ? 'bg-brand-gold text-bg-deep' : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'}`}
+                    >
+                      Classic (Non-AC)
+                    </button>
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-1.5 pb-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-2">Vehicle Category</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => setSearchData({ ...searchData, type: 'AC' })}
-                    className={`flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-[11px] uppercase tracking-wider shadow-lg transition-all ${searchData.type === 'AC' ? 'bg-brand-gold text-bg-deep' : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'}`}
-                  >
-                    Air Conditioned
-                  </button>
-                  <button
-                    onClick={() => setSearchData({ ...searchData, type: 'NON-AC' })}
-                    className={`flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-[11px] uppercase tracking-wider transition-all ${searchData.type === 'NON-AC' ? 'bg-brand-gold text-bg-deep' : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'}`}
-                  >
-                    Classic (Non-AC)
-                  </button>
-                </div>
+                <button
+                  onClick={handleSearch}
+                  className="w-full py-5 gold-bg-gradient rounded-[1.5rem] text-bg-deep font-black text-lg uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_20px_40px_rgba(197,160,89,0.3)] mt-4"
+                >
+                  Search Availability
+                </button>
               </div>
-
-              <button
-                onClick={handleSearch}
-                className="w-full py-5 gold-bg-gradient rounded-[1.5rem] text-bg-deep font-black text-lg uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_20px_40px_rgba(197,160,89,0.3)] mt-4"
-              >
-                Search Availability
-              </button>
             </div>
           </div>
         </div>
@@ -194,7 +200,7 @@ export default function LandingPage() {
       </section>
 
       {/* ABOUT US SECTION */}
-      <section id="about" className="py-32 relative overflow-hidden">
+      < section id="about" className="py-32 relative overflow-hidden" >
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
           <div className="relative order-2 lg:order-1">
             <div className="aspect-[4/5] rounded-[4rem] overflow-hidden shadow-2xl relative transform -rotate-3 hover:rotate-0 transition-transform duration-700">
@@ -234,10 +240,10 @@ export default function LandingPage() {
             </ul>
           </div>
         </div>
-      </section>
+      </section >
 
       {/* SERVICES SECTION */}
-      <section id="services" className="py-32 bg-bg-card/30 relative">
+      < section id="services" className="py-32 bg-bg-card/30 relative" >
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
             <div>
@@ -265,10 +271,10 @@ export default function LandingPage() {
             ))}
           </div>
         </div>
-      </section>
+      </section >
 
       {/* FLEET SHOWCASE */}
-      <section id="fleet" className="py-32">
+      < section id="fleet" className="py-32" >
         <div className="max-w-7xl mx-auto px-6 text-center mb-20">
           <span className="text-tactical text-brand-gold mb-4 block uppercase tracking-[0.4em]">The Machines</span>
           <h2 className="text-5xl md:text-6xl font-serif font-black text-white">The Senthil Fleet.</h2>
@@ -296,10 +302,10 @@ export default function LandingPage() {
             </div>
           ))}
         </div>
-      </section>
+      </section >
 
       {/* CONTACT SECTION */}
-      <section id="contact" className="py-32 relative">
+      < section id="contact" className="py-32 relative" >
         <div className="max-w-7xl mx-auto px-6">
           <div className="glass p-12 md:p-24 rounded-[4rem] border-white/10 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-96 h-96 bg-brand-gold/10 rounded-full blur-[100px] -mr-48 -mt-48" />
@@ -359,7 +365,7 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-      </section>
-    </div>
+      </section >
+    </div >
   );
 }

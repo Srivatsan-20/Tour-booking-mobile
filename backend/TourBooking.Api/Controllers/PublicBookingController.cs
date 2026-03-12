@@ -64,11 +64,8 @@ public sealed class PublicBookingController : ControllerBase
              if (!TryParseDate(agreement.FromDate, out var aFrom) || !TryParseDate(agreement.ToDate, out var aTo))
                 continue;
 
-             // Add 1-day buffer for cleaning/maintenance (Advanced Availability)
-             var bufferStart = aFrom.AddDays(-1);
-             var bufferEnd = aTo.AddDays(1);
-
-             if (fDate <= bufferEnd && tDate >= bufferStart)
+             // Check for direct overlap without buffer to match user expectation
+             if (fDate <= aTo && tDate >= aFrom)
              {
                  // This agreement (with buffer) overlaps the requested period.
                  // Mark its assigned buses as busy.
@@ -80,7 +77,7 @@ public sealed class PublicBookingController : ControllerBase
         // 4. Filter available buses by City and Type, and map to DTO
         var availableBuses = allBuses
             .Where(b => !busyBusIds.Contains(b.Id))
-            .Where(b => string.IsNullOrWhiteSpace(city) || (b.HomeCity != null && b.HomeCity.Contains(city, StringComparison.OrdinalIgnoreCase)))
+            .Where(b => string.IsNullOrWhiteSpace(city) || b.HomeCity == null || b.HomeCity.Contains(city, StringComparison.OrdinalIgnoreCase))
             .Where(b => string.IsNullOrWhiteSpace(type) || (b.BusType != null && b.BusType.Equals(type, StringComparison.OrdinalIgnoreCase)))
             .Select(b => new PublicBusDto
             {
@@ -90,7 +87,11 @@ public sealed class PublicBookingController : ControllerBase
                 CompanyName = b.User?.CompanyName ?? "S3T Heritage Partner",
                 BaseRate = b.BaseRate,
                 BusType = b.BusType,
-                Capacity = b.Capacity
+                Capacity = b.Capacity,
+                DriverCharges = b.User?.DriverCharges ?? 500,
+                TollCharges = b.User?.TollCharges ?? 0,
+                FastTagCharges = b.User?.FastTagCharges ?? 0,
+                OtherCharges = b.User?.OtherCharges ?? 0
             })
             .ToList();
 
@@ -115,7 +116,12 @@ public sealed class PublicBookingController : ControllerBase
             CompanyName = bus.User?.CompanyName ?? "S3T Heritage Partner",
             BaseRate = bus.BaseRate,
             BusType = bus.BusType,
-            Capacity = bus.Capacity
+            Capacity = bus.Capacity,
+            UpiLink = bus.User?.UpiLink,
+            DriverCharges = bus.User?.DriverCharges ?? 500,
+            TollCharges = bus.User?.TollCharges ?? 0,
+            FastTagCharges = bus.User?.FastTagCharges ?? 0,
+            OtherCharges = bus.User?.OtherCharges ?? 0
         });
     }
 
@@ -159,72 +165,91 @@ public sealed class PublicBookingController : ControllerBase
     {
         // 1. Find the bus to identify which partner (User) owns it
         if (request.BusId == null) return BadRequest("Bus selection is required for booking");
-        
+
         var bus = await _db.Buses
             .AsNoTracking()
             .FirstOrDefaultAsync(b => b.Id == request.BusId.Value, cancellationToken);
-            
+
         if (bus == null) return BadRequest("Selected vehicle no longer available");
-        
+
         var userId = bus.UserId;
 
         // Validate dates
         if (!TryParseIsoDate(request.FromDate, out var fromDate) || !TryParseIsoDate(request.ToDate, out var toDate))
              return BadRequest("Invalid dates");
 
+        if (toDate < fromDate) return BadRequest("Return date must be after departure date");
+
+        // ── SECURITY: Calculate price server-side from bus.BaseRate ──────────
+        var days = (toDate.ToDateTime(TimeOnly.MinValue) - fromDate.ToDateTime(TimeOnly.MinValue)).Days + 1;
+        var perDayRent  = bus.BaseRate;                        // locked from partner config
+        var totalAmount = perDayRent * days;
+        // ─────────────────────────────────────────────────────────────────────
+
+        // Check if caller is a logged-in customer (optional — guest booking still allowed)
+        int? customerUserId = null;
+        var customerIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var customerRole    = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        if (customerRole == "customer" && int.TryParse(customerIdClaim, out var cid))
+            customerUserId = cid;
+
         // Create Agreement
         var agreement = new Agreement
         {
-            UserId = userId,
-            CustomerName = request.CustomerName,
-            Phone = request.Phone,
-            FromDate = fromDate.ToString("dd/MM/yyyy"), 
-            ToDate = toDate.ToString("dd/MM/yyyy"),
-            BusType = request.BusType ?? "AC", 
-            BusCount = 1,
-            Passengers = request.Passengers,
-            PlacesToCover = request.PlacesToCover,
-            PerDayRent = request.PerDayRent,
-            MountainRent = request.MountainRent,
-            IncludeMountainRent = request.MountainRent > 0,
-            
-            // Financials
-            TotalAmount = request.TotalAmount,
-            AdvancePaid = request.TotalAmount, // Full payment assumed for "Booked" status
-            IsCancelled = false,
-            IsCompleted = true, // Mark confirmed/completed as per "Mark bus as booked"
-            CreatedAtUtc = DateTime.UtcNow,
-            Notes = "Online Booking - Payment ID: " + (request.PaymentId ?? "N/A")
+            UserId           = userId,
+            CustomerUserId   = customerUserId,
+            CustomerName     = request.CustomerName,
+            Phone            = request.Phone,
+            FromDate         = fromDate.ToString("dd/MM/yyyy"),
+            ToDate           = toDate.ToString("dd/MM/yyyy"),
+            BusType          = bus.BusType ?? "AC",
+            BusCount         = 1,
+            Passengers       = request.Passengers,
+            PlacesToCover    = request.PlacesToCover,
+            PerDayRent       = perDayRent,           // ← server-side value
+            MountainRent     = 0,
+            IncludeMountainRent = false,
+            TotalAmount      = totalAmount,          // ← server-side value
+            AdvancePaid      = totalAmount,          // full payment assumed online
+            Balance          = 0,
+            IsCancelled      = false,
+            IsCompleted      = false,
+            CreatedAtUtc     = DateTime.UtcNow,
+            Notes            = "Online Booking - Payment ID: " + (request.PaymentId ?? "N/A")
         };
 
         _db.Agreements.Add(agreement);
         await _db.SaveChangesAsync(cancellationToken);
 
-        // Assign the Bus if ID is provided
-        if (request.BusId != null)
+        // Assign the Bus
+        _db.AgreementBusAssignments.Add(new AgreementBusAssignment
         {
-            var assignment = new AgreementBusAssignment
-            {
-                 AgreementId = agreement.Id,
-                 BusId = request.BusId.Value,
-                 CreatedAtUtc = DateTime.UtcNow
-            };
-            _db.AgreementBusAssignments.Add(assignment);
-            await _db.SaveChangesAsync(cancellationToken);
-        }
+            AgreementId  = agreement.Id,
+            BusId        = request.BusId.Value,
+            CreatedAtUtc = DateTime.UtcNow
+        });
+        await _db.SaveChangesAsync(cancellationToken);
 
-        // 4. Send Confirmation (Async background-ish)
+        // Send Confirmation
         _ = _messages.SendBookingConfirmation(
-            request.Phone, 
-            request.CustomerName, 
-            bus.Name ?? bus.VehicleNumber, 
-            agreement.FromDate, 
-            agreement.ToDate, 
+            request.Phone,
+            request.CustomerName,
+            bus.Name ?? bus.VehicleNumber,
+            agreement.FromDate,
+            agreement.ToDate,
             agreement.TotalAmount
         );
 
-        return Ok(new { AgreementId = agreement.Id, Status = "Confirmed" });
+        return Ok(new
+        {
+            AgreementId = agreement.Id,
+            Status      = "Confirmed",
+            TotalAmount = totalAmount,      // return confirmed amount to client
+            Days        = days,
+            PerDayRent  = perDayRent
+        });
     }
+
 
     // --- Helpers ---
     private static bool TryParseIsoDate(string input, out DateOnly date)
@@ -249,6 +274,11 @@ public class PublicBusDto
     public decimal BaseRate { get; set; }
     public string BusType { get; set; } = string.Empty;
     public int Capacity { get; set; }
+    public string? UpiLink { get; set; }
+    public decimal DriverCharges { get; set; }
+    public decimal TollCharges { get; set; }
+    public decimal FastTagCharges { get; set; }
+    public decimal OtherCharges { get; set; }
 }
 
 public class PublicBookingRequest
@@ -265,4 +295,8 @@ public class PublicBookingRequest
     public decimal? PerDayRent { get; set; }
     public decimal? MountainRent { get; set; }
     public string? PaymentId { get; set; }
+    public decimal DriverCharges { get; set; }
+    public decimal TollCharges { get; set; }
+    public decimal FastTagCharges { get; set; }
+    public decimal OtherCharges { get; set; }
 }

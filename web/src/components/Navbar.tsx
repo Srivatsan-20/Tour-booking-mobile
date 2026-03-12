@@ -5,11 +5,19 @@ import Link from 'next/link';
 import { Logo } from './Logo';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { LogOut, User, Menu, X, LayoutDashboard, PlusCircle, Calendar, ListChecks, TrendingUp } from 'lucide-react';
+import { useCustomerAuth } from '@/context/CustomerAuthContext';
+import { LogOut, User, Menu, X, LayoutDashboard, PlusCircle, Calendar, ListChecks, TrendingUp, History } from 'lucide-react';
+
+interface NavLink {
+    name: string;
+    href: string;
+    icon?: any;
+}
 
 export const Navbar = () => {
     const pathname = usePathname();
-    const { user, logout } = useAuth();
+    const { user, logout: partnerLogout } = useAuth();
+    const { customer, logout: customerLogout } = useCustomerAuth();
     const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
     // Links for Unauthenticated / Public Users
@@ -31,7 +39,15 @@ export const Navbar = () => {
         { name: 'Reports', href: '/accounts/summary', icon: TrendingUp },
     ];
 
-    const currentLinks = user ? partnerLinks : publicLinks;
+    // Links for Authenticated / Customer Users
+    const customerLinks = [
+        { name: 'Home', href: '/', icon: undefined },
+        { name: 'My Dashboard', href: '/customer/dashboard', icon: LayoutDashboard },
+        { name: 'Booking History', href: '/customer/dashboard', icon: History },
+        { name: 'Fleet', href: '/#fleet', icon: undefined },
+    ];
+
+    const currentLinks = user ? partnerLinks : (customer ? customerLinks : publicLinks);
 
     return (
         <nav className="sticky top-0 z-50 w-full glass border-b border-white/5 px-6 py-3">
@@ -42,14 +58,14 @@ export const Navbar = () => {
 
                 {/* Desktop Navigation */}
                 <div className="hidden md:flex items-center gap-1">
-                    {currentLinks.map((link) => (
+                    {currentLinks.map((link: NavLink) => (
                         <Link
                             key={link.name}
                             href={link.href}
                             className={`px-4 py-2 text-[13px] font-medium transition-all hover:bg-white/5 rounded-lg flex items-center gap-2 group ${pathname === link.href ? 'text-brand-gold' : 'text-text-muted hover:text-white'
                                 }`}
                         >
-                            {user && link.icon && <link.icon size={14} className="opacity-60 group-hover:opacity-100 transition-opacity" />}
+                            {(user || customer) && link.icon && <link.icon size={14} className="opacity-60 group-hover:opacity-100 transition-opacity" />}
                             {link.name}
                         </Link>
                     ))}
@@ -66,17 +82,40 @@ export const Navbar = () => {
                                 {user.userName}
                             </Link>
                             <button
-                                onClick={logout}
+                                onClick={partnerLogout}
                                 className="text-text-muted hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg"
-                                title="Log Out"
+                                title="Partner Log Out"
+                            >
+                                <LogOut size={18} />
+                            </button>
+                        </div>
+                    ) : customer ? (
+                        <div className="flex items-center gap-2 md:gap-6">
+                            <Link
+                                href="/customer/dashboard"
+                                className="hidden md:flex items-center gap-2 text-xs font-bold text-brand-gold hover:text-white transition-all bg-brand-gold/10 px-4 py-2 rounded-full border border-brand-gold/20"
+                            >
+                                <User size={14} />
+                                {customer.name}
+                            </Link>
+                            <button
+                                onClick={customerLogout}
+                                className="text-text-muted hover:text-red-400 transition-colors p-2 hover:bg-red-500/10 rounded-lg"
+                                title="Customer Log Out"
                             >
                                 <LogOut size={18} />
                             </button>
                         </div>
                     ) : (
                         <div className="flex items-center gap-2 md:gap-4">
-                            <Link href="/auth/login" className="text-xs font-bold text-text-muted hover:text-white transition-colors px-4 py-2">
-                                Partner Login
+                            <Link href="/customer/login" className="text-xs font-bold text-text-muted hover:text-white transition-colors px-4 py-2">
+                                Customer Sign In
+                            </Link>
+                            <Link
+                                href="/customer/register"
+                                className="px-5 py-2.5 rounded-full border border-brand-gold/20 text-brand-gold text-[11px] font-black uppercase tracking-wider hover:bg-brand-gold/10 transition-all shadow-lg hidden sm:block"
+                            >
+                                Register
                             </Link>
                             <Link
                                 href="/#search"
@@ -101,7 +140,7 @@ export const Navbar = () => {
             {isMenuOpen && (
                 <div className="md:hidden absolute top-full left-0 w-full bg-bg-deep/95 backdrop-blur-xl border-b border-white/10 py-6 px-6 animate-in slide-in-from-top-4">
                     <div className="flex flex-col gap-4">
-                        {currentLinks.map((link) => (
+                        {currentLinks.map((link: NavLink) => (
                             <Link
                                 key={link.name}
                                 href={link.href}

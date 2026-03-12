@@ -9,12 +9,13 @@ namespace TourBooking.Api.Services;
 public interface ITokenService
 {
     string CreateToken(User user);
+    string CreateCustomerToken(CustomerUser customer);
 }
 
 public class TokenService : ITokenService
 {
     private readonly IConfiguration _config;
-    
+
     public TokenService(IConfiguration config)
     {
         _config = config;
@@ -22,26 +23,42 @@ public class TokenService : ITokenService
 
     public string CreateToken(User user)
     {
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var keyStr = _config["Jwt:Key"];
-        if (string.IsNullOrEmpty(keyStr))
+        var claims = new[]
         {
-            // Fallback for dev if not set
-            keyStr = "super_secret_key_change_me_in_prod_12345_must_be_long_enough";
-        }
-        
-        var key = Encoding.UTF8.GetBytes(keyStr);
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(new[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Username)
-            }),
-            Expires = DateTime.UtcNow.AddDays(7),
-            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.Username),
+            new Claim(ClaimTypes.Role, "partner")
         };
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        return tokenHandler.WriteToken(token);
+        return BuildToken(claims, days: 7);
+    }
+
+    public string CreateCustomerToken(CustomerUser customer)
+    {
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, customer.Id.ToString()),
+            new Claim(ClaimTypes.Name, customer.Phone),
+            new Claim(ClaimTypes.Role, "customer")
+        };
+        return BuildToken(claims, days: 30);
+    }
+
+    private string BuildToken(Claim[] claims, int days)
+    {
+        var keyStr = _config["Jwt:Key"]
+            ?? "super_secret_key_change_me_in_prod_12345_must_be_long_enough";
+        var key = Encoding.UTF8.GetBytes(keyStr);
+
+        var descriptor = new SecurityTokenDescriptor
+        {
+            Subject            = new ClaimsIdentity(claims),
+            Expires            = DateTime.UtcNow.AddDays(days),
+            SigningCredentials = new SigningCredentials(
+                new SymmetricSecurityKey(key),
+                SecurityAlgorithms.HmacSha256Signature)
+        };
+
+        var handler = new JwtSecurityTokenHandler();
+        return handler.WriteToken(handler.CreateToken(descriptor));
     }
 }

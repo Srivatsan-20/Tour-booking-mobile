@@ -10,4 +10,11 @@ public sealed class User
     public string CompanyAddress { get; set; } = string.Empty;
     public string CompanyPhone { get; set; } = string.Empty;
     public string CompanyEmail { get; set; } = string.Empty;
+    public string? UpiLink { get; set; } // e.g. "upi://pay?pa=partner@upi"
+
+    // Default rates for this partner
+    public decimal DriverCharges { get; set; } = 500;
+    public decimal TollCharges { get; set; } = 0;
+    public decimal FastTagCharges { get; set; } = 0;
+    public decimal OtherCharges { get; set; } = 0;
 }

@@ -59,6 +59,9 @@ namespace TourBooking.Api.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<int?>("CustomerUserId")
+                        .HasColumnType("int");
+
                     b.Property<string>("FromDate")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -118,6 +121,8 @@ namespace TourBooking.Api.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CustomerUserId");
+
                     b.HasIndex("UserId");
 
                     b.ToTable("Agreements");
@@ -149,10 +154,30 @@ namespace TourBooking.Api.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<decimal>("BaseRate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(5000m);
+
+                    b.Property<string>("BusType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("AC");
+
+                    b.Property<int>("Capacity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(40);
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("HomeCity")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -222,6 +247,46 @@ namespace TourBooking.Api.Data.Migrations
                     b.ToTable("BusExpenses");
                 });
 
+            modelBuilder.Entity("TourBooking.Api.Models.CustomerUser", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Phone")
+                        .IsUnique();
+
+                    b.ToTable("CustomerUsers");
+                });
+
             modelBuilder.Entity("TourBooking.Api.Models.FuelEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -277,6 +342,27 @@ namespace TourBooking.Api.Data.Migrations
                     b.HasIndex("BusExpenseId");
 
                     b.ToTable("OtherExpenses");
+                });
+
+            modelBuilder.Entity("TourBooking.Api.Models.SystemSetting", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Group")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("SystemSettings");
                 });
 
             modelBuilder.Entity("TourBooking.Api.Models.TripExpense", b =>
@@ -339,6 +425,9 @@ namespace TourBooking.Api.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("UpiLink")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -354,10 +443,17 @@ namespace TourBooking.Api.Data.Migrations
 
             modelBuilder.Entity("TourBooking.Api.Models.Agreement", b =>
                 {
+                    b.HasOne("TourBooking.Api.Models.CustomerUser", "CustomerUser")
+                        .WithMany("Agreements")
+                        .HasForeignKey("CustomerUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("TourBooking.Api.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("CustomerUser");
 
                     b.Navigation("User");
                 });
@@ -459,6 +555,11 @@ namespace TourBooking.Api.Data.Migrations
                     b.Navigation("FuelEntries");
 
                     b.Navigation("OtherExpenses");
+                });
+
+            modelBuilder.Entity("TourBooking.Api.Models.CustomerUser", b =>
+                {
+                    b.Navigation("Agreements");
                 });
 
             modelBuilder.Entity("TourBooking.Api.Models.TripExpense", b =>

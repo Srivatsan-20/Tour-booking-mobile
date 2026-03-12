@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import {
     Building2, MapPin, Phone, Mail,
-    Save, Loader2, ChevronLeft, ShieldCheck
+    Save, Loader2, ChevronLeft, ShieldCheck,
+    CreditCard
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -17,6 +18,11 @@ export default function ProfilePage() {
     const [companyAddress, setCompanyAddress] = useState('');
     const [companyPhone, setCompanyPhone] = useState('');
     const [email, setEmail] = useState('');
+    const [upiLink, setUpiLink] = useState('');
+    const [driverCharges, setDriverCharges] = useState('500');
+    const [tollCharges, setTollCharges] = useState('0');
+    const [fastTagCharges, setFastTagCharges] = useState('0');
+    const [otherCharges, setOtherCharges] = useState('0');
     const [isSaving, setIsSaving] = useState(false);
     const [success, setSuccess] = useState(false);
 
@@ -26,6 +32,11 @@ export default function ProfilePage() {
             setCompanyAddress(user.companyAddress || '');
             setCompanyPhone(user.companyPhone || '');
             setEmail(user.email || '');
+            setUpiLink(user.upiLink || '');
+            setDriverCharges(user.driverCharges?.toString() || '500');
+            setTollCharges(user.tollCharges?.toString() || '0');
+            setFastTagCharges(user.fastTagCharges?.toString() || '0');
+            setOtherCharges(user.otherCharges?.toString() || '0');
         }
     }, [user]);
 
@@ -45,7 +56,12 @@ export default function ProfilePage() {
                 companyName,
                 companyAddress,
                 companyPhone,
-                email
+                email,
+                upiLink,
+                driverCharges: Number(driverCharges),
+                tollCharges: Number(tollCharges),
+                fastTagCharges: Number(fastTagCharges),
+                otherCharges: Number(otherCharges)
             });
             setSuccess(true);
             setTimeout(() => setSuccess(false), 3000);
@@ -146,6 +162,68 @@ export default function ProfilePage() {
                                         />
                                     </div>
                                 </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">UPI ID for Payments (WhatsApp/Customer Apps)</label>
+                                <div className="relative">
+                                    <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-gold/50" size={18} />
+                                    <input
+                                        type="text"
+                                        value={upiLink}
+                                        onChange={(e) => setUpiLink(e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-brand-gold outline-none transition-colors"
+                                        placeholder="e.g. s3t-travels@okaxis"
+                                    />
+                                </div>
+                                <p className="text-[10px] text-text-muted ml-1 italic opacity-60">Customers will use this ID for direct payments. Make sure it's correct.</p>
+                            </div>
+
+                            <div className="pt-8 border-t border-white/5">
+                                <h3 className="text-lg font-serif font-bold text-brand-gold mb-6 uppercase tracking-widest">Standard Operating Rates</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Driver Charges (Per Trip)</label>
+                                        <input
+                                            type="number"
+                                            value={driverCharges}
+                                            onChange={(e) => setDriverCharges(e.target.value)}
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm focus:border-brand-gold outline-none transition-colors"
+                                            placeholder="500"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Toll Charges (Standard)</label>
+                                        <input
+                                            type="number"
+                                            value={tollCharges}
+                                            onChange={(e) => setTollCharges(e.target.value)}
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm focus:border-brand-gold outline-none transition-colors"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">FastTag (Standard)</label>
+                                        <input
+                                            type="number"
+                                            value={fastTagCharges}
+                                            onChange={(e) => setFastTagCharges(e.target.value)}
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm focus:border-brand-gold outline-none transition-colors"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Other Charges</label>
+                                        <input
+                                            type="number"
+                                            value={otherCharges}
+                                            onChange={(e) => setOtherCharges(e.target.value)}
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm focus:border-brand-gold outline-none transition-colors"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                </div>
+                                <p className="text-[10px] text-text-muted mt-4 italic opacity-60">These rates are shown as read-only to customers during their booking flow.</p>
                             </div>
                         </div>
 

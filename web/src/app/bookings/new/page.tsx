@@ -32,10 +32,10 @@ export default function NewBooking() {
         busCount: '1',
         passengers: '',
         placesToCover: '',
-        perDayRent: '',
+        perDayRent: '0',
         includeMountainRent: false,
         mountainRent: '0',
-        totalAmount: '',
+        totalAmount: '0',
         advancePaid: '0',
         notes: '',
     });
@@ -56,8 +56,20 @@ export default function NewBooking() {
                 throw new Error('Please fill in all required fields (Name, Dates)');
             }
 
+            // Convert yyyy-mm-dd to dd/mm/yyyy for mobile app compatibility
+            const payload = { ...formData };
+            if (payload.fromDate) {
+                const [y, m, d] = payload.fromDate.split('-');
+                payload.fromDate = `${d}/${m}/${y}`;
+            }
+            if (payload.toDate) {
+                const [y, m, d] = payload.toDate.split('-');
+                payload.toDate = `${d}/${m}/${y}`;
+            }
+
             // API call
-            await agreementsApi.create(formData);
+            await agreementsApi.create(payload);
+            router.refresh();
             router.push('/dashboard');
         } catch (err: any) {
             setError(err.message || 'Failed to create booking.');
@@ -206,6 +218,43 @@ export default function NewBooking() {
                     <div className="flex items-center gap-3 border-b border-white/10 pb-4 mb-6">
                         <IndianRupee className="text-brand-gold" size={20} />
                         <h3 className="font-serif font-bold text-lg">Financial Agreement</h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="space-y-2">
+                            <label className="text-tactical">Per Day Rent</label>
+                            <input
+                                type="number"
+                                name="perDayRent"
+                                value={formData.perDayRent}
+                                onChange={handleChange}
+                                placeholder="0.00"
+                                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm focus:border-brand-gold transition-colors"
+                            />
+                        </div>
+                        <div className="flex items-center gap-4 mt-8">
+                            <label className="text-tactical">Mountain Rent?</label>
+                            <input
+                                type="checkbox"
+                                name="includeMountainRent"
+                                checked={formData.includeMountainRent}
+                                onChange={(e) => setFormData(prev => ({ ...prev, includeMountainRent: e.target.checked }))}
+                                className="w-5 h-5 accent-brand-gold"
+                            />
+                        </div>
+                        {formData.includeMountainRent && (
+                            <div className="space-y-2">
+                                <label className="text-tactical">Mountain Rent Amount</label>
+                                <input
+                                    type="number"
+                                    name="mountainRent"
+                                    value={formData.mountainRent}
+                                    onChange={handleChange}
+                                    placeholder="0.00"
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm focus:border-brand-gold transition-colors"
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

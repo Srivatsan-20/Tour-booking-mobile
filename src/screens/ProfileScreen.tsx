@@ -15,6 +15,11 @@ export function ProfileScreen() {
     const [companyAddress, setCompanyAddress] = useState('');
     const [companyPhone, setCompanyPhone] = useState('');
     const [email, setEmail] = useState('');
+    const [upiLink, setUpiLink] = useState('');
+    const [driverCharges, setDriverCharges] = useState('');
+    const [tollCharges, setTollCharges] = useState('');
+    const [fastTagCharges, setFastTagCharges] = useState('');
+    const [otherCharges, setOtherCharges] = useState('');
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -24,6 +29,11 @@ export function ProfileScreen() {
             setCompanyAddress(user.companyAddress || '');
             setCompanyPhone(user.companyPhone || '');
             setEmail(user.email || '');
+            setUpiLink(user.upiLink || '');
+            setDriverCharges(user.driverCharges?.toString() || '');
+            setTollCharges(user.tollCharges?.toString() || '');
+            setFastTagCharges(user.fastTagCharges?.toString() || '');
+            setOtherCharges(user.otherCharges?.toString() || '');
         }
     }, [user]);
 
@@ -39,7 +49,12 @@ export function ProfileScreen() {
                 companyName,
                 companyAddress,
                 companyPhone,
-                email
+                email,
+                upiLink,
+                driverCharges: driverCharges ? parseFloat(driverCharges) : 0,
+                tollCharges: tollCharges ? parseFloat(tollCharges) : 0,
+                fastTagCharges: fastTagCharges ? parseFloat(fastTagCharges) : 0,
+                otherCharges: otherCharges ? parseFloat(otherCharges) : 0
             });
             Alert.alert(t('common.successTitle'), 'Profile updated successfully', [
                 { text: 'OK', onPress: () => navigation.goBack() }
@@ -103,6 +118,67 @@ export function ProfileScreen() {
                             />
                         </View>
 
+                        <View style={styles.field}>
+                            <Text style={styles.label}>UPI ID (for Customer Payment)</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={upiLink}
+                                onChangeText={setUpiLink}
+                                autoCapitalize="none"
+                                placeholder="e.g. yourname@upi"
+                            />
+                        </View>
+
+                        <Text style={styles.sectionTitle}>Standard Operating Rates</Text>
+
+                        <View style={styles.row}>
+                            <View style={[styles.field, { flex: 1 }]}>
+                                <Text style={styles.label}>Driver Charges</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={driverCharges}
+                                    onChangeText={setDriverCharges}
+                                    keyboardType="numeric"
+                                    placeholder="500"
+                                />
+                            </View>
+                            <View style={{ width: 16 }} />
+                            <View style={[styles.field, { flex: 1 }]}>
+                                <Text style={styles.label}>Toll Charges</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={tollCharges}
+                                    onChangeText={setTollCharges}
+                                    keyboardType="numeric"
+                                    placeholder="0"
+                                />
+                            </View>
+                        </View>
+
+                        <View style={styles.row}>
+                            <View style={[styles.field, { flex: 1 }]}>
+                                <Text style={styles.label}>FastTag Charges</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={fastTagCharges}
+                                    onChangeText={setFastTagCharges}
+                                    keyboardType="numeric"
+                                    placeholder="0"
+                                />
+                            </View>
+                            <View style={{ width: 16 }} />
+                            <View style={[styles.field, { flex: 1 }]}>
+                                <Text style={styles.label}>Other Charges</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={otherCharges}
+                                    onChangeText={setOtherCharges}
+                                    keyboardType="numeric"
+                                    placeholder="0"
+                                />
+                            </View>
+                        </View>
+
                         <Pressable
                             style={[styles.primaryBtn, isSubmitting && { opacity: 0.7 }]}
                             onPress={handleSubmit}
@@ -161,5 +237,16 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 16,
         fontWeight: '600',
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#111827',
+        marginTop: 16,
+        marginBottom: 8,
+    },
+    row: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
 });

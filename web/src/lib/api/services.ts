@@ -17,9 +17,9 @@ export const agreementsApi = {
 };
 
 export const accountsApi = {
-    getSummary: () => api.get<AccountsSummaryItem[]>('/api/accounts/summary'),
-    getByAgreementId: (id: string) => api.get<AgreementAccountsResponse>(`/api/accounts/agreement/${id}`),
-    upsert: (id: string, data: any) => api.post<AgreementAccountsResponse>(`/api/accounts/agreement/${id}`, data),
+    getSummary: () => api.get<AccountsSummaryItem[]>('/api/accounts'),
+    getByAgreementId: (id: string) => api.get<AgreementAccountsResponse>(`/api/agreements/${id}/accounts`),
+    upsert: (id: string, data: any) => api.put<AgreementAccountsResponse>(`/api/agreements/${id}/accounts`, data),
 };
 
 export const busesApi = {

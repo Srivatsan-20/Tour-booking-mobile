@@ -86,6 +86,12 @@ public class AuthController : ControllerBase
              user.CompanyEmail = dto.Email; // Syncing for now as per design
         }
 
+        user.UpiLink = dto.UpiLink;
+        user.DriverCharges = dto.DriverCharges;
+        user.TollCharges = dto.TollCharges;
+        user.FastTagCharges = dto.FastTagCharges;
+        user.OtherCharges = dto.OtherCharges;
+
         await _context.SaveChangesAsync();
 
         // Return updated auth response (token remains valid usually, but we return fresh user data)
@@ -99,7 +105,12 @@ public class AuthController : ControllerBase
             CompanyName = user.CompanyName, 
             CompanyAddress = user.CompanyAddress, 
             CompanyPhone = user.CompanyPhone,
-            Email = user.Email
+            Email = user.Email,
+            UpiLink = user.UpiLink,
+            DriverCharges = user.DriverCharges,
+            TollCharges = user.TollCharges,
+            FastTagCharges = user.FastTagCharges,
+            OtherCharges = user.OtherCharges
         };
     }
 }
@@ -119,13 +130,17 @@ public class LoginDto
     public required string Username { get; set; }
     public required string Password { get; set; }
 }
-
 public class UpdateProfileDto
 {
     public string CompanyName { get; set; } = string.Empty;
     public string CompanyAddress { get; set; } = string.Empty;
     public string CompanyPhone { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    public string? UpiLink { get; set; }
+    public decimal DriverCharges { get; set; }
+    public decimal TollCharges { get; set; }
+    public decimal FastTagCharges { get; set; }
+    public decimal OtherCharges { get; set; }
 }
 
 public class AuthResponse
@@ -137,4 +152,9 @@ public class AuthResponse
     public string CompanyAddress { get; set; } = string.Empty;
     public string CompanyPhone { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    public string? UpiLink { get; set; }
+    public decimal DriverCharges { get; set; }
+    public decimal TollCharges { get; set; }
+    public decimal FastTagCharges { get; set; }
+    public decimal OtherCharges { get; set; }
 }
