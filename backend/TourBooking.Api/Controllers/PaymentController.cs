@@ -4,6 +4,7 @@ using TourBooking.Api.Data;
 using TourBooking.Api.Models;
 using System.Security.Cryptography;
 using System.Text;
+using Razorpay.Api;
 
 namespace TourBooking.Api.Controllers;
 
@@ -23,33 +24,56 @@ public class PaymentController : ControllerBase
     [HttpPost("create-order")]
     public IActionResult CreateOrder([FromBody] OrderRequest request)
     {
-        // For demonstration purposes, we return a mock order ID
-        // In a real scenario, you would use Razorpay .NET SDK to create an order
-        // var client = new RazorpayClient(key, secret);
-        // var options = new Dictionary<string, object>();
-        // options.Add("amount", request.Amount * 100); // amount in the smallest currency unit
-        // options.Add("currency", "INR");
-        // options.Add("receipt", "rcp_id_" + Guid.NewGuid().ToString().Substring(0, 8));
-        // Order order = client.Order.Create(options);
-        // return Ok(new { orderId = order["id"].ToString() });
+        try 
+        {
+            var keyId = _config["Razorpay:KeyId"];
+            var keySecret = _config["Razorpay:KeySecret"];
+            if (string.IsNullOrEmpty(keyId) || string.IsNullOrEmpty(keySecret))
+            {
+                return BadRequest(new { message = "Razorpay configuration is missing on the server." });
+            }
 
-        var mockOrderId = "order_" + Guid.NewGuid().ToString().Replace("-", "").Substring(0, 14);
-        return Ok(new { orderId = mockOrderId });
+            var client = new RazorpayClient(keyId, keySecret);
+            var options = new Dictionary<string, object>
+            {
+                { "amount", (int)(request.Amount * 100) }, // amount in the smallest currency unit
+                { "currency", "INR" },
+                { "receipt", "rcp_id_" + Guid.NewGuid().ToString().Substring(0, 8) }
+            };
+            Order order = client.Order.Create(options);
+            return Ok(new { orderId = order["id"].ToString() });
+        }
+        catch(Exception ex)
+        {
+            return BadRequest(new { message = "Failed to create Razorpay order", error = ex.Message });
+        }
     }
 
     [HttpPost("verify")]
-    public async Task<IActionResult> VerifyPayment([FromBody] PaymentVerificationRequest request)
+    public IActionResult VerifyPayment([FromBody] PaymentVerificationRequest request)
     {
-        // In a real scenario, you would verify the signature using Razorpay SDK
-        // Utils.verifyPaymentSignature(attributes);
-        
-        // Mock verification
-        if (string.IsNullOrEmpty(request.RazorpayPaymentId))
+        try 
         {
-            return BadRequest("Invalid payment details");
-        }
+            var keySecret = _config["Razorpay:KeySecret"];
+            if (string.IsNullOrEmpty(request.RazorpayPaymentId) || string.IsNullOrEmpty(request.RazorpayOrderId) || string.IsNullOrEmpty(request.RazorpaySignature))
+            {
+                return BadRequest(new { message = "Invalid payment details provided" });
+            }
 
-        return Ok(new { status = "success" });
+            var attributes = new Dictionary<string, string>
+            {
+                { "razorpay_order_id", request.RazorpayOrderId },
+                { "razorpay_payment_id", request.RazorpayPaymentId },
+                { "razorpay_signature", request.RazorpaySignature }
+            };
+
+            Utils.verifyPaymentSignature(attributes);
+            return Ok(new { status = "success" });
+        }
+        catch(Exception ex)
+        {
+            return BadRequest(new { message = "Payment signature verification failed", error = ex.Message });
+        }
     }
 }
 
