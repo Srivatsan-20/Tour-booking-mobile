@@ -13,7 +13,8 @@ import {
   PlusCircle,
   Receipt,
   MapPin,
-  Settings
+  Settings,
+  CreditCard
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -56,6 +57,8 @@ export default function PartnerDashboard() {
     if (user) loadData();
   }, [user]);
 
+  const isPending = user?.subscriptionStatus === 'Pending';
+
   // Single source of truth — active (not cancelled, not completed) agreements
   const upcomingTours = agreements.filter(a => !a.isCompleted && !a.isCancelled);
 
@@ -80,6 +83,28 @@ export default function PartnerDashboard() {
           </Link>
         </div>
       </header>
+
+      {isPending && (
+        <div className="mb-8 p-6 bg-red-500/10 border border-red-500/20 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4 text-red-400">
+            <AlertCircle size={24} />
+            <div>
+              <h3 className="font-bold font-serif text-lg">Action Required: Subscription Pending</h3>
+              <p className="text-sm">Your SaaS platform access is currently restricted. Please complete your subscription payment to unlock all features.</p>
+            </div>
+          </div>
+          {user?.systemPayLink && (
+            <a 
+              href={user.systemPayLink}
+              target="_blank"
+              rel="noreferrer"
+              className="px-6 py-3 bg-red-500 text-white rounded-full font-bold uppercase tracking-wider text-xs hover:bg-red-600 transition-colors flex items-center gap-2 whitespace-nowrap"
+            >
+              <CreditCard size={16} /> Pay Subscription
+            </a>
+          )}
+        </div>
+      )}
 
       {/* STATS GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">

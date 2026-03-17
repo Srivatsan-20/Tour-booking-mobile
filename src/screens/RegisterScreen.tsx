@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, Alert, Linking } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { KeyboardAvoidingScrollView } from '../components/KeyboardAvoidingScrollView';
@@ -29,7 +29,25 @@ export function RegisterScreen() {
 
         try {
             setIsSubmitting(true);
-            await register({ username, password, email, companyName, companyAddress, companyPhone });
+            const res = await register({ username, password, email, companyName, companyAddress, companyPhone });
+            
+            if (res.subscriptionStatus === 'Pending') {
+                Alert.alert(
+                    'Action Required', 
+                    'Your SaaS account has been created. Please complete your subscription payment.',
+                    [
+                        { text: 'Pay Later', style: 'cancel' },
+                        { 
+                            text: 'Pay Now', 
+                            onPress: () => {
+                                if (res.systemPayLink) {
+                                    Linking.openURL(res.systemPayLink);
+                                }
+                            }
+                        }
+                    ]
+                );
+            }
         } catch (e: any) {
             console.error('Registration error:', e.response?.data || e.message);
             const errorMessage = typeof e.response?.data === 'string'

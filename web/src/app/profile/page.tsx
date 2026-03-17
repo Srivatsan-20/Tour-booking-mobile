@@ -23,6 +23,7 @@ export default function ProfilePage() {
     const [tollCharges, setTollCharges] = useState('0');
     const [fastTagCharges, setFastTagCharges] = useState('0');
     const [otherCharges, setOtherCharges] = useState('0');
+    const [adminPayLink, setAdminPayLink] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [success, setSuccess] = useState(false);
 
@@ -37,6 +38,9 @@ export default function ProfilePage() {
             setTollCharges(user.tollCharges?.toString() || '0');
             setFastTagCharges(user.fastTagCharges?.toString() || '0');
             setOtherCharges(user.otherCharges?.toString() || '0');
+            if (user.role === 'SuperAdmin') {
+                setAdminPayLink(user.adminPayLink || '');
+            }
         }
     }, [user]);
 
@@ -61,7 +65,8 @@ export default function ProfilePage() {
                 driverCharges: Number(driverCharges),
                 tollCharges: Number(tollCharges),
                 fastTagCharges: Number(fastTagCharges),
-                otherCharges: Number(otherCharges)
+                otherCharges: Number(otherCharges),
+                ...(user?.role === 'SuperAdmin' ? { adminPayLink } : {})
             });
             setSuccess(true);
             setTimeout(() => setSuccess(false), 3000);
@@ -225,6 +230,23 @@ export default function ProfilePage() {
                                 </div>
                                 <p className="text-[10px] text-text-muted mt-4 italic opacity-60">These rates are shown as read-only to customers during their booking flow.</p>
                             </div>
+
+                            {user?.role === 'SuperAdmin' && (
+                                <div className="pt-8 border-t border-white/5 space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold ml-1">SaaS Subscription Payment Link (Razorpay/Stripe)</label>
+                                    <div className="relative">
+                                        <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-gold/50" size={18} />
+                                        <input
+                                            type="text"
+                                            value={adminPayLink}
+                                            onChange={(e) => setAdminPayLink(e.target.value)}
+                                            className="w-full bg-brand-gold/5 border border-brand-gold/20 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-brand-gold outline-none transition-colors"
+                                            placeholder="https://rzp.io/l/yourlink"
+                                        />
+                                    </div>
+                                    <p className="text-[10px] text-brand-gold italic opacity-80 ml-1">New partners will be redirected to this link to pay their monthly subscription fees.</p>
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex items-center gap-4">
@@ -254,7 +276,7 @@ export default function ProfilePage() {
                             </div>
                             <div>
                                 <p className="text-[10px] uppercase text-text-muted tracking-widest">Access Role</p>
-                                <p className="text-white">Heritage Partner</p>
+                                <p className="text-white">{user.role === 'SuperAdmin' ? 'Super Administrator' : 'Heritage Partner'}</p>
                             </div>
                         </div>
                     </div>

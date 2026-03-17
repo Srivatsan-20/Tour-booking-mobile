@@ -12,6 +12,11 @@ export interface AuthResponse {
     tollCharges?: number;
     fastTagCharges?: number;
     otherCharges?: number;
+    role?: string;
+    subscriptionStatus?: string;
+    subscriptionValidUntil?: string;
+    adminPayLink?: string;
+    systemPayLink?: string;
 }
 
 export const authApi = {

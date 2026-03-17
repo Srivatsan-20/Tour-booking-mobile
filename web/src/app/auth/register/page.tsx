@@ -11,15 +11,20 @@ import {
     MapPin,
     ArrowRight,
     Loader2,
-    CheckCircle2
+    CheckCircle2,
+    CreditCard,
+    ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
 
 export default function RegisterPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
+    const [payLink, setPayLink] = useState('');
+    const { register } = useAuth();
 
     const [formData, setFormData] = useState({
         username: '',
@@ -40,19 +45,18 @@ export default function RegisterPage() {
         setError('');
 
         try {
-            // Mocking registration for now as we don't change API
-            // In a real scenario, this would call an API
-            console.log('Registering user:', formData);
-
-            // Simulating API call
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
+            const res = await register(formData);
+            
             setSuccess(true);
+            if (res.subscriptionStatus === 'Pending' && res.systemPayLink) {
+                setPayLink(res.systemPayLink);
+            }
+            
             setTimeout(() => {
-                router.push('/auth/login');
-            }, 3000);
+                router.push('/dashboard');
+            }, 5000);
         } catch (err: any) {
-            setError('Registration failed. Please try again.');
+            setError(err.response?.data || 'Registration failed. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -66,9 +70,26 @@ export default function RegisterPage() {
                         <CheckCircle2 size={40} />
                     </div>
                     <h1 className="text-3xl font-serif font-bold">Account Reserved</h1>
-                    <p className="text-text-muted">Your heritage partner account has been created. Redirecting to login...</p>
-                    <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden">
-                        <div className="bg-brand-gold h-full animate-progress-fast"></div>
+                    <p className="text-text-muted mt-4 text-sm">Action required: Please activate your SaaS subscription.</p>
+                    
+                    {payLink && (
+                        <div className="bg-white/5 border border-white/10 p-6 rounded-2xl mt-6 space-y-4 animate-in fade-in zoom-in group">
+                            <CreditCard className="mx-auto text-brand-gold" size={32} />
+                            <p className="text-sm text-text-muted">Pay your first month to activate your account:</p>
+                            <a 
+                                href={payLink} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-2 bg-brand-gold text-bg-deep px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs hover:bg-yellow-500 transition-colors"
+                            >
+                                Pay Subscription <ExternalLink size={16} />
+                            </a>
+                        </div>
+                    )}
+                    
+                    <p className="text-text-muted text-xs mt-6 opacity-60">Redirecting to your dashboard in 5 seconds...</p>
+                    <div className="w-full bg-white/5 h-1 rounded-full overflow-hidden mt-2">
+                        <div className="bg-brand-gold h-full animate-[progress_5s_linear_forwards]"></div>
                     </div>
                 </div>
             </div>

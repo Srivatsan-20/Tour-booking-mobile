@@ -20,6 +20,7 @@ export function ProfileScreen() {
     const [tollCharges, setTollCharges] = useState('');
     const [fastTagCharges, setFastTagCharges] = useState('');
     const [otherCharges, setOtherCharges] = useState('');
+    const [adminPayLink, setAdminPayLink] = useState('');
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -34,6 +35,9 @@ export function ProfileScreen() {
             setTollCharges(user.tollCharges?.toString() || '');
             setFastTagCharges(user.fastTagCharges?.toString() || '');
             setOtherCharges(user.otherCharges?.toString() || '');
+            if (user.role === 'SuperAdmin') {
+                setAdminPayLink(user.adminPayLink || '');
+            }
         }
     }, [user]);
 
@@ -54,7 +58,8 @@ export function ProfileScreen() {
                 driverCharges: driverCharges ? parseFloat(driverCharges) : 0,
                 tollCharges: tollCharges ? parseFloat(tollCharges) : 0,
                 fastTagCharges: fastTagCharges ? parseFloat(fastTagCharges) : 0,
-                otherCharges: otherCharges ? parseFloat(otherCharges) : 0
+                otherCharges: otherCharges ? parseFloat(otherCharges) : 0,
+                ...(user?.role === 'SuperAdmin' ? { adminPayLink } : {})
             });
             Alert.alert(t('common.successTitle'), 'Profile updated successfully', [
                 { text: 'OK', onPress: () => navigation.goBack() }
@@ -179,6 +184,20 @@ export function ProfileScreen() {
                             </View>
                         </View>
 
+                        {user?.role === 'SuperAdmin' && (
+                            <View style={styles.field}>
+                                <Text style={styles.label}>Subscription Pay Link (SaaS Admin)</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={adminPayLink}
+                                    onChangeText={setAdminPayLink}
+                                    placeholder="https://rzp.io/l/yourlink"
+                                    autoCapitalize="none"
+                                />
+                                <Text style={styles.caption}>New partners will use this link to pay their subscription.</Text>
+                            </View>
+                        )}
+
                         <Pressable
                             style={[styles.primaryBtn, isSubmitting && { opacity: 0.7 }]}
                             onPress={handleSubmit}
@@ -237,6 +256,12 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 16,
         fontWeight: '600',
+    },
+    caption: {
+        fontSize: 12,
+        color: '#6B7280',
+        marginTop: 4,
+        fontStyle: 'italic',
     },
     sectionTitle: {
         fontSize: 18,

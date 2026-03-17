@@ -8,8 +8,8 @@ import { useRouter } from 'next/navigation';
 interface AuthContextType {
     user: AuthResponse | null;
     isLoading: boolean;
-    login: (data: any) => Promise<void>;
-    register: (data: any) => Promise<void>;
+    login: (data: any) => Promise<AuthResponse>;
+    register: (data: any) => Promise<AuthResponse>;
     logout: () => void;
     updateProfile: (data: any) => Promise<void>;
 }
@@ -40,6 +40,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(res);
         setAuthToken(res.token);
         localStorage.setItem('s3t_auth', JSON.stringify(res));
+        return res;
     };
 
     const register = async (data: any) => {
@@ -47,6 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(res);
         setAuthToken(res.token);
         localStorage.setItem('s3t_auth', JSON.stringify(res));
+        return res;
     };
 
     const logout = () => {

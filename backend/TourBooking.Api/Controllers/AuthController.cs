@@ -29,6 +29,8 @@ public class AuthController : ControllerBase
             return BadRequest("Username already exists.");
         }
 
+        bool isFirstUser = !await _context.Users.AnyAsync();
+
         var user = new User
         {
             Username = dto.Username,
@@ -37,14 +39,31 @@ public class AuthController : ControllerBase
             CompanyName = dto.CompanyName,
             CompanyAddress = dto.CompanyAddress,
             CompanyPhone = dto.CompanyPhone,
-            CompanyEmail = dto.Email // Default company email to user email if not separate
+            CompanyEmail = dto.Email, // Default company email to user email if not separate
+            Role = isFirstUser ? "SuperAdmin" : "Partner",
+            SubscriptionStatus = isFirstUser ? "Active" : "Pending",
+            SubscriptionValidUntil = DateTime.UtcNow.AddDays(30)
         };
 
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
+        
+        var superAdmin = await _context.Users.FirstOrDefaultAsync(u => u.Role == "SuperAdmin");
 
         var token = _tokenService.CreateToken(user);
-        return new AuthResponse { Username = user.Username, Token = token, UserId = user.Id, CompanyName = user.CompanyName, CompanyAddress = user.CompanyAddress, CompanyPhone = user.CompanyPhone };
+        return new AuthResponse { 
+            Username = user.Username, 
+            Token = token, 
+            UserId = user.Id, 
+            CompanyName = user.CompanyName, 
+            CompanyAddress = user.CompanyAddress, 
+            CompanyPhone = user.CompanyPhone,
+            Role = user.Role,
+            SubscriptionStatus = user.SubscriptionStatus,
+            SubscriptionValidUntil = user.SubscriptionValidUntil,
+            AdminPayLink = user.AdminPayLink,
+            SystemPayLink = superAdmin?.AdminPayLink
+        };
     }
 
     [HttpPost("login")]
@@ -58,8 +77,28 @@ public class AuthController : ControllerBase
             return Unauthorized("Invalid username or password.");
         }
 
+        var superAdmin = await _context.Users.FirstOrDefaultAsync(u => u.Role == "SuperAdmin");
+
         var token = _tokenService.CreateToken(user);
-        return new AuthResponse { Username = user.Username, Token = token, UserId = user.Id, CompanyName = user.CompanyName, CompanyAddress = user.CompanyAddress, CompanyPhone = user.CompanyPhone };
+        return new AuthResponse { 
+            Username = user.Username, 
+            Token = token, 
+            UserId = user.Id, 
+            CompanyName = user.CompanyName, 
+            CompanyAddress = user.CompanyAddress, 
+            CompanyPhone = user.CompanyPhone,
+            Email = user.Email,
+            UpiLink = user.UpiLink,
+            DriverCharges = user.DriverCharges,
+            TollCharges = user.TollCharges,
+            FastTagCharges = user.FastTagCharges,
+            OtherCharges = user.OtherCharges,
+            Role = user.Role,
+            SubscriptionStatus = user.SubscriptionStatus,
+            SubscriptionValidUntil = user.SubscriptionValidUntil,
+            AdminPayLink = user.AdminPayLink,
+            SystemPayLink = superAdmin?.AdminPayLink
+        };
     }
     [HttpPut("profile")]
     [Authorize]
@@ -91,6 +130,10 @@ public class AuthController : ControllerBase
         user.TollCharges = dto.TollCharges;
         user.FastTagCharges = dto.FastTagCharges;
         user.OtherCharges = dto.OtherCharges;
+        if (user.Role == "SuperAdmin" && dto.AdminPayLink != null) 
+        {
+            user.AdminPayLink = dto.AdminPayLink;
+        }
 
         await _context.SaveChangesAsync();
 
@@ -98,6 +141,8 @@ public class AuthController : ControllerBase
         // Note: functionality to change username/password is not included here for simplicity
         var token = _tokenService.CreateToken(user); // Generating new token to encode upto date claims if any changed
         
+        var superAdmin = await _context.Users.FirstOrDefaultAsync(u => u.Role == "SuperAdmin");
+
         return new AuthResponse { 
             Username = user.Username, 
             Token = token, 
@@ -110,7 +155,12 @@ public class AuthController : ControllerBase
             DriverCharges = user.DriverCharges,
             TollCharges = user.TollCharges,
             FastTagCharges = user.FastTagCharges,
-            OtherCharges = user.OtherCharges
+            OtherCharges = user.OtherCharges,
+            Role = user.Role,
+            SubscriptionStatus = user.SubscriptionStatus,
+            SubscriptionValidUntil = user.SubscriptionValidUntil,
+            AdminPayLink = user.AdminPayLink,
+            SystemPayLink = superAdmin?.AdminPayLink
         };
     }
 }
@@ -141,6 +191,7 @@ public class UpdateProfileDto
     public decimal TollCharges { get; set; }
     public decimal FastTagCharges { get; set; }
     public decimal OtherCharges { get; set; }
+    public string? AdminPayLink { get; set; }
 }
 
 public class AuthResponse
@@ -157,4 +208,9 @@ public class AuthResponse
     public decimal TollCharges { get; set; }
     public decimal FastTagCharges { get; set; }
     public decimal OtherCharges { get; set; }
+    public string Role { get; set; } = string.Empty;
+    public string SubscriptionStatus { get; set; } = string.Empty;
+    public DateTime? SubscriptionValidUntil { get; set; }
+    public string? AdminPayLink { get; set; }
+    public string? SystemPayLink { get; set; } // Pay link of SuperAdmin for others to pay
 }

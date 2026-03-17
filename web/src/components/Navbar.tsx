@@ -6,7 +6,7 @@ import { Logo } from './Logo';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useCustomerAuth } from '@/context/CustomerAuthContext';
-import { LogOut, User, Menu, X, LayoutDashboard, PlusCircle, Calendar, ListChecks, TrendingUp, History } from 'lucide-react';
+import { LogOut, User, Menu, X, LayoutDashboard, PlusCircle, Calendar, ListChecks, TrendingUp, History, ShieldCheck } from 'lucide-react';
 
 interface NavLink {
     name: string;
@@ -38,6 +38,10 @@ export const Navbar = () => {
         { name: 'Cancelled', href: '/tours/cancelled', icon: X },
         { name: 'Reports', href: '/accounts/summary', icon: TrendingUp },
     ];
+
+    if (user?.role === 'SuperAdmin') {
+        partnerLinks.push({ name: 'SaaS Admin', href: '/superadmin', icon: ShieldCheck });
+    }
 
     // Links for Authenticated / Customer Users
     const customerLinks = [

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ScrollView, StyleSheet, Text, View, StatusBar } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, StatusBar, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -8,11 +8,12 @@ import {
   BookOpen,
   Compass,
   XCircle,
-  Bus,
   ClipboardList,
   PieChart,
   User,
-  LogOut
+  LogOut,
+  AlertTriangle,
+  CreditCard
 } from 'lucide-react-native';
 
 import type { RootStackParamList } from '../navigation/types';
@@ -24,6 +25,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 export function HomeScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { logout, user } = useAuth();
+  
+  const isPending = user?.subscriptionStatus === 'Pending';
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -36,11 +39,26 @@ export function HomeScreen({ navigation }: Props) {
           <Text style={styles.appTitle}>{t('home.title', 'Tour Booking Manager')}</Text>
         </View>
 
+        {isPending && (
+          <View style={styles.alertBox}>
+            <View style={styles.alertHeader}>
+              <AlertTriangle size={24} color="#EF4444" />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.alertTitle}>Action Required: Subscription Pending</Text>
+                <Text style={styles.alertText}>Your SaaS platform access is currently restricted. Please complete your subscription payment.</Text>
+              </View>
+            </View>
+            {user?.systemPayLink && (
+              <Pressable style={styles.payBtn} onPress={() => {/* In a real app, use Linking.openURL(user.systemPayLink) */}}>
+                <CreditCard size={18} color="#FFFFFF" />
+                <Text style={styles.payBtnText}>Pay Subscription</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
+
         {/* Section: Booking Management */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('home.section.booking', 'Booking Management')}</Text>
-
-          <DashboardCard
             title={t('home.newAgreement')}
             subtitle={t('home.newAgreementDesc', 'Create a new tour agreement')}
             icon={<PlusCircle size={24} color="#2563EB" />}
@@ -189,5 +207,46 @@ const styles = StyleSheet.create({
     color: '#D1D5DB',
     fontSize: 12,
   },
+  alertBox: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+  },
+  alertHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  alertTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#991B1B',
+    marginBottom: 4,
+  },
+  alertText: {
+    fontSize: 13,
+    color: '#B91C1C',
+    lineHeight: 18,
+  },
+  payBtn: {
+    backgroundColor: '#EF4444',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+  },
+  payBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
+    marginLeft: 8,
+  },
 });
+
 

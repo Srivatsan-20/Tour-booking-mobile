@@ -85,13 +85,15 @@ using (var scope = app.Services.CreateScope())
     {
         db.Users.Add(new User 
         { 
-            Username = "partner", 
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("partner123"), 
-            CompanyName = "Srisai Senthil Travels",
+            Username = "admin",  // Or "partner" if you prefer
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"), 
+            CompanyName = "Srisai Senthil SaaS",
             DriverCharges = 500,
             TollCharges = 500,
             FastTagCharges = 200,
-            OtherCharges = 0
+            OtherCharges = 0,
+            Role = "SuperAdmin",
+            SubscriptionStatus = "Active"
         });
         db.SaveChanges();
     }

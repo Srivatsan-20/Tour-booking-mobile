@@ -6,8 +6,8 @@ import { AuthResponse, LoginDto, RegisterDto, UpdateProfileDto, authApi } from '
 interface AuthContextType {
     user: AuthResponse | null;
     isLoading: boolean;
-    login: (data: LoginDto) => Promise<void>;
-    register: (data: RegisterDto) => Promise<void>;
+    login: (data: LoginDto) => Promise<AuthResponse>;
+    register: (data: RegisterDto) => Promise<AuthResponse>;
     updateProfile: (data: UpdateProfileDto) => Promise<void>;
     logout: () => Promise<void>;
 }
@@ -43,6 +43,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(res);
         setAuthToken(res.token);
         await AsyncStorage.setItem('auth_user', JSON.stringify(res));
+        return res;
     };
 
     const register = async (data: RegisterDto) => {
@@ -51,6 +52,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(res);
         setAuthToken(res.token);
         await AsyncStorage.setItem('auth_user', JSON.stringify(res));
+        return res;
     };
 
     const updateProfile = async (data: UpdateProfileDto) => {

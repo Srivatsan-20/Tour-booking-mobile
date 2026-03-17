@@ -17,4 +17,10 @@ public sealed class User
     public decimal TollCharges { get; set; } = 0;
     public decimal FastTagCharges { get; set; } = 0;
     public decimal OtherCharges { get; set; } = 0;
+
+    // SaaS Settings
+    public string Role { get; set; } = "Partner"; // "SuperAdmin" or "Partner"
+    public string SubscriptionStatus { get; set; } = "Active"; // "Active", "Pending", "Expired"
+    public DateTime? SubscriptionValidUntil { get; set; }
+    public string? AdminPayLink { get; set; } // The link Super Admin sets for partners to pay
 }

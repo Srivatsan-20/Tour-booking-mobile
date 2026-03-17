@@ -43,3 +43,8 @@ export const settingsApi = {
     list: () => api.get<any[]>('/api/settings'),
     update: (data: { key: string; value: string; group?: string }) => api.post('/api/settings', data),
 };
+
+export const superAdminApi = {
+    getPartners: () => api.get<any[]>('/api/superadmin/partners'),
+    activatePartner: (id: string | number) => api.post(`/api/superadmin/partners/${id}/activate`, {}),
+};
