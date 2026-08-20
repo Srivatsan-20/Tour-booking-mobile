@@ -23,4 +23,8 @@ public sealed class User
     public string SubscriptionStatus { get; set; } = "Active"; // "Active", "Pending", "Expired"
     public DateTime? SubscriptionValidUntil { get; set; }
     public string? AdminPayLink { get; set; } // The link Super Admin sets for partners to pay
+
+    // Branding Customizations
+    public string? LogoUrl { get; set; }
+    public string? BrandColor { get; set; }
 }

@@ -24,6 +24,8 @@ export default function ProfilePage() {
     const [fastTagCharges, setFastTagCharges] = useState('0');
     const [otherCharges, setOtherCharges] = useState('0');
     const [adminPayLink, setAdminPayLink] = useState('');
+    const [logoUrl, setLogoUrl] = useState('');
+    const [brandColor, setBrandColor] = useState('#1a365d');
     const [isSaving, setIsSaving] = useState(false);
     const [success, setSuccess] = useState(false);
 
@@ -38,6 +40,8 @@ export default function ProfilePage() {
             setTollCharges(user.tollCharges?.toString() || '0');
             setFastTagCharges(user.fastTagCharges?.toString() || '0');
             setOtherCharges(user.otherCharges?.toString() || '0');
+            setLogoUrl(user.logoUrl || '');
+            setBrandColor(user.brandColor || '#1a365d');
             if (user.role === 'SuperAdmin') {
                 setAdminPayLink(user.adminPayLink || '');
             }
@@ -66,6 +70,8 @@ export default function ProfilePage() {
                 tollCharges: Number(tollCharges),
                 fastTagCharges: Number(fastTagCharges),
                 otherCharges: Number(otherCharges),
+                logoUrl,
+                brandColor,
                 ...(user?.role === 'SuperAdmin' ? { adminPayLink } : {})
             });
             setSuccess(true);
@@ -182,6 +188,47 @@ export default function ProfilePage() {
                                     />
                                 </div>
                                 <p className="text-[10px] text-text-muted ml-1 italic opacity-60">Customers will use this ID for direct payments. Make sure it's correct.</p>
+                            </div>
+
+                            <div className="pt-8 border-t border-white/5 space-y-6">
+                                <h3 className="text-lg font-serif font-bold text-brand-gold uppercase tracking-widest">Brand Visual Styling</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Company Logo URL</label>
+                                        <input
+                                            type="url"
+                                            value={logoUrl}
+                                            onChange={(e) => setLogoUrl(e.target.value)}
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm focus:border-brand-gold outline-none transition-colors"
+                                            placeholder="https://example.com/logo.png"
+                                        />
+                                        <p className="text-[10px] text-text-muted italic opacity-60 ml-1">Enter a valid URL for your PNG/JPG logo.</p>
+                                        {logoUrl && (
+                                            <div className="mt-2 flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/5">
+                                                <img src={logoUrl} alt="Logo Preview" className="h-10 object-contain max-w-[120px]" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
+                                                <span className="text-[10px] text-text-muted">Logo Preview</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Theme Accent Color</label>
+                                        <div className="flex gap-3">
+                                            <input
+                                                type="color"
+                                                value={brandColor}
+                                                onChange={(e) => setBrandColor(e.target.value)}
+                                                className="w-12 h-12 bg-white/5 border border-white/10 rounded-xl outline-none p-1 cursor-pointer animate-in fade-in"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={brandColor}
+                                                onChange={(e) => setBrandColor(e.target.value)}
+                                                className="flex-grow bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm focus:border-brand-gold outline-none transition-colors"
+                                                placeholder="#1a365d"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="pt-8 border-t border-white/5">

@@ -49,6 +49,16 @@ export default function FleetAvailabilityPage() {
     // Change Bus Form
     const [newBusId, setNewBusId] = useState('');
 
+    // Extra states for Quick Assign and visual features
+    const [assignSearchTerm, setAssignSearchTerm] = useState('');
+    const [dragOverCell, setDragOverCell] = useState<{ busId: string; dateStr: string } | null>(null);
+    const [hoveredAgreementId, setHoveredAgreementId] = useState<string | null>(null);
+
+    const isWeekend = (d: Date) => {
+        const day = d.getDay();
+        return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
+    };
+
     // Normalize a raw schedule API object to always have camelCase fields,
     // regardless of whether the backend sends PascalCase or camelCase.
     const normalizeSchedule = (raw: any): ScheduleResponse => {
@@ -208,26 +218,60 @@ export default function FleetAvailabilityPage() {
         }
     };
 
-    const handleDragStart = (e: React.DragEvent, agreement: ScheduleAgreementDto, busId: string) => {
+    const handleDragStart = (e: React.DragEvent, agreement: ScheduleAgreementDto, busId: string, cellDate: Date) => {
         e.dataTransfer.setData('agreementId', agreement.id);
         e.dataTransfer.setData('sourceBusId', busId);
+        e.dataTransfer.setData('sourceDate', cellDate.toISOString());
         e.dataTransfer.effectAllowed = 'move';
     };
 
-    const handleDrop = async (e: React.DragEvent, targetBusId: string) => {
+    const handleDrop = async (e: React.DragEvent, targetBusId: string, targetDate: Date) => {
         e.preventDefault();
         const agreementId = e.dataTransfer.getData('agreementId');
         const sourceBusId = e.dataTransfer.getData('sourceBusId');
+        const sourceDateStr = e.dataTransfer.getData('sourceDate');
 
-        if (!agreementId || !sourceBusId || sourceBusId === targetBusId) return;
+        if (!agreementId || !sourceBusId || !sourceDateStr) return;
+
+        const sourceDate = new Date(sourceDateStr);
+        
+        // Calculate days difference (target - source)
+        // Ensure both dates are normalized to start of day to avoid timezone/daylight saving issues
+        const sourceDateStart = new Date(sourceDate.getFullYear(), sourceDate.getMonth(), sourceDate.getDate());
+        const targetDateStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+        const daysDiff = Math.round((targetDateStart.getTime() - sourceDateStart.getTime()) / (1000 * 60 * 60 * 24));
+        
+        const isBusChange = sourceBusId !== targetBusId;
+        const isDateShift = daysDiff !== 0;
+
+        if (!isBusChange && !isDateShift) return;
 
         setActionLoading(true);
         try {
-            await agreementsApi.unassignBus(agreementId, sourceBusId);
-            await agreementsApi.assignBus(agreementId, targetBusId);
+            if (isDateShift) {
+                const agreement = await agreementsApi.getById(agreementId);
+                const oldFrom = new Date(agreement.fromDate);
+                const oldTo = new Date(agreement.toDate);
+                
+                const newFrom = new Date(oldFrom.getTime() + daysDiff * 24 * 60 * 60 * 1000);
+                const newTo = new Date(oldTo.getTime() + daysDiff * 24 * 60 * 60 * 1000);
+                
+                await agreementsApi.update(agreementId, {
+                    ...agreement,
+                    fromDate: newFrom.toISOString().split('T')[0],
+                    toDate: newTo.toISOString().split('T')[0]
+                });
+            }
+
+            if (isBusChange) {
+                await agreementsApi.unassignBus(agreementId, sourceBusId);
+                await agreementsApi.assignBus(agreementId, targetBusId);
+            }
+            
             await loadSchedule();
         } catch (error: any) {
-            alert('Reassignment Failed: ' + (error.message || 'The target vehicle might already be booked for these dates.'));
+            alert('Scheduling Conflict\n\n' + (error.message || 'The selected vehicle or dates overlap with an existing booking.'));
+            await loadSchedule();
         } finally {
             setActionLoading(false);
         }
@@ -392,12 +436,12 @@ export default function FleetAvailabilityPage() {
                             {dates.map((date, i) => (
                                 <div
                                     key={i}
-                                    className={`min-w-[100px] flex-grow p-4 border-r border-white/5 text-center transition-colors ${isToday(date) ? 'bg-brand-gold/10' : ''}`}
+                                    className={`min-w-[100px] flex-grow p-4 border-r border-white/5 text-center transition-colors ${isToday(date) ? 'bg-brand-gold/10' : isWeekend(date) ? 'bg-white/[0.02]' : ''}`}
                                 >
-                                    <p className={`text-[10px] uppercase font-bold ${isToday(date) ? 'text-brand-gold' : 'text-text-muted'}`}>
+                                    <p className={`text-[10px] uppercase font-bold ${isToday(date) ? 'text-brand-gold' : isWeekend(date) ? 'text-amber-500/60' : 'text-text-muted'}`}>
                                         {date.toLocaleDateString('en-US', { weekday: 'short' })}
                                     </p>
-                                    <p className={`text-sm font-bold mt-1 ${isToday(date) ? 'text-brand-gold' : 'text-text-luxury'}`}>
+                                    <p className={`text-sm font-bold mt-1 ${isToday(date) ? 'text-brand-gold' : isWeekend(date) ? 'text-text-luxury/60' : 'text-text-luxury'}`}>
                                         {formatDate(date)}
                                     </p>
                                 </div>
@@ -422,23 +466,30 @@ export default function FleetAvailabilityPage() {
                                                 key={i}
                                                 onClick={() => handleCellClick(bus.id, date)}
                                                 onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
-                                                onDrop={(e) => handleDrop(e, bus.id)}
-                                                className={`min-w-[100px] flex-grow border-r border-white/[0.03] p-2 flex items-center justify-center relative hover:bg-white/5 cursor-pointer transition-colors ${isToday(date) ? 'bg-brand-gold/[0.03]' : ''}`}
+                                                onDragEnter={(e) => { e.preventDefault(); setDragOverCell({ busId: bus.id, dateStr: toLocalDateStr(date) }); }}
+                                                onDragLeave={() => setDragOverCell(null)}
+                                                onDrop={(e) => { setDragOverCell(null); handleDrop(e, bus.id, date); }}
+                                                className={`min-w-[100px] flex-grow border-r border-white/[0.03] p-2 flex items-center justify-center relative hover:bg-white/5 cursor-pointer transition-all duration-200 ${isToday(date) ? 'bg-brand-gold/[0.03]' : isWeekend(date) ? 'bg-white/[0.005]' : ''} ${dragOverCell?.busId === bus.id && dragOverCell?.dateStr === toLocalDateStr(date) ? 'border-2 border-dashed border-brand-gold/60 bg-brand-gold/15 scale-98 z-20' : ''}`}
                                             >
-                                                {assignment && (
-                                                    <div
-                                                        draggable
-                                                        onDragStart={(e) => handleDragStart(e, assignment, bus.id)}
-                                                        className={`absolute inset-1 rounded-lg p-2 text-[10px] font-bold overflow-hidden z-10 text-left cursor-move hover:scale-95 transition-transform ${assignment.busType === 'AC'
-                                                            ? 'bg-brand-gold/20 text-brand-gold border border-brand-gold/30 shadow-[0_4px_12px_rgba(197,160,89,0.2)]'
-                                                            : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                                                            }`}
-                                                        title={`${assignment.customerName} - Drag to Reassign`}
-                                                    >
-                                                        <div className="truncate">{assignment.customerName}</div>
-                                                        <div className="opacity-60 truncate">Assigned</div>
-                                                    </div>
-                                                )}
+                                                {assignment && (() => {
+                                                    const isHighlighted = hoveredAgreementId === assignment.id;
+                                                    return (
+                                                        <div
+                                                            draggable
+                                                            onDragStart={(e) => handleDragStart(e, assignment, bus.id, date)}
+                                                            onMouseEnter={() => setHoveredAgreementId(assignment.id)}
+                                                            onMouseLeave={() => setHoveredAgreementId(null)}
+                                                            className={`absolute inset-1 rounded-lg p-2 text-[10px] font-bold overflow-hidden z-10 text-left cursor-move transition-all duration-300 ${isHighlighted ? 'scale-105 z-30 border-brand-gold bg-brand-gold/30 text-white ring-2 ring-brand-gold/50 shadow-[0_0_15px_rgba(197,160,89,0.5)]' : assignment.busType === 'AC'
+                                                                ? 'bg-brand-gold/20 text-brand-gold border border-brand-gold/30 shadow-[0_4px_12px_rgba(197,160,89,0.2)]'
+                                                                : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                                                                }`}
+                                                            title={`${assignment.customerName} - Drag to Reassign`}
+                                                        >
+                                                            <div className="truncate">{assignment.customerName}</div>
+                                                            <div className="opacity-80 truncate">{isHighlighted ? '⭐ Highlight' : 'Assigned'}</div>
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
                                         );
                                     })}
@@ -695,7 +746,7 @@ export default function FleetAvailabilityPage() {
                                     Assigning {data?.buses.find(b => b.id === showAssignModal.busId)?.vehicleNumber} for {showAssignModal.date}
                                 </p>
                             </div>
-                            <button onClick={() => setShowAssignModal(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                            <button onClick={() => { setShowAssignModal(null); setAssignSearchTerm(''); }} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                                 <X size={20} />
                             </button>
                         </div>
@@ -705,35 +756,78 @@ export default function FleetAvailabilityPage() {
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
                                 <input
                                     type="text"
+                                    value={assignSearchTerm}
+                                    onChange={(e) => setAssignSearchTerm(e.target.value)}
                                     placeholder="Search unassigned agreements..."
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm focus:border-brand-gold outline-none"
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm focus:border-brand-gold outline-none text-white"
                                 />
                             </div>
 
                             <div className="max-h-80 overflow-y-auto space-y-2 custom-scrollbar pr-2">
-                                {unassignedAgreements.filter(a => {
-                                    // Only show agreements that overlap with the selected date (optional, but requested for "focused view")
-                                    // For now show all unassigned ones
-                                    return true;
-                                }).map(a => (
-                                    <button
-                                        key={a.id}
-                                        disabled={actionLoading}
-                                        onClick={() => handleQuickAssign(a.id)}
-                                        className="w-full p-4 rounded-xl bg-white/5 border border-white/5 hover:border-brand-gold/30 hover:bg-white/10 text-left transition-all flex justify-between items-center group"
-                                    >
-                                        <div>
-                                            <p className="font-bold text-sm group-hover:text-brand-gold transition-colors">{a.customerName}</p>
-                                            <p className="text-[10px] text-text-muted">{a.fromDate} to {a.toDate} • {a.busType}</p>
-                                        </div>
-                                        <Plus size={16} className="text-brand-gold opacity-0 group-hover:opacity-100 transition-all" />
-                                    </button>
-                                ))}
-                                {unassignedAgreements.length === 0 && (
-                                    <div className="text-center py-8">
-                                        <p className="text-sm text-text-muted">No pending assignments found.</p>
-                                    </div>
-                                )}
+                                {(() => {
+                                    if (!showAssignModal) return [];
+                                    const clickedDateStr = showAssignModal.date;
+                                    const targetBus = data?.buses.find(b => b.id === showAssignModal.busId);
+
+                                    const parseDdMmYyyy = (s: string) => {
+                                        if (!s) return '';
+                                        const parts = s.split('/');
+                                        if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                                        return s.split('T')[0];
+                                    };
+
+                                    const filtered = unassignedAgreements.filter(a => {
+                                        if (a.isCancelled || a.isCompleted) return false;
+                                        
+                                        const fromStr = parseDdMmYyyy(a.fromDate);
+                                        const toStr = parseDdMmYyyy(a.toDate);
+                                        if (clickedDateStr < fromStr || clickedDateStr > toStr) return false;
+                                        
+                                        const assignedCount = a.assignedBuses?.length ?? 0;
+                                        const requiredCount = a.busCount ?? 1;
+                                        if (assignedCount >= requiredCount) return false;
+                                        
+                                        if (targetBus && a.busType && targetBus.busType.toLowerCase() !== a.busType.toLowerCase()) {
+                                            return false;
+                                        }
+
+                                        const alreadyAssigned = a.assignedBuses?.some(ab => ab.id === showAssignModal.busId);
+                                        if (alreadyAssigned) return false;
+
+                                        if (assignSearchTerm.trim()) {
+                                            const search = assignSearchTerm.toLowerCase();
+                                            const nameMatch = a.customerName?.toLowerCase().includes(search);
+                                            const phoneMatch = a.phone?.includes(search);
+                                            const placesMatch = a.placesToCover?.toLowerCase().includes(search);
+                                            if (!nameMatch && !phoneMatch && !placesMatch) return false;
+                                        }
+
+                                        return true;
+                                    });
+
+                                    if (filtered.length === 0) {
+                                        return (
+                                            <div className="text-center py-8">
+                                                <p className="text-sm text-text-muted">No matching pending bookings found for this vehicle and date.</p>
+                                            </div>
+                                        );
+                                    }
+
+                                    return filtered.map(a => (
+                                        <button
+                                            key={a.id}
+                                            disabled={actionLoading}
+                                            onClick={() => handleQuickAssign(a.id)}
+                                            className="w-full p-4 rounded-xl bg-white/5 border border-white/5 hover:border-brand-gold/30 hover:bg-white/10 text-left transition-all flex justify-between items-center group"
+                                        >
+                                            <div>
+                                                <p className="font-bold text-sm group-hover:text-brand-gold transition-colors">{a.customerName}</p>
+                                                <p className="text-[10px] text-text-muted">{a.fromDate} to {a.toDate} • {a.busType}</p>
+                                            </div>
+                                            <Plus size={16} className="text-brand-gold opacity-0 group-hover:opacity-100 transition-all" />
+                                        </button>
+                                    ));
+                                })()}
                             </div>
 
                             <div className="pt-4 border-t border-white/10">

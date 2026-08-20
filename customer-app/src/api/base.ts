@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'https://srisaisenthiltravels.cloud'; // Production Domain
+const BASE_URL = 'https://www.shreesaisenthiltravels.com'; // Production Domain
 
 export const api = axios.create({
     baseURL: BASE_URL,

@@ -142,21 +142,57 @@ export default function PublicBookingPage() {
                     key: razorpayId,
                     amount: parseFloat(formData.totalAmount) * 100,
                     currency: "INR",
-                    name: "Sri Sai Senthil Travels",
+                    name: "Shree Sai Senthil Travels",
                     description: "Heritage Bus Reservation",
                     order_id: orderId,
                     handler: async function (response: any) {
-                        // 3. Verify Payment & Finalize Booking
-                        finalizeBooking(response.razorpay_payment_id);
+                        try {
+                            setLoading(true);
+                            // 3. Verify Payment
+                            const verifyRes = await fetch(`${baseUrl}/api/public/payment/verify`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    razorpayOrderId: response.razorpay_order_id,
+                                    razorpayPaymentId: response.razorpay_payment_id,
+                                    razorpaySignature: response.razorpay_signature
+                                })
+                            });
+
+                            if (!verifyRes.ok) {
+                                const errorData = await verifyRes.json().catch(() => ({}));
+                                throw new Error(errorData.message || "Payment verification failed.");
+                            }
+
+                            // 4. Finalize Booking on verification success
+                            finalizeBooking(response.razorpay_payment_id);
+                        } catch (err: any) {
+                            console.error("Signature verification error:", err);
+                            alert("Verification Error: " + err.message);
+                            setLoading(false);
+                        }
                     },
                     prefill: {
                         name: formData.customerName,
                         contact: formData.phone
                     },
-                    theme: { color: "#C5A059" }
+                    theme: { color: "#C5A059" },
+                    modal: {
+                        ondismiss: function () {
+                            console.log("Payment checkout closed by user.");
+                            setLoading(false);
+                        }
+                    }
                 };
 
                 const rzp = new (window as any).Razorpay(options);
+                
+                rzp.on('payment.failed', function (response: any) {
+                    console.error("Razorpay payment failed:", response.error);
+                    alert("Payment Failed: " + response.error.description);
+                    setLoading(false);
+                });
+
                 rzp.open();
                 setLoading(false);
             } else {
@@ -214,7 +250,7 @@ export default function PublicBookingPage() {
             if (res.ok) {
                 const data: AgreementResponse = await res.json();
                 await generateAndDownloadPdf(data, {
-                    companyName: 'Sri Sai Senthil Travels',
+                    companyName: 'Shree Sai Senthil Travels',
                     address: 'Heritage Division, Madurai, Tamil Nadu',
                     phone: '+91 98421 12345'
                 });
@@ -234,7 +270,7 @@ export default function PublicBookingPage() {
                     <CheckCircle2 size={48} />
                 </div>
                 <h1 className="text-5xl font-serif font-black mb-4 gold-text-gradient">Journey Secured!</h1>
-                <p className="text-text-muted mb-4">Your heritage reservation with Sri Sai Senthil Travels is confirmed.</p>
+                <p className="text-text-muted mb-4">Your heritage reservation with Shree Sai Senthil Travels is confirmed.</p>
 
                 <div className="bg-white/5 border border-white/10 rounded-3xl p-8 mb-12 text-left backdrop-blur-xl relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-brand-gold/5 blur-3xl -mr-16 -mt-16 group-hover:bg-brand-gold/10 transition-colors" />

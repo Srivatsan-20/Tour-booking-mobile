@@ -15,8 +15,8 @@ export const LogoHeritageOval = ({ className = "h-12" }) => (
             </div>
         </div>
         <div className="text-center mt-2">
-            <p className="text-[11px] font-serif font-black text-[#FFD700] uppercase tracking-[0.4em] leading-none drop-shadow-md">Sri Sai Senthil</p>
-            <p className="text-[9px] font-sans font-black text-[#FFD700]/60 uppercase tracking-[0.6em] mt-1.5">Since 1982</p>
+            <p className="text-[11px] font-serif font-black text-[#FFD700] uppercase tracking-[0.4em] leading-none drop-shadow-md">Shree Sai Senthil</p>
+            <p className="text-[9px] font-sans font-black text-[#FFD700]/60 uppercase tracking-[0.6em] mt-1.5">Since 1963</p>
         </div>
     </div>
 );
@@ -30,11 +30,11 @@ export const LogoModernCircle = ({ className = "h-12" }) => (
                 <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-[#FFD700]/5 to-transparent" />
             </div>
             <div className="absolute -bottom-1.5 bg-[#FFD700] px-2.5 py-0.5 rounded shadow-lg">
-                <span className="text-[8px] font-black text-black uppercase tracking-widest">1982</span>
+                <span className="text-[8px] font-black text-black uppercase tracking-widest">1963</span>
             </div>
         </div>
         <div className="flex flex-col">
-            <h1 className="text-xl font-serif font-black text-white leading-none tracking-tight">SRI SAI SENTHIL</h1>
+            <h1 className="text-xl font-serif font-black text-white leading-none tracking-tight">SHREE SAI SENTHIL</h1>
             <p className="text-[10px] font-sans font-black text-[#FFD700] uppercase tracking-[0.5em] mt-1.5">Travels & Heritage</p>
         </div>
     </div>
@@ -59,7 +59,7 @@ export const LogoRoyalBadge = ({ className = "h-12" }) => (
                 <text x="50" y="58" textAnchor="middle" className="text-3xl font-serif font-black" style={{ fontSize: '30px', fill: 'url(#goldMetallic)', filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.8))' }}>S3T</text>
             </svg>
             <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black border-[1.5px] border-[#FFD700] px-4 py-1 rounded shadow-xl">
-                <span className="text-[9px] font-black text-[#FFD700] uppercase tracking-[0.4em]">Est. 1982</span>
+                <span className="text-[9px] font-black text-[#FFD700] uppercase tracking-[0.4em]">Est. 1963</span>
             </div>
         </div>
     </div>

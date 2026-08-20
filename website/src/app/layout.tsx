@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { AuthProvider } from "@/context/AuthContext";
 import { CustomerAuthProvider } from "@/context/CustomerAuthContext";
 import { Toaster } from "react-hot-toast";
+import Script from "next/script";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -18,7 +19,7 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "S3T | Modern Heritage Transport",
+  title: "ShreeSaiSenthilTravels | Modern Heritage Transport",
   description: "Experience the Legacy of Premium Travel",
 };
 

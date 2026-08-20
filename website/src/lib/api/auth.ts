@@ -17,6 +17,8 @@ export interface AuthResponse {
     subscriptionValidUntil?: string;
     adminPayLink?: string;
     systemPayLink?: string;
+    logoUrl?: string;
+    brandColor?: string;
 }
 
 export const authApi = {

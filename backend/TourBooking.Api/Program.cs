@@ -5,6 +5,59 @@ using Microsoft.EntityFrameworkCore;
 using TourBooking.Api.Data;
 using TourBooking.Api.Services;
 using TourBooking.Api.Models;
+using System.IO;
+
+// 1. Load .env file from execution or parent workspace directories on start
+var currentDir = Directory.GetCurrentDirectory();
+var envFilePath = Path.Combine(currentDir, ".env");
+if (!File.Exists(envFilePath))
+{
+    var parentDir = Directory.GetParent(currentDir);
+    if (parentDir != null)
+    {
+        envFilePath = Path.Combine(parentDir.FullName, ".env");
+        if (!File.Exists(envFilePath))
+        {
+            var pParentDir = parentDir.Parent;
+            if (pParentDir != null)
+            {
+                envFilePath = Path.Combine(pParentDir.FullName, ".env");
+            }
+        }
+    }
+}
+
+if (File.Exists(envFilePath))
+{
+    foreach (var envLine in File.ReadAllLines(envFilePath))
+    {
+        if (string.IsNullOrWhiteSpace(envLine) || envLine.StartsWith("#")) continue;
+        var separatorIdx = envLine.IndexOf('=');
+        if (separatorIdx > 0)
+        {
+            var envKey = envLine.Substring(0, separatorIdx).Trim();
+            var envVal = envLine.Substring(separatorIdx + 1).Trim();
+            // Remove optional surrounding quotes
+            if (envVal.StartsWith("\"") && envVal.EndsWith("\"")) envVal = envVal.Substring(1, envVal.Length - 2);
+            if (envVal.StartsWith("'") && envVal.EndsWith("'")) envVal = envVal.Substring(1, envVal.Length - 2);
+            
+            System.Environment.SetEnvironmentVariable(envKey, envVal);
+        }
+    }
+}
+
+// 2. Map standard Razorpay key variables to ASP.NET Core double-underscore format (Razorpay:KeyId, Razorpay:KeySecret)
+var standardKeyId = System.Environment.GetEnvironmentVariable("RAZORPAY_KEY_ID") ?? System.Environment.GetEnvironmentVariable("NEXT_PUBLIC_RAZORPAY_KEY_ID");
+var standardKeySecret = System.Environment.GetEnvironmentVariable("RAZORPAY_KEY_SECRET");
+
+if (!string.IsNullOrEmpty(standardKeyId))
+{
+    System.Environment.SetEnvironmentVariable("Razorpay__KeyId", standardKeyId);
+}
+if (!string.IsNullOrEmpty(standardKeySecret))
+{
+    System.Environment.SetEnvironmentVariable("Razorpay__KeySecret", standardKeySecret);
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,7 +81,15 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    options.UseSqlite("Data Source=tourbooking.db");
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    if (!string.IsNullOrWhiteSpace(connectionString) && (connectionString.Contains("Server=") || connectionString.Contains("Database=")))
+    {
+        options.UseSqlServer(connectionString);
+    }
+    else
+    {
+        options.UseSqlite("Data Source=tourbooking.db");
+    }
 });
 
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -78,7 +139,10 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    if (db.Database.ProviderName == "Microsoft.EntityFrameworkCore.Sqlite")
+    {
+        db.Database.Migrate();
+    }
     
     // Seed partner if not exists
     if (!db.Users.Any())
@@ -87,7 +151,7 @@ using (var scope = app.Services.CreateScope())
         { 
             Username = "admin",  // Or "partner" if you prefer
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"), 
-            CompanyName = "Srisai Senthil SaaS",
+            CompanyName = "Shreesai Senthil SaaS",
             DriverCharges = 500,
             TollCharges = 500,
             FastTagCharges = 200,

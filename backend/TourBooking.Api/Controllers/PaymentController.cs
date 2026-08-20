@@ -26,6 +26,12 @@ public class PaymentController : ControllerBase
     {
         try 
         {
+            // Validate amount >= 100 paise (1 INR)
+            if (request.Amount < 1)
+            {
+                return BadRequest(new { message = "Amount must be at least 1 INR (100 paise)." });
+            }
+
             var keyId = _config["Razorpay:KeyId"];
             var keySecret = _config["Razorpay:KeySecret"];
             if (string.IsNullOrEmpty(keyId) || string.IsNullOrEmpty(keySecret))
@@ -36,12 +42,16 @@ public class PaymentController : ControllerBase
             var client = new RazorpayClient(keyId, keySecret);
             var options = new Dictionary<string, object>
             {
-                { "amount", (int)(request.Amount * 100) }, // amount in the smallest currency unit
+                { "amount", (int)(request.Amount * 100) }, // amount in the smallest currency unit (paise)
                 { "currency", "INR" },
                 { "receipt", "rcp_id_" + Guid.NewGuid().ToString().Substring(0, 8) }
             };
             Order order = client.Order.Create(options);
-            return Ok(new { orderId = order["id"].ToString() });
+            return Ok(new { 
+                orderId = order["id"].ToString(),
+                amount = Convert.ToInt32(order["amount"]),
+                currency = order["currency"].ToString()
+            });
         }
         catch(Exception ex)
         {
@@ -55,6 +65,11 @@ public class PaymentController : ControllerBase
         try 
         {
             var keySecret = _config["Razorpay:KeySecret"];
+            if (string.IsNullOrEmpty(keySecret))
+            {
+                return BadRequest(new { message = "Razorpay key secret is not configured on the server." });
+            }
+
             if (string.IsNullOrEmpty(request.RazorpayPaymentId) || string.IsNullOrEmpty(request.RazorpayOrderId) || string.IsNullOrEmpty(request.RazorpaySignature))
             {
                 return BadRequest(new { message = "Invalid payment details provided" });

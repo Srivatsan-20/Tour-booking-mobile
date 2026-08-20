@@ -16,6 +16,7 @@ import {
   Users,
   Star,
   ChevronDown,
+  Globe,
   Search as SearchIcon
 } from 'lucide-react';
 import Link from 'next/link';
@@ -63,15 +64,15 @@ export default function LandingPage() {
           <div className="space-y-8 animate-in fade-in slide-in-from-left-8 duration-1000">
             <div>
               <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-gold/10 border border-brand-gold/20 text-brand-gold text-[10px] font-black uppercase tracking-[0.3em] mb-6">
-                <Award size={12} /> Trusted Since 1982
+                <Award size={12} /> Trusted Since 1963
               </span>
               <h1 className="text-6xl md:text-8xl font-serif font-black text-white leading-[0.9] mb-6 text-luxury-shadow">
-                Sri Sai <br />
+                Shree Sai <br />
                 <span className="gold-gradient">Senthil</span> <br />
                 <span className="text-5xl md:text-6xl text-text-muted">Travels.</span>
               </h1>
               <p className="text-xl text-text-muted max-w-lg leading-relaxed font-light">
-                For over 40 years, we've defined premium transport. Experience a legacy of luxury, safety, and unwavering reliability across India.
+                For over 63 years, we've defined premium transport. Experience a legacy of luxury, safety, and unwavering reliability across India.
               </p>
             </div>
 
@@ -205,7 +206,7 @@ export default function LandingPage() {
           <div className="relative order-2 lg:order-1">
             <div className="aspect-[4/5] rounded-[4rem] overflow-hidden shadow-2xl relative transform -rotate-3 hover:rotate-0 transition-transform duration-700">
               <div className="absolute inset-0 bg-brand-gold/10 z-10" />
-              <img src="https://images.unsplash.com/photo-1494515426402-f19811409c28?q=80&w=1974&auto=format&fit=crop" className="w-full h-full object-cover" />
+              <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=1000" className="w-full h-full object-cover" />
             </div>
             {/* Legend Element */}
             <div className="absolute -bottom-10 -right-10 glass p-8 rounded-[2rem] border-brand-gold/20 shadow-2xl max-w-xs animate-float">
@@ -219,11 +220,11 @@ export default function LandingPage() {
               <span className="text-tactical text-brand-gold mb-4 block uppercase tracking-[0.4em]">Our Story</span>
               <h2 className="text-5xl md:text-6xl font-serif font-black text-white leading-tight">
                 Pioneering Comfort <br />
-                Since <span className="text-brand-gold">1982.</span>
+                Since <span className="text-brand-gold">1963.</span>
               </h2>
             </div>
             <p className="text-lg text-text-muted leading-relaxed font-light">
-              Sri Sai Senthil Travels began with a single vision: to provide a journey that is as memorable as the destination. For four decades, we have remained a family-owned legacy, prioritizing the safety and comfort of millions of travelers.
+              Shree Sai Senthil Travels began with a single vision: to provide a journey that is as memorable as the destination. For four decades, we have remained a family-owned legacy, prioritizing the safety and comfort of millions of travelers.
             </p>
             <ul className="space-y-4">
               {[
@@ -283,9 +284,9 @@ export default function LandingPage() {
         <div className="max-w-[1400px] mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
             { name: 'Ultra AC Coach', cap: '40 Seats', img: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=2069' },
-            { name: 'Heritage Sleeper', cap: '36 Berths', img: 'https://images.unsplash.com/photo-1494515426402-f19811409c28?q=80&w=1974' },
+            { name: 'Heritage Sleeper', cap: '36 Berths', img: 'https://images.unsplash.com/photo-1557223562-6c77ef16210f?auto=format&fit=crop&q=80&w=1000' },
             { name: 'Executive Mini', cap: '24 Seats', img: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=2071' },
-            { name: 'Classic Non-AC', cap: '52 Seats', img: 'https://images.unsplash.com/photo-1562620644-65bb471fc552?q=80&w=2070' }
+            { name: 'Classic Non-AC', cap: '52 Seats', img: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&q=80&w=1000' }
           ].map((bus, idx) => (
             <div key={idx} className="group relative aspect-[3/4] rounded-[3rem] overflow-hidden border border-white/10">
               <img src={bus.img} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
@@ -327,7 +328,10 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <p className="text-[10px] uppercase tracking-widest text-text-muted font-black mb-1">Corporate Hotline</p>
-                      <p className="text-2xl font-serif font-bold text-white">+91 94444 04040</p>
+                      <p className="text-2xl font-serif font-bold text-white flex flex-col gap-1">
+                        <span>+91 94438 49013</span>
+                        <span>+91 94430 56816</span>
+                      </p>
                     </div>
                   </div>
                   <div className="flex gap-6 group">
@@ -336,7 +340,20 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <p className="text-[10px] uppercase tracking-widest text-text-muted font-black mb-1">General Inquiries</p>
-                      <p className="text-2xl font-serif font-bold text-white">hello@senthiltravels.com</p>
+                      <p className="text-2xl font-serif font-bold text-white">
+                        info@shreesaisenthiltravels.com
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-6 group">
+                    <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-brand-gold group-hover:bg-brand-gold group-hover:text-bg-deep transition-all duration-500">
+                      <Globe size={24} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest text-text-muted font-black mb-1">Official Website</p>
+                      <p className="text-2xl font-serif font-bold text-white">
+                        www.shreesaisenthiltravels.com
+                      </p>
                     </div>
                   </div>
                   <div className="flex gap-6 group">
@@ -345,7 +362,12 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <p className="text-[10px] uppercase tracking-widest text-text-muted font-black mb-1">Headquarters</p>
-                      <p className="text-xl font-serif font-bold text-white max-w-sm">No 4, Heritage Lane, Senthil Towers, Chennai - 600001</p>
+                      <p className="text-lg font-serif font-bold text-white max-w-sm leading-relaxed">
+                        Shree Sai Senthil Travels,<br />
+                        TMS Complex, 1st Floor,<br />
+                        Chinnasamy Naidu St, Dharmapuri,<br />
+                        Tamil Nadu 636701
+                      </p>
                     </div>
                   </div>
                 </div>

@@ -66,7 +66,7 @@ export default function CustomerDashboardPage() {
                         </Link>
                         <div>
                             <h1 className="text-xl font-serif font-bold text-white uppercase tracking-wider">My Dashboard</h1>
-                            <p className="text-[10px] text-text-muted font-black uppercase tracking-widest">Srisaisenthil Travels</p>
+                            <p className="text-[10px] text-text-muted font-black uppercase tracking-widest">Shreesaisenthil Travels</p>
                         </div>
                     </div>
 

@@ -1,4 +1,3 @@
-import html2pdf from 'html2pdf.js';
 import { AgreementResponse } from '@/types/api';
 
 export type BrandingOptions = {
@@ -7,6 +6,8 @@ export type BrandingOptions = {
   phone?: string;
   email?: string;
   type?: 'agreement' | 'receipt';
+  logoUrl?: string;
+  brandColor?: string;
 };
 
 function formatMoney(amount: number | null | undefined): string {
@@ -63,6 +64,9 @@ function generateHtml(data: AgreementResponse, branding?: BrandingOptions): stri
   const companyAddress = branding?.address || '';
   const companyPhone = branding?.phone || '-';
   const companyEmail = branding?.email || '';
+  
+  const brandColor = branding?.brandColor || '#1a365d';
+  const logoUrl = branding?.logoUrl || '';
 
   const busRatesRows = data.useIndividualBusRates && data.busRates
     ? (data.busRates || []).map((rate, i) => `
@@ -84,10 +88,10 @@ function generateHtml(data: AgreementResponse, branding?: BrandingOptions): stri
 
   return `
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+\x3chtml lang="en"\x3e
+\x3chead\x3e
+  \x3cmeta charset="utf-8"\x3e
+  \x3cmeta name="viewport" content="width=device-width, initial-scale=1.0"\x3e
   <title>${docTitle}</title>
   <style>
     @page { margin: 40px; }
@@ -107,14 +111,19 @@ function generateHtml(data: AgreementResponse, branding?: BrandingOptions): stri
     .header {
       text-align: center;
       margin-bottom: 30px;
-      border-bottom: 3px double #1a365d;
+      border-bottom: 3px double ${brandColor};
       padding-bottom: 20px;
+    }
+    .pdf-logo {
+      height: 45px;
+      object-fit: contain;
+      margin-bottom: 10px;
     }
     .company-name {
       font-size: 26px;
       font-weight: 800;
       text-transform: uppercase;
-      color: #1a365d;
+      color: ${brandColor};
       margin-bottom: 8px;
     }
     .company-details {
@@ -143,7 +152,7 @@ function generateHtml(data: AgreementResponse, branding?: BrandingOptions): stri
     .section-title {
       font-size: 14px;
       font-weight: 700;
-      color: #1a365d;
+      color: ${brandColor};
       padding: 5px 0;
       border-bottom: 2px solid #e5e7eb;
       margin-bottom: 12px;
@@ -223,7 +232,7 @@ function generateHtml(data: AgreementResponse, branding?: BrandingOptions): stri
       margin-top: 8px;
       font-weight: 800;
       font-size: 15px;
-      color: #1a365d;
+      color: ${brandColor};
     }
 
     .footer-sigs {
@@ -282,11 +291,12 @@ function generateHtml(data: AgreementResponse, branding?: BrandingOptions): stri
       padding-top: 10px;
     }
   </style>
-</head>
-<body>
+\x3c/head\x3e
+\x3cbody\x3e
   <div class="container">
     
     <div class="header">
+      ${logoUrl ? `<img src="${logoUrl}" alt="Logo" class="pdf-logo" /><br/>` : ''}
       <div class="company-name">${companyName}</div>
       <div class="company-details">
         ${companyAddress}<br/>
@@ -373,8 +383,8 @@ function generateHtml(data: AgreementResponse, branding?: BrandingOptions): stri
     </div>
 
   </div>
-</body>
-</html>
+\x3c/body\x3e
+\x3c/html\x3e
   `;
 }
 
@@ -400,6 +410,8 @@ export async function generateAndDownloadPdf(
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
     };
 
+    if (typeof window === 'undefined') return;
+    const html2pdf = (await import('html2pdf.js')).default;
     await html2pdf().set(opt).from(element).save();
 
     // Clean up

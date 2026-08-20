@@ -6,7 +6,7 @@ import { Logo } from './Logo';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useCustomerAuth } from '@/context/CustomerAuthContext';
-import { LogOut, User, Menu, X, LayoutDashboard, PlusCircle, Calendar, ListChecks, TrendingUp, History, ShieldCheck } from 'lucide-react';
+import { LogOut, User, Menu, X, LayoutDashboard, PlusCircle, Calendar, ListChecks, TrendingUp, History, ShieldCheck, Sun, Moon, Sparkles, Compass } from 'lucide-react';
 
 interface NavLink {
     name: string;
@@ -19,6 +19,21 @@ export const Navbar = () => {
     const { user, logout: partnerLogout } = useAuth();
     const { customer, logout: customerLogout } = useCustomerAuth();
     const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+    const [theme, setTheme] = React.useState<'light' | 'dark' | 'royal' | 'ocean'>('dark');
+
+    React.useEffect(() => {
+        const activeTheme = (document.documentElement.getAttribute('data-theme') as 'light' | 'dark' | 'royal' | 'ocean') || 'dark';
+        setTheme(activeTheme);
+    }, []);
+
+    const toggleTheme = () => {
+        const nextTheme = theme === 'dark' ? 'light' : theme === 'light' ? 'royal' : theme === 'royal' ? 'ocean' : 'dark';
+        setTheme(nextTheme);
+        document.documentElement.setAttribute('data-theme', nextTheme);
+        localStorage.setItem('theme', nextTheme);
+        document.documentElement.classList.remove('dark', 'light', 'royal', 'ocean');
+        document.documentElement.classList.add(nextTheme);
+    };
 
     // Links for Unauthenticated / Public Users
     const publicLinks = [
@@ -57,7 +72,7 @@ export const Navbar = () => {
         <nav className="sticky top-0 z-50 w-full glass border-b border-white/5 px-6 py-3">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
                 <Link href="/" className="transition-transform hover:scale-105 active:scale-95">
-                    <Logo className="h-14" />
+                    <Logo className="py-1" />
                 </Link>
 
                 {/* Desktop Navigation */}
@@ -76,6 +91,22 @@ export const Navbar = () => {
                 </div>
 
                 <div className="flex items-center gap-4">
+                    <button
+                        onClick={toggleTheme}
+                        className="p-2 rounded-xl bg-white/5 border border-white/10 text-text-muted hover:text-brand-gold hover:bg-white/10 transition-all flex items-center justify-center cursor-pointer"
+                        title={`Active Theme: ${theme === 'dark' ? 'Dark Heritage' : theme === 'light' ? 'Light Minimal' : theme === 'royal' ? 'Royal Navy & Gold' : 'Oceanic White & Blue'} - Click to cycle`}
+                    >
+                        {theme === 'dark' ? (
+                            <Moon size={18} className="text-brand-gold" />
+                        ) : theme === 'light' ? (
+                            <Sun size={18} className="text-[#B48A30]" />
+                        ) : theme === 'royal' ? (
+                            <Sparkles size={18} className="text-[#1E3A8A]" />
+                        ) : (
+                            <Compass size={18} className="text-[#2563EB]" />
+                        )}
+                    </button>
+
                     {user ? (
                         <div className="flex items-center gap-2 md:gap-6">
                             <Link

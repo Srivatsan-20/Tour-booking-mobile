@@ -130,7 +130,9 @@ export default function BookingDetailsPage() {
                 companyName: user?.companyName || 'S3T Heritage Transport',
                 address: user?.companyAddress || '',
                 phone: user?.companyPhone || agreement.phone,
-                email: user?.email || ''
+                email: user?.email || '',
+                logoUrl: user?.logoUrl || '',
+                brandColor: user?.brandColor || '#1a365d'
             });
         } catch (err: any) {
             alert(err.message || 'Failed to generate PDF');
@@ -356,7 +358,9 @@ export default function BookingDetailsPage() {
                             name: user?.companyName || 'S3T Heritage Transport',
                             address: user?.companyAddress || 'Tamil Nadu, India',
                             phone: user?.companyPhone || '+91 98765 43210',
-                            email: user?.email || 'heritage@s3t.com'
+                            email: user?.email || 'heritage@s3t.com',
+                            logoUrl: user?.logoUrl || '',
+                            brandColor: user?.brandColor || '#1a365d'
                         }}
                     />
                 )}

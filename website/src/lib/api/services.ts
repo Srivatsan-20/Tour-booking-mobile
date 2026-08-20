@@ -48,3 +48,20 @@ export const superAdminApi = {
     getPartners: () => api.get<any[]>('/api/superadmin/partners'),
     activatePartner: (id: string | number) => api.post(`/api/superadmin/partners/${id}/activate`, {}),
 };
+
+export const driverApi = {
+    validateToken: (token: string) => api.get<any>(`/api/driver/validate/${token}`),
+    submitExpense: (data: {
+        token: string;
+        type: string;
+        amount: number;
+        liters?: number;
+        place?: string;
+        category?: string;
+        description?: string;
+        startKm?: number;
+        endKm?: number;
+    }) => api.post<any>('/api/driver/submit', data),
+    endTour: (agreementId: string) => api.post<any>(`/api/driver/end-tour/${agreementId}`, {}),
+};
+

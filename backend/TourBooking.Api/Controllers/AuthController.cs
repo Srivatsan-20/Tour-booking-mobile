@@ -62,7 +62,9 @@ public class AuthController : ControllerBase
             SubscriptionStatus = user.SubscriptionStatus,
             SubscriptionValidUntil = user.SubscriptionValidUntil,
             AdminPayLink = user.AdminPayLink,
-            SystemPayLink = superAdmin?.AdminPayLink
+            SystemPayLink = superAdmin?.AdminPayLink,
+            LogoUrl = user.LogoUrl,
+            BrandColor = user.BrandColor
         };
     }
 
@@ -97,7 +99,9 @@ public class AuthController : ControllerBase
             SubscriptionStatus = user.SubscriptionStatus,
             SubscriptionValidUntil = user.SubscriptionValidUntil,
             AdminPayLink = user.AdminPayLink,
-            SystemPayLink = superAdmin?.AdminPayLink
+            SystemPayLink = superAdmin?.AdminPayLink,
+            LogoUrl = user.LogoUrl,
+            BrandColor = user.BrandColor
         };
     }
     [HttpPut("profile")]
@@ -130,6 +134,8 @@ public class AuthController : ControllerBase
         user.TollCharges = dto.TollCharges;
         user.FastTagCharges = dto.FastTagCharges;
         user.OtherCharges = dto.OtherCharges;
+        user.LogoUrl = dto.LogoUrl;
+        user.BrandColor = dto.BrandColor;
         if (user.Role == "SuperAdmin" && dto.AdminPayLink != null) 
         {
             user.AdminPayLink = dto.AdminPayLink;
@@ -160,7 +166,9 @@ public class AuthController : ControllerBase
             SubscriptionStatus = user.SubscriptionStatus,
             SubscriptionValidUntil = user.SubscriptionValidUntil,
             AdminPayLink = user.AdminPayLink,
-            SystemPayLink = superAdmin?.AdminPayLink
+            SystemPayLink = superAdmin?.AdminPayLink,
+            LogoUrl = user.LogoUrl,
+            BrandColor = user.BrandColor
         };
     }
 }
@@ -192,6 +200,8 @@ public class UpdateProfileDto
     public decimal FastTagCharges { get; set; }
     public decimal OtherCharges { get; set; }
     public string? AdminPayLink { get; set; }
+    public string? LogoUrl { get; set; }
+    public string? BrandColor { get; set; }
 }
 
 public class AuthResponse
@@ -213,4 +223,6 @@ public class AuthResponse
     public DateTime? SubscriptionValidUntil { get; set; }
     public string? AdminPayLink { get; set; }
     public string? SystemPayLink { get; set; } // Pay link of SuperAdmin for others to pay
+    public string? LogoUrl { get; set; }
+    public string? BrandColor { get; set; }
 }

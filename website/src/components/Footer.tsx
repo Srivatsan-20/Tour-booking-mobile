@@ -7,7 +7,7 @@ export const Footer = () => {
         <footer className="w-full bg-bg-deep border-t border-white/5 py-16 px-6">
             <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
                 <div className="col-span-1 md:col-span-1">
-                    <Logo className="h-10 mb-6" />
+                    <Logo className="mb-6" />
                     <p className="text-text-muted text-sm leading-relaxed">
                         Preserving the legacy of luxury transport since 1994. Modern comfort meeting heritage reliability.
                     </p>

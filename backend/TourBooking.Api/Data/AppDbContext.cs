@@ -32,6 +32,8 @@ public sealed class AppDbContext : DbContext
         user.Property(x => x.Username).HasMaxLength(100).IsRequired();
         user.HasIndex(x => x.Username).IsUnique();
         user.Property(x => x.Email).HasMaxLength(200);
+        user.Property(x => x.LogoUrl).HasMaxLength(1000);
+        user.Property(x => x.BrandColor).HasMaxLength(50);
 
         var customerUser = modelBuilder.Entity<CustomerUser>();
         customerUser.HasKey(x => x.Id);
