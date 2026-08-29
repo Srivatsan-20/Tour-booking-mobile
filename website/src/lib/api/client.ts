@@ -5,7 +5,10 @@ export const setAuthToken = (token: string | null) => {
 };
 
 const getBaseUrl = () => {
-    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5115';
+    if (typeof window !== 'undefined') {
+        return process.env.NEXT_PUBLIC_API_URL || '';
+    }
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 };
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
