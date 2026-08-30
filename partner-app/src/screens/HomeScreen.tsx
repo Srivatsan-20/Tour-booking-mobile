@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ScrollView, StyleSheet, Text, View, StatusBar, Pressable } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, StatusBar, Pressable, Linking } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -9,6 +9,7 @@ import {
   Compass,
   XCircle,
   ClipboardList,
+  Bus,
   PieChart,
   User,
   LogOut,
@@ -49,7 +50,7 @@ export function HomeScreen({ navigation }: Props) {
               </View>
             </View>
             {user?.systemPayLink && (
-              <Pressable style={styles.payBtn} onPress={() => {/* In a real app, use Linking.openURL(user.systemPayLink) */}}>
+              <Pressable style={styles.payBtn} onPress={() => { if (user?.systemPayLink) Linking.openURL(user.systemPayLink); }}>
                 <CreditCard size={18} color="#FFFFFF" />
                 <Text style={styles.payBtnText}>Pay Subscription</Text>
               </Pressable>
@@ -59,6 +60,9 @@ export function HomeScreen({ navigation }: Props) {
 
         {/* Section: Booking Management */}
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('home.section.booking', 'Booking Management')}</Text>
+
+          <DashboardCard
             title={t('home.newAgreement')}
             subtitle={t('home.newAgreementDesc', 'Create a new tour agreement')}
             icon={<PlusCircle size={24} color="#2563EB" />}

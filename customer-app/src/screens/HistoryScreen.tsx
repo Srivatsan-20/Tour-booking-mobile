@@ -9,6 +9,7 @@ import {
     RefreshControl
 } from 'react-native';
 import { Theme } from '../theme';
+import { HeritageButton } from '../components/HeritageButton';
 import { customerApi, CustomerBookingDto } from '../api/customer';
 import {
     Calendar,

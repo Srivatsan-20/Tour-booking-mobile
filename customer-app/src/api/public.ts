@@ -34,8 +34,21 @@ export interface BookingRequest {
     totalAmount: number;
 }
 
+export interface BookingResponse {
+    agreementId: string;
+    bookingId: number;
+    status: string;
+}
+
 export const publicApi = {
-    search: (params: SearchParams) => api.get<PublicBusDto[]>('/api/public/search', { params }),
+    search: (params: SearchParams) => {
+        const q = new URLSearchParams();
+        q.set('fromDate', params.fromDate);
+        q.set('toDate', params.toDate);
+        if (params.city) q.set('city', params.city);
+        if (params.type) q.set('type', params.type);
+        return api.get<PublicBusDto[]>(`/api/public/search?${q.toString()}`);
+    },
     getBus: (id: string) => api.get<PublicBusDto>(`/api/public/bus/${id}`),
-    book: (data: BookingRequest) => api.post('/api/public/book', data),
+    book: (data: BookingRequest) => api.post<BookingResponse>('/api/public/book', data),
 };
