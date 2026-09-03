@@ -32,6 +32,12 @@
     "plugins": [
       "expo-localization",
       "@react-native-community/datetimepicker"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "8e25df81-c3c3-43db-84dd-1abcdf8703b7"
+      }
+    },
+    "owner": "dakroot1108"
   }
 }
