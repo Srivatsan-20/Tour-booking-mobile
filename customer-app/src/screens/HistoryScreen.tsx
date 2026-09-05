@@ -119,7 +119,16 @@ export const HistoryScreen = ({ navigation }: any) => {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                <TouchableOpacity
+                    style={styles.backBtn}
+                    onPress={() => {
+                        if (navigation.canGoBack()) {
+                            navigation.goBack();
+                        } else {
+                            navigation.navigate('Search');
+                        }
+                    }}
+                >
                     <ArrowLeft color={Theme.colors.gold} size={24} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Trip History</Text>

@@ -17,7 +17,8 @@
       "bundleIdentifier": "com.shreesaisenthiltravels.partner",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "buildNumber": "2"
     },
     "android": {
       "package": "com.shreesaisenthiltravels.partner",

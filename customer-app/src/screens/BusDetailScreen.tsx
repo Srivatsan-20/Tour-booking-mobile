@@ -26,7 +26,7 @@ import {
 const { width } = Dimensions.get('window');
 
 export const BusDetailScreen = ({ route, navigation }: any) => {
-    const { busId } = route.params;
+    const { busId, fromDate, toDate } = route.params || {};
     const [bus, setBus] = useState<PublicBusDto | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -140,7 +140,7 @@ export const BusDetailScreen = ({ route, navigation }: any) => {
 
                     <HeritageButton
                         title="Book This Coach"
-                        onPress={() => navigation.navigate('BookingForm', { bus })}
+                        onPress={() => navigation.navigate('BookingForm', { bus, fromDate, toDate })}
                         style={styles.bookBtn}
                     />
                 </View>

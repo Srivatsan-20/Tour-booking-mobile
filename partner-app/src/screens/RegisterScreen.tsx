@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, Alert, Linking } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, Alert, Linking, Image } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { KeyboardAvoidingScrollView } from '../components/KeyboardAvoidingScrollView';
@@ -63,6 +63,17 @@ export function RegisterScreen() {
         <ScreenContainer>
             <KeyboardAvoidingScrollView>
                 <View style={styles.content}>
+                    {/* Brand Logo & Header */}
+                    <View style={styles.header}>
+                        <Image
+                            source={require('../../assets/logo.png')}
+                            style={styles.logo}
+                            resizeMode="contain"
+                        />
+                        <Text style={styles.brandTitle}>SRI SAI SENTHIL</Text>
+                        <Text style={styles.brandSubtitle}>PARTNER ONBOARDING</Text>
+                    </View>
+
                     <Text style={styles.title}>{t('auth.registerTitle')}</Text>
 
                     <View style={styles.form}>
@@ -153,7 +164,11 @@ export function RegisterScreen() {
 
 const styles = StyleSheet.create({
     content: { padding: 24, flex: 1, justifyContent: 'center' },
-    title: { fontSize: 24, fontWeight: '800', color: '#111827', marginBottom: 24, textAlign: 'center' },
+    header: { alignItems: 'center', marginBottom: 20 },
+    logo: { width: 120, height: 76, marginBottom: 8 },
+    brandTitle: { fontSize: 20, fontWeight: '900', color: '#111827', letterSpacing: 1.5 },
+    brandSubtitle: { fontSize: 11, fontWeight: '700', color: '#B48A30', letterSpacing: 3, marginTop: 2 },
+    title: { fontSize: 18, fontWeight: '700', color: '#374151', marginBottom: 20, textAlign: 'center' },
     form: { gap: 16 },
     field: { gap: 6 },
     label: { fontSize: 13, fontWeight: '600', color: '#374151' },

@@ -35,7 +35,7 @@ SplashScreen.preventAutoHideAsync();
 const Stack = createNativeStackNavigator();
 
 function Navigation() {
-    const { customer, isLoading } = useCustomerAuth();
+    const { customer } = useCustomerAuth();
 
     return (
         <Stack.Navigator
@@ -54,6 +54,8 @@ function Navigation() {
                     <Stack.Screen name="BookingForm" component={BookingFormScreen} />
                     <Stack.Screen name="Payment" component={PaymentScreen} />
                     <Stack.Screen name="PaymentStatus" component={PaymentStatusScreen} />
+                    <Stack.Screen name="History" component={HistoryScreen} />
+                    <Stack.Screen name="HistoryDetail" component={HistoryDetailScreen} />
                 </>
             ) : (
                 <>
@@ -64,6 +66,8 @@ function Navigation() {
                     <Stack.Screen name="PaymentStatus" component={PaymentStatusScreen} />
                     <Stack.Screen name="History" component={HistoryScreen} />
                     <Stack.Screen name="HistoryDetail" component={HistoryDetailScreen} />
+                    <Stack.Screen name="Login" component={LoginScreen} />
+                    <Stack.Screen name="Register" component={RegisterScreen} />
                 </>
             )}
         </Stack.Navigator>

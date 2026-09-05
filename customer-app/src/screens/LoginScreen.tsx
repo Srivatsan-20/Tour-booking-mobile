@@ -46,11 +46,13 @@ export const LoginScreen = ({ navigation }: any) => {
             <View style={styles.inner}>
                 {/* Header / Logo */}
                 <View style={styles.header}>
-                    <View style={styles.logoContainer}>
-                        <Bus color={Theme.colors.gold} size={40} />
-                    </View>
+                    <Image
+                        source={require('../../assets/logo.png')}
+                        style={styles.logoImage}
+                        resizeMode="contain"
+                    />
                     <Text style={styles.brandTitle}>SRI SAI SENTHIL</Text>
-                    <Text style={styles.brandSubtitle}>HERITAGE TRAVELS</Text>
+                    <Text style={styles.brandSubtitle}>HERITAGE TRAVELS • SINCE 1963</Text>
                 </View>
 
                 {/* Form */}
@@ -120,18 +122,12 @@ const styles = StyleSheet.create({
     },
     header: {
         alignItems: 'center',
-        marginBottom: 60,
+        marginBottom: 40,
     },
-    logoContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 24,
-        backgroundColor: Theme.colors.goldMuted,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(197, 160, 89, 0.3)',
-        marginBottom: 20,
+    logoImage: {
+        width: 140,
+        height: 90,
+        marginBottom: 12,
     },
     brandTitle: {
         fontFamily: Theme.fonts.serif,

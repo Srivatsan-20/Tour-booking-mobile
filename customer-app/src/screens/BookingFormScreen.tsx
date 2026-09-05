@@ -23,8 +23,12 @@ import {
 } from 'lucide-react-native';
 
 export const BookingFormScreen = ({ route, navigation }: any) => {
-    const { bus } = route.params;
+    const { bus, fromDate: initialFrom, toDate: initialTo } = route.params || {};
     const { customer } = useCustomerAuth();
+
+    // Default dates if not provided
+    const defaultFrom = initialFrom || new Date().toISOString().split('T')[0];
+    const defaultTo = initialTo || new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
     // Form State
     const [name, setName] = useState(customer?.name || '');
@@ -33,9 +37,8 @@ export const BookingFormScreen = ({ route, navigation }: any) => {
     const [places, setPlaces] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // Hardcoded dates for demo context (matching SearchScreen defaults)
-    const fromDate = '2026-05-01';
-    const toDate = '2026-05-03';
+    const fromDate = defaultFrom;
+    const toDate = defaultTo;
 
     // Calculate Pricing
     const calculation = useMemo(() => {
