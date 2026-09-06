@@ -21,18 +21,35 @@ export const LoginScreen = ({ navigation }: any) => {
     const [loading, setLoading] = useState(false);
     const { login } = useCustomerAuth();
 
+    const sanitizePhone = (input: string) => {
+        let clean = input.replace(/[^\d+]/g, '').trim();
+        if (clean.startsWith('+91')) {
+            clean = clean.substring(3);
+        } else if (clean.startsWith('91') && clean.length === 12) {
+            clean = clean.substring(2);
+        } else if (clean.startsWith('0') && clean.length === 11) {
+            clean = clean.substring(1);
+        }
+        return clean.trim();
+    };
+
     const handleLogin = async () => {
-        if (!phone || !password) {
-            Alert.alert("Required", "Please enter both phone and password");
+        const cleanPhone = sanitizePhone(phone);
+        const cleanPassword = password.trim();
+
+        if (!cleanPhone || !cleanPassword) {
+            Alert.alert("Required", "Please enter both phone number and password");
             return;
         }
 
         setLoading(true);
         try {
-            await login({ phone, password });
-            // Navigation handled by App.tsx logic on user state change
+            await login({ phone: cleanPhone, password: cleanPassword });
+            navigation.navigate('Search');
         } catch (error: any) {
-            Alert.alert("Login Failed", error.response?.data || "Invalid credentials");
+            console.error("Login error:", error);
+            const msg = error.response?.data || error.message || "Invalid phone number or password";
+            Alert.alert("Login Failed", typeof msg === 'string' ? msg : "Invalid phone number or password");
         } finally {
             setLoading(false);
         }

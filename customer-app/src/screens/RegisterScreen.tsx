@@ -23,17 +23,36 @@ export const RegisterScreen = ({ navigation }: any) => {
     const [loading, setLoading] = useState(false);
     const { register } = useCustomerAuth();
 
+    const sanitizePhone = (input: string) => {
+        let clean = input.replace(/[^\d+]/g, '').trim();
+        if (clean.startsWith('+91')) {
+            clean = clean.substring(3);
+        } else if (clean.startsWith('91') && clean.length === 12) {
+            clean = clean.substring(2);
+        } else if (clean.startsWith('0') && clean.length === 11) {
+            clean = clean.substring(1);
+        }
+        return clean.trim();
+    };
+
     const handleRegister = async () => {
-        if (!name || !phone || !password) {
+        const cleanPhone = sanitizePhone(phone);
+        const cleanName = name.trim();
+        const cleanPassword = password.trim();
+
+        if (!cleanName || !cleanPhone || !cleanPassword) {
             Alert.alert("Required", "Please fill in Name, Phone and Password");
             return;
         }
 
         setLoading(true);
         try {
-            await register({ name, phone, email, password });
+            await register({ name: cleanName, phone: cleanPhone, email: email.trim() || undefined, password: cleanPassword });
+            navigation.navigate('Search');
         } catch (error: any) {
-            Alert.alert("Registration Failed", error.response?.data || "Could not create account");
+            console.error("Register error:", error);
+            const msg = error.response?.data || error.message || "Could not create account";
+            Alert.alert("Registration Failed", typeof msg === 'string' ? msg : "Could not create account");
         } finally {
             setLoading(false);
         }

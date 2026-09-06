@@ -16,16 +16,20 @@ export function LoginScreen() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSubmit = async () => {
-        if (!username || !password) {
+        const cleanUsername = username.trim();
+        const cleanPassword = password.trim();
+
+        if (!cleanUsername || !cleanPassword) {
             Alert.alert(t('common.validationTitle'), 'Username and password are required');
             return;
         }
 
         try {
             setIsSubmitting(true);
-            await login({ username, password });
+            await login({ username: cleanUsername, password: cleanPassword });
         } catch (e: any) {
-            Alert.alert(t('common.errorTitle'), e.response?.data || 'Login failed');
+            const msg = e.response?.data || e.message || 'Login failed';
+            Alert.alert(t('common.errorTitle'), typeof msg === 'string' ? msg : 'Login failed');
         } finally {
             setIsSubmitting(false);
         }
