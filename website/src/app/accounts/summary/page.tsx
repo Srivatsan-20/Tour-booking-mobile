@@ -21,6 +21,7 @@ export default function AccountsSummaryPage() {
     const [loading, setLoading] = useState(true);
     const [items, setItems] = useState<AccountsSummaryItem[]>([]);
     const [filter, setFilter] = useState('All');
+    const [searchQuery, setSearchQuery] = useState('');
 
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -54,6 +55,12 @@ export default function AccountsSummaryPage() {
     const filteredItems = items.filter(item => {
         if (filter === 'Profit' && item.profitOrLoss <= 0) return false;
         if (filter === 'Loss' && item.profitOrLoss > 0) return false;
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            const matchesCustomer = item.customerName?.toLowerCase().includes(query);
+            const matchesRef = item.agreementId?.toLowerCase().includes(query);
+            if (!matchesCustomer && !matchesRef) return false;
+        }
         return true;
     });
 
@@ -143,8 +150,10 @@ export default function AccountsSummaryPage() {
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
                             <input
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Ref ID or Customer..."
-                                className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-xs focus:border-brand-gold outline-none"
+                                className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-xs focus:border-brand-gold outline-none text-white placeholder-text-muted/60"
                             />
                         </div>
                     </div>

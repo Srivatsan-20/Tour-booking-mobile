@@ -124,6 +124,26 @@ export default function FleetAvailabilityPage() {
         return `${y}-${m}-${day}`;
     };
 
+    const toInputDate = (dStr: string) => {
+        if (!dStr) return '';
+        if (/^\d{4}-\d{2}-\d{2}/.test(dStr)) return dStr.split('T')[0];
+        const parts = dStr.split(' ')[0].split('/');
+        if (parts.length === 3) {
+            const [day, month, year] = parts;
+            return `${year.padStart(4, '20')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+        return dStr;
+    };
+
+    const toBackendDate = (dStr: string) => {
+        if (!dStr) return '';
+        if (/^\d{4}-\d{2}-\d{2}/.test(dStr)) {
+            const [year, month, day] = dStr.split('T')[0].split('-');
+            return `${day}/${month}/${year}`;
+        }
+        return dStr;
+    };
+
     const dates = useMemo(() => {
         const arr = [];
         const curr = new Date(startDate + 'T00:00:00'); // local midnight
@@ -167,7 +187,7 @@ export default function FleetAvailabilityPage() {
     const handleAssignmentClick = (e: React.MouseEvent, agreement: ScheduleAgreementDto, busId: string) => {
         e.preventDefault(); // Prevent navigation if wrapped in Link
         setSelectedAssignment({ agreement, busId });
-        setNewDates({ from: agreement.fromDate, to: agreement.toDate });
+        setNewDates({ from: toInputDate(agreement.fromDate), to: toInputDate(agreement.toDate) });
         setNewBusId(busId);
     };
 
@@ -182,8 +202,8 @@ export default function FleetAvailabilityPage() {
             const updatePayload = {
                 customerName: fullAgreement.customerName,
                 phone: fullAgreement.phone,
-                fromDate: newDates.from,
-                toDate: newDates.to,
+                fromDate: toBackendDate(newDates.from),
+                toDate: toBackendDate(newDates.to),
                 busType: fullAgreement.busType,
                 busCount: fullAgreement.busCount,
                 passengers: fullAgreement.passengers,
@@ -250,16 +270,18 @@ export default function FleetAvailabilityPage() {
         try {
             if (isDateShift) {
                 const agreement = await agreementsApi.getById(agreementId);
-                const oldFrom = new Date(agreement.fromDate);
-                const oldTo = new Date(agreement.toDate);
+                const oldFromStr = toInputDate(agreement.fromDate);
+                const oldToStr = toInputDate(agreement.toDate);
+                const oldFrom = new Date(oldFromStr + 'T00:00:00');
+                const oldTo = new Date(oldToStr + 'T00:00:00');
                 
                 const newFrom = new Date(oldFrom.getTime() + daysDiff * 24 * 60 * 60 * 1000);
                 const newTo = new Date(oldTo.getTime() + daysDiff * 24 * 60 * 60 * 1000);
                 
                 await agreementsApi.update(agreementId, {
                     ...agreement,
-                    fromDate: newFrom.toISOString().split('T')[0],
-                    toDate: newTo.toISOString().split('T')[0]
+                    fromDate: toBackendDate(toLocalDateStr(newFrom)),
+                    toDate: toBackendDate(toLocalDateStr(newTo))
                 });
             }
 

@@ -77,10 +77,20 @@ export default function TrackPage() {
         };
     }, []);
 
-    // Load booking detail
+    // Load booking detail (supports public tracking without partner login)
     useEffect(() => {
         const loadBooking = async () => {
             try {
+                // 1. Try public endpoint first
+                const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+                const publicRes = await fetch(`${baseUrl}/api/public/agreement/${id}`);
+                if (publicRes.ok) {
+                    const data = await publicRes.json();
+                    setAgreement(data);
+                    return;
+                }
+
+                // 2. Fallback to authenticated endpoint for partner
                 const data = await agreementsApi.getById(id);
                 setAgreement(data);
             } catch (err: any) {
@@ -235,10 +245,10 @@ export default function TrackPage() {
                         <p className="text-text-muted text-sm leading-relaxed">{error || "Reference ID is invalid."}</p>
                     </div>
                     <Link
-                        href="/dashboard"
+                        href="/track"
                         className="px-6 py-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl text-white text-xs font-bold uppercase tracking-wider transition-colors inline-block w-full"
                     >
-                        Back to Fleet Hub
+                        Back to Journey Tracking
                     </Link>
                 </div>
             </div>
@@ -250,12 +260,12 @@ export default function TrackPage() {
             {/* Header section */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
-                    <Link
-                        href="/dashboard"
-                        className="text-text-muted hover:text-brand-gold flex items-center gap-2 mb-3 transition-colors text-xs font-bold uppercase tracking-widest"
+                    <button
+                        onClick={() => router.back()}
+                        className="text-text-muted hover:text-brand-gold flex items-center gap-2 mb-3 transition-colors text-xs font-bold uppercase tracking-widest cursor-pointer"
                     >
-                        <ArrowLeft size={14} /> Back to Dashboard
-                    </Link>
+                        <ArrowLeft size={14} /> Back
+                    </button>
                     <div className="flex items-center gap-3">
                         <h1 className="text-3xl font-serif font-bold text-white">Journey Telemetry</h1>
                         <span className="px-3 py-1 bg-green-500/10 border border-green-500/20 text-green-500 text-[10px] font-black uppercase tracking-widest rounded-full flex items-center gap-1.5 animate-pulse">

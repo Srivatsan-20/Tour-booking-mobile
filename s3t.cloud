@@ -1,63 +1,37 @@
+# Reject unmatched HTTP requests
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    return 444;
+}
+
+# Redirect valid HTTP requests to HTTPS
 server {
     listen 80;
-    server_name srisaisenthiltravels.cloud www.srisaisenthiltravels.cloud srisaisenthiltravels.com www.srisaisenthiltravels.com;
+    server_name shreesaisenthiltravels.com www.shreesaisenthiltravels.com;
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl;
-    server_name srisaisenthiltravels.cloud www.srisaisenthiltravels.cloud;
+    server_name shreesaisenthiltravels.com www.shreesaisenthiltravels.com;
 
-    ssl_certificate /etc/letsencrypt/live/srisaisenthiltravels.cloud/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/srisaisenthiltravels.cloud/privkey.pem;
+    # Reject unmatched host headers
+    if ($host !~* ^(shreesaisenthiltravels\.com|www\.shreesaisenthiltravels\.com)$) {
+        return 444;
+    }
+
+    ssl_certificate /etc/letsencrypt/live/shreesaisenthiltravels.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/shreesaisenthiltravels.com/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
-    # API and Swagger - must come BEFORE the root location
-    location /api/ {
-        proxy_pass http://localhost:5001/api/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+    # Privacy Policy & Legal Static Pages
+    location ~* ^/(privacy|legal/privacy)(\.html)?/?$ {
+        alias /var/www/s3t_static/privacy.html;
+        default_type text/html;
     }
-
-    location /swagger/ {
-        proxy_pass http://localhost:5001/swagger/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # Frontend - catch all other requests
-    location / {
-        proxy_pass http://localhost:3010;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-
-server {
-    listen 443 ssl;
-    server_name srisaisenthiltravels.com www.srisaisenthiltravels.com;
-
-    # Temporary SSL certificates (pointing to srisaisenthiltravels.cloud paths until certbot creates the .com cert)
-    ssl_certificate /etc/letsencrypt/live/srisaisenthiltravels.cloud/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/srisaisenthiltravels.cloud/privkey.pem;
-    include /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
     # API and Swagger
     location /api/ {

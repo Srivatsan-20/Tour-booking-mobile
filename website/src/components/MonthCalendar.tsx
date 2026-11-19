@@ -27,24 +27,41 @@ export default function MonthCalendar({ date, schedule, onDateChange }: Props) {
         onDateChange(new Date(year, month + 1, 1));
     };
 
+    const pad = (n: number) => n.toString().padStart(2, '0');
+
+    const toIsoDateString = (dStr: string) => {
+        if (!dStr) return '';
+        if (/^\d{4}-\d{2}-\d{2}/.test(dStr)) {
+            return dStr.split('T')[0];
+        }
+        const parts = dStr.split(' ')[0].split('/');
+        if (parts.length === 3) {
+            const [day, month, year] = parts;
+            return `${year.padStart(4, '20')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+        return dStr;
+    };
+
     const days = [];
     // Padding for start day
     for (let i = 0; i < startDay; i++) {
         days.push(<div key={`pad-${i}`} className="h-32 border-r border-b border-white/5 opacity-20"></div>);
     }
 
+    const today = new Date();
+    const todayIso = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+
     for (let d = 1; d <= daysCount; d++) {
-        const currentDate = new Date(year, month, d);
-        const isoDate = currentDate.toISOString().split('T')[0];
+        const isoDate = `${year}-${pad(month + 1)}-${pad(d)}`;
 
         // Find bookings for this day
         const dayBookings = schedule?.agreements.filter(a => {
-            const from = a.fromDate.split('T')[0];
-            const to = a.toDate.split('T')[0];
+            const from = toIsoDateString(a.fromDate);
+            const to = toIsoDateString(a.toDate);
             return isoDate >= from && isoDate <= to;
         }) || [];
 
-        const isToday = new Date().toISOString().split('T')[0] === isoDate;
+        const isToday = todayIso === isoDate;
 
         days.push(
             <div key={d} className={`h-32 border-r border-b border-white/5 p-2 transition-colors hover:bg-white/[0.02] flex flex-col ${isToday ? 'bg-brand-gold/5' : ''}`}>

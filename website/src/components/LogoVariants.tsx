@@ -15,7 +15,7 @@ export const LogoHeritageOval = ({ className = "h-12" }) => (
             </div>
         </div>
         <div className="text-center mt-2">
-            <p className="text-[11px] font-serif font-black text-[#FFD700] uppercase tracking-[0.4em] leading-none drop-shadow-md">Shree Sai Senthil</p>
+            <p className="text-[11px] font-serif font-black text-[#FFD700] uppercase tracking-[0.3em] leading-none drop-shadow-md">Shree Sai Senthil Travels</p>
             <p className="text-[9px] font-sans font-black text-[#FFD700]/60 uppercase tracking-[0.6em] mt-1.5">Since 1963</p>
         </div>
     </div>

@@ -8,7 +8,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 function parseDdMmYyyy(value: string): Date | null {
-    const parts = value.split('/').map((p) => p.trim());
+    if (!value) return null;
+    if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
+        const d = new Date(value.split('T')[0] + 'T00:00:00');
+        return Number.isNaN(d.getTime()) ? null : d;
+    }
+    const parts = value.split(' ')[0].split('/').map((p) => p.trim());
     if (parts.length !== 3) return null;
     const [ddRaw, mmRaw, yyyyRaw] = parts;
     const dd = Number.parseInt(ddRaw ?? '', 10);

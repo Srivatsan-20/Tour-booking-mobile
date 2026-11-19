@@ -17,10 +17,13 @@ import {
   Star,
   ChevronDown,
   Globe,
-  Search as SearchIcon
+  Search as SearchIcon,
+  Send,
+  Check
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 
 export default function LandingPage() {
   const [searchData, setSearchData] = useState({
@@ -31,7 +34,31 @@ export default function LandingPage() {
     type: ''   // empty = show all types
   });
 
+  const [callbackForm, setCallbackForm] = useState({
+    name: '',
+    phone: '',
+    message: ''
+  });
+  const [callbackSubmitted, setCallbackSubmitted] = useState(false);
+
   const router = useRouter();
+
+  const handleCallbackSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!callbackForm.name.trim() || !callbackForm.phone.trim()) {
+      toast.error('Please enter your name and phone number');
+      return;
+    }
+
+    setCallbackSubmitted(true);
+    toast.success('Callback request submitted! Our team will contact you shortly.');
+
+    // Optional direct WhatsApp outreach link
+    const waText = encodeURIComponent(
+      `Hello Shree Sai Senthil Travels, I would like to request a callback regarding a tour booking.\nName: ${callbackForm.name}\nPhone: ${callbackForm.phone}\nDetails: ${callbackForm.message || 'General inquiry'}`
+    );
+    window.open(`https://wa.me/919443849013?text=${waText}`, '_blank');
+  };
 
   const handleSearch = () => {
     const today = new Date().toISOString().split('T')[0];
@@ -210,7 +237,7 @@ export default function LandingPage() {
             </div>
             {/* Legend Element */}
             <div className="absolute -bottom-10 -right-10 glass p-8 rounded-[2rem] border-brand-gold/20 shadow-2xl max-w-xs animate-float">
-              <span className="text-5xl font-serif font-black text-brand-gold leading-none">40+</span>
+              <span className="text-5xl font-serif font-black text-brand-gold leading-none">63+</span>
               <p className="text-xs font-bold text-white uppercase tracking-widest mt-2">Years of Excellence in Heritage Transport</p>
             </div>
           </div>
@@ -224,7 +251,7 @@ export default function LandingPage() {
               </h2>
             </div>
             <p className="text-lg text-text-muted leading-relaxed font-light">
-              Shree Sai Senthil Travels began with a single vision: to provide a journey that is as memorable as the destination. For four decades, we have remained a family-owned legacy, prioritizing the safety and comfort of millions of travelers.
+              Shree Sai Senthil Travels began with a single vision: to provide a journey that is as memorable as the destination. For over six decades, we have remained a family-owned legacy, prioritizing the safety and comfort of millions of travelers since 1963.
             </p>
             <ul className="space-y-4">
               {[
@@ -376,12 +403,58 @@ export default function LandingPage() {
               <div className="space-y-6">
                 <div className="glass bg-white/5 p-8 rounded-[2.5rem] border-white/5">
                   <h4 className="text-xl font-serif font-bold text-white mb-6">Request Callback</h4>
-                  <div className="space-y-4">
-                    <input placeholder="Your Name" className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm focus:border-brand-gold outline-none" />
-                    <input placeholder="Phone Number" className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm focus:border-brand-gold outline-none" />
-                    <textarea placeholder="Briefly describe your travel needs..." rows={4} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm focus:border-brand-gold outline-none" />
-                    <button className="w-full py-5 gold-bg-gradient rounded-2xl text-bg-deep font-black text-sm uppercase tracking-widest hover:brightness-110 transition-all">Submit Request</button>
-                  </div>
+                  {callbackSubmitted ? (
+                    <div className="py-8 text-center space-y-4">
+                      <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center">
+                        <Check size={28} />
+                      </div>
+                      <h5 className="text-lg font-bold text-white">Request Received!</h5>
+                      <p className="text-text-muted text-sm max-w-xs mx-auto">
+                        Thank you, {callbackForm.name}. Our fleet manager will call you at {callbackForm.phone} shortly.
+                      </p>
+                      <button
+                        onClick={() => {
+                          setCallbackSubmitted(false);
+                          setCallbackForm({ name: '', phone: '', message: '' });
+                        }}
+                        className="text-xs text-brand-gold uppercase tracking-wider font-bold hover:underline pt-2"
+                      >
+                        Submit another inquiry
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleCallbackSubmit} className="space-y-4">
+                      <input
+                        type="text"
+                        required
+                        placeholder="Your Name *"
+                        value={callbackForm.name}
+                        onChange={(e) => setCallbackForm({ ...callbackForm, name: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm focus:border-brand-gold outline-none text-white placeholder-text-muted/60"
+                      />
+                      <input
+                        type="tel"
+                        required
+                        placeholder="Phone Number (e.g., 9876543210) *"
+                        value={callbackForm.phone}
+                        onChange={(e) => setCallbackForm({ ...callbackForm, phone: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm focus:border-brand-gold outline-none text-white placeholder-text-muted/60"
+                      />
+                      <textarea
+                        placeholder="Briefly describe your travel needs (destination, dates, passenger count)..."
+                        rows={4}
+                        value={callbackForm.message}
+                        onChange={(e) => setCallbackForm({ ...callbackForm, message: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm focus:border-brand-gold outline-none text-white placeholder-text-muted/60 resize-none"
+                      />
+                      <button
+                        type="submit"
+                        className="w-full py-5 gold-bg-gradient rounded-2xl text-bg-deep font-black text-sm uppercase tracking-widest hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                      >
+                        <Send size={16} /> Submit Request
+                      </button>
+                    </form>
+                  )}
                 </div>
               </div>
             </div>

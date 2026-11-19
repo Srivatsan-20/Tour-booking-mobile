@@ -229,7 +229,8 @@ export default function TourAccountPage() {
             return;
         }
         const token = btoa(`${id}|${bus.busId}`);
-        const link = `http://localhost:3000/driver/log?token=${token}`; // Mock local link
+        const origin = typeof window !== 'undefined' ? window.location.origin : '';
+        const link = `${origin}/driver/log?token=${token}`;
         const message = `🚌 Driver Expense Link for ${bus.label}\n\nAdd Fuel/Expenses here:\n${link}`;
         window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
     };

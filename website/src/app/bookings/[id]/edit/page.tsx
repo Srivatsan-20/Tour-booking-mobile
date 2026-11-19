@@ -43,6 +43,26 @@ export default function EditBooking() {
         notes: '',
     });
 
+    const toInputDate = (dStr: string) => {
+        if (!dStr) return '';
+        if (/^\d{4}-\d{2}-\d{2}/.test(dStr)) return dStr.split('T')[0];
+        const parts = dStr.split(' ')[0].split('/');
+        if (parts.length === 3) {
+            const [day, month, year] = parts;
+            return `${year.padStart(4, '20')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+        return dStr;
+    };
+
+    const toBackendDate = (dStr: string) => {
+        if (!dStr) return '';
+        if (/^\d{4}-\d{2}-\d{2}/.test(dStr)) {
+            const [year, month, day] = dStr.split('T')[0].split('-');
+            return `${day}/${month}/${year}`;
+        }
+        return dStr;
+    };
+
     const loadBooking = useCallback(async () => {
         setLoading(true);
         try {
@@ -50,8 +70,8 @@ export default function EditBooking() {
             setFormData({
                 customerName: data.customerName || '',
                 phone: data.phone || '',
-                fromDate: data.fromDate || '',
-                toDate: data.toDate || '',
+                fromDate: toInputDate(data.fromDate || ''),
+                toDate: toInputDate(data.toDate || ''),
                 busType: data.busType || 'AC',
                 busCount: String(data.busCount || '1'),
                 passengers: String(data.passengers || ''),
@@ -90,7 +110,13 @@ export default function EditBooking() {
                 throw new Error('Please fill in all required fields (Name, Dates)');
             }
 
-            await agreementsApi.update(id, formData);
+            const payload = {
+                ...formData,
+                fromDate: toBackendDate(formData.fromDate),
+                toDate: toBackendDate(formData.toDate),
+            };
+
+            await agreementsApi.update(id, payload);
             router.push(`/bookings/${id}`);
         } catch (err: any) {
             setError(err.message || 'Failed to update booking.');

@@ -29,7 +29,7 @@ export default function CustomerBookingDetailPage() {
         const fetchBooking = async () => {
             if (!customer || !params.id) return;
             try {
-                const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5115';
+                const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
                 const res = await fetch(`${baseUrl}/api/customer/my-bookings/${params.id}`, {
                     headers: getCustomerHeaders()
                 });
@@ -55,16 +55,16 @@ export default function CustomerBookingDetailPage() {
         if (!params.id) return;
         setDownloading(true);
         try {
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5115';
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
             const res = await fetch(`${baseUrl}/api/customer/my-bookings/${params.id}/agreement-data`, {
                 headers: getCustomerHeaders()
             });
             if (res.ok) {
                 const data = await res.json();
                 await generateAndDownloadPdf(data, {
-                    companyName: data.companyName || 'S3T Heritage Travels',
-                    address: data.companyAddress || 'Madurai, Tamil Nadu',
-                    phone: data.companyPhone || '',
+                    companyName: data.companyName || 'Shree Sai Senthil Travels',
+                    address: data.companyAddress || 'TMS Complex, 1st Floor, Chinnasamy Naidu St, Dharmapuri, Tamil Nadu 636701',
+                    phone: data.companyPhone || '+91 94438 49013',
                     type: 'receipt'
                 });
             } else {
@@ -82,16 +82,16 @@ export default function CustomerBookingDetailPage() {
         if (!params.id) return;
         setDownloading(true);
         try {
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5115';
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
             const res = await fetch(`${baseUrl}/api/customer/my-bookings/${params.id}/agreement-data`, {
                 headers: getCustomerHeaders()
             });
             if (res.ok) {
                 const data = await res.json();
                 await generateAndDownloadPdf(data, {
-                    companyName: data.companyName || 'S3T Heritage Travels',
-                    address: data.companyAddress || 'Madurai, Tamil Nadu',
-                    phone: data.companyPhone || ''
+                    companyName: data.companyName || 'Shree Sai Senthil Travels',
+                    address: data.companyAddress || 'TMS Complex, 1st Floor, Chinnasamy Naidu St, Dharmapuri, Tamil Nadu 636701',
+                    phone: data.companyPhone || '+91 94438 49013'
                 });
             } else {
                 alert("Failed to fetch agreement data");

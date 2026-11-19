@@ -27,7 +27,7 @@ export default function CustomerDashboardPage() {
         const fetchBookings = async () => {
             if (!customer) return;
             try {
-                const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5115';
+                const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
                 const res = await fetch(`${baseUrl}/api/customer/my-bookings`, {
                     headers: getCustomerHeaders()
                 });

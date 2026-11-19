@@ -6,7 +6,7 @@ import { Logo } from './Logo';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useCustomerAuth } from '@/context/CustomerAuthContext';
-import { LogOut, User, Menu, X, LayoutDashboard, PlusCircle, Calendar, ListChecks, TrendingUp, History, ShieldCheck, Sun, Moon, Sparkles, Compass } from 'lucide-react';
+import { LogOut, User, Menu, X, LayoutDashboard, PlusCircle, Calendar, ListChecks, TrendingUp, History, ShieldCheck, Sun, Moon, Sparkles, Compass, Bus } from 'lucide-react';
 
 interface NavLink {
     name: string;
@@ -47,9 +47,10 @@ export const Navbar = () => {
     // Links for Authenticated / Partner Users
     const partnerLinks = [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-        { name: 'Add Bus', href: '/fleet', icon: PlusCircle }, // Assuming fleet page handles adding or shows fleet
+        { name: 'Fleet', href: '/fleet', icon: Bus },
         { name: 'Availability', href: '/fleet/availability', icon: Calendar },
         { name: 'Bookings', href: '/bookings', icon: ListChecks },
+        { name: 'All Tours', href: '/tours/all', icon: History },
         { name: 'Cancelled', href: '/tours/cancelled', icon: X },
         { name: 'Reports', href: '/accounts/summary', icon: TrendingUp },
     ];

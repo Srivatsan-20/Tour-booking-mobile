@@ -25,14 +25,27 @@ export default function AllToursPage() {
         }
     }, [user, authLoading, router]);
 
+    const parseDateToTime = (dStr: string) => {
+        if (!dStr) return 0;
+        if (/^\d{4}-\d{2}-\d{2}/.test(dStr)) {
+            return new Date(dStr).getTime() || 0;
+        }
+        const parts = dStr.split(' ')[0].split('/');
+        if (parts.length === 3) {
+            const [day, month, year] = parts;
+            return new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10)).getTime();
+        }
+        return 0;
+    };
+
     const load = async () => {
         if (!user || !mounted) return;
         setLoading(true);
         try {
             const all = await agreementsApi.list({ includeCancelled: false });
             setItems(all.sort((a, b) => {
-                // Sort by fromDate descending
-                return b.fromDate.localeCompare(a.fromDate);
+                // Sort by fromDate descending chronologically
+                return parseDateToTime(b.fromDate) - parseDateToTime(a.fromDate);
             }));
         } catch (err) {
             console.error('Failed to load tours:', err);

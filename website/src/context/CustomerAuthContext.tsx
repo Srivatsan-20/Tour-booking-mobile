@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5115';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const STORAGE_KEY = 's3t_customer_auth';
 
 interface CustomerUser {

@@ -11,6 +11,7 @@ export default function SearchPage() {
     const [loading, setLoading] = useState(true);
     const [filterType, setFilterType] = useState('All');
     const [statusFilter, setStatusFilter] = useState('Active');
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         async function fetchData() {
@@ -28,10 +29,17 @@ export default function SearchPage() {
 
     const filteredAgreements = agreements.filter(item => {
         if (filterType !== 'All' && item.busType !== filterType) return false;
-        if (statusFilter === 'All') return true;
         if (statusFilter === 'Active' && (item.isCancelled || item.isCompleted)) return false;
         if (statusFilter === 'Completed' && !item.isCompleted) return false;
         if (statusFilter === 'Cancelled' && !item.isCancelled) return false;
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            const nameMatch = item.customerName?.toLowerCase().includes(q);
+            const phoneMatch = item.phone?.includes(q);
+            const placesMatch = item.placesToCover?.toLowerCase().includes(q);
+            const refMatch = item.id?.toLowerCase().includes(q);
+            if (!nameMatch && !phoneMatch && !placesMatch && !refMatch) return false;
+        }
         return true;
     });
 
@@ -56,8 +64,10 @@ export default function SearchPage() {
                         <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
                         <input
                             type="text"
-                            placeholder="Search customers..."
-                            className="bg-white/5 border border-white/10 rounded-full py-2 pl-12 pr-6 text-sm focus:outline-none focus:border-brand-gold transition-colors w-64"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search name, phone, ref..."
+                            className="bg-white/5 border border-white/10 rounded-full py-2 pl-12 pr-6 text-sm focus:outline-none focus:border-brand-gold transition-colors w-64 text-white placeholder-text-muted/60"
                         />
                     </div>
                     <button className="flex items-center gap-2 glass px-6 py-2 rounded-full text-sm hover:border-brand-gold/50 transition-colors">

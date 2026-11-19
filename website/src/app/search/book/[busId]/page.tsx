@@ -70,7 +70,7 @@ export default function PublicBookingPage() {
     useEffect(() => {
         const fetchBus = async () => {
             try {
-                const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5115';
+                const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
                 const res = await fetch(`${baseUrl}/api/public/bus/${params.busId}`);
                 if (res.ok) {
                     const busData = await res.json();
@@ -107,6 +107,14 @@ export default function PublicBookingPage() {
         setFormData(prev => ({ ...prev, totalAmount: total.toString() }));
     }, [formData.fromDate, formData.toDate, formData.perDayRent, formData.driverCharges, formData.toll, formData.fastTag, formData.otherCharges]);
 
+    const calculateDays = () => {
+        if (!formData.fromDate || !formData.toDate) return 1;
+        const start = new Date(formData.fromDate);
+        const end = new Date(formData.toDate);
+        const diffTime = Math.abs(end.getTime() - start.getTime());
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setPaymentStep(true);
@@ -115,7 +123,7 @@ export default function PublicBookingPage() {
     const handlePayment = async () => {
         setLoading(true);
         try {
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5115';
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
 
             if (formData.paymentType === 'Online') {
                 const razorpayId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_YOUR_KEY_ID';
@@ -219,7 +227,7 @@ export default function PublicBookingPage() {
                 paymentId: paymentId
             };
 
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5115';
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
             const res = await fetch(`${baseUrl}/api/public/book`, {
                 method: 'POST',
                 headers: {
@@ -245,14 +253,14 @@ export default function PublicBookingPage() {
         if (!agreementId) return;
         setDownloading(true);
         try {
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5115';
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
             const res = await fetch(`${baseUrl}/api/public/agreement/${agreementId}`);
             if (res.ok) {
                 const data: AgreementResponse = await res.json();
                 await generateAndDownloadPdf(data, {
                     companyName: 'Shree Sai Senthil Travels',
-                    address: 'Heritage Division, Madurai, Tamil Nadu',
-                    phone: '+91 98421 12345'
+                    address: 'TMS Complex, 1st Floor, Chinnasamy Naidu St, Dharmapuri, Tamil Nadu 636701',
+                    phone: '+91 94438 49013'
                 });
             }
         } catch (err) {
@@ -419,10 +427,16 @@ export default function PublicBookingPage() {
                         <div className="glass p-10 rounded-[3rem] border-brand-gold/20 shadow-2xl sticky top-32">
                             <h4 className="text-xl font-serif font-black mb-8 border-b border-white/5 pb-4">Fare Summary</h4>
                             <div className="space-y-4 mb-8">
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-text-muted">Base Fare (x1)</span>
-                                    <span className="text-white font-bold">₹{formData.perDayRent}</span>
-                                </div>
+                                {(() => {
+                                    const numDays = calculateDays();
+                                    const baseFareTotal = Number(formData.perDayRent) * numDays;
+                                    return (
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-text-muted">Base Fare (x{numDays} {numDays === 1 ? 'day' : 'days'})</span>
+                                            <span className="text-white font-bold">₹{baseFareTotal.toLocaleString()}</span>
+                                        </div>
+                                    );
+                                })()}
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-text-muted">Driver Support</span>
                                     <span className="text-white font-bold">₹{formData.driverCharges}</span>

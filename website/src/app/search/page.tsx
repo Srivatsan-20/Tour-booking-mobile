@@ -33,7 +33,7 @@ function SearchPageInner() {
     const handleSearch = async () => {
         setLoading(true);
         try {
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5115';
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : '');
             const today = new Date().toISOString().split('T')[0];
             // toDate must always be present — default to fromDate or today
             const effectiveFrom = filters.fromDate || today;
@@ -78,7 +78,7 @@ function SearchPageInner() {
         });
 
         // Fire the API call with guaranteed valid dates
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5115';
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? window.location.origin : '');
         const url = new URL(`${baseUrl}/api/public/search`);
         url.searchParams.set('fromDate', fromDate);
         url.searchParams.set('toDate', toDate);

@@ -141,41 +141,52 @@ export default function AgreementPreview({ agreement, onClose, companyInfo }: Pr
                         </div>
 
                         {/* Financial Table */}
-                        <div className="mb-12">
-                            <h4 className="text-[10px] uppercase font-bold mb-4 tracking-widest" style={{ color: accentColor }}>Financial Summary</h4>
-                            <div className="border border-gray-200 rounded-lg overflow-hidden">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-gray-50 border-b border-gray-200">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left font-bold text-gray-700">Description</th>
-                                            <th className="px-6 py-3 text-right font-bold text-gray-700">Amount</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        <tr>
-                                            <td className="px-6 py-4 text-gray-600">Base Contract Rent</td>
-                                            <td className="px-6 py-4 text-right font-bold">₹{(agreement.totalAmount || 0).toLocaleString()}</td>
-                                        </tr>
-                                        <tr>
-                                            <td className="px-6 py-4 text-gray-600">Mountain Authorization Fee</td>
-                                            <td className="px-6 py-4 text-right font-bold">₹{(agreement.mountainRent || 0).toLocaleString()}</td>
-                                        </tr>
-                                        <tr className="bg-gray-50">
-                                            <td className="px-6 py-4 font-bold text-gray-900 uppercase text-xs">Total Agreement Value</td>
-                                            <td className="px-6 py-4 text-right font-bold text-lg" style={{ color: accentColor }}>₹{((agreement.totalAmount || 0) + (agreement.mountainRent || 0)).toLocaleString()}</td>
-                                        </tr>
-                                        <tr>
-                                            <td className="px-6 py-4 text-gray-500 italic">Advance Received</td>
-                                            <td className="px-6 py-4 text-right text-green-600 font-bold">- ₹{(agreement.advancePaid || 0).toLocaleString()}</td>
-                                        </tr>
-                                        <tr className="border-t-2 border-gray-200">
-                                            <td className="px-6 py-4 font-bold text-gray-900 uppercase text-xs italic">Outstanding Balance Due</td>
-                                            <td className="px-6 py-4 text-right font-black text-gray-900 text-xl underline decoration-4" style={{ textUnderlineOffset: '4px', textDecorationColor: accentColor }}>₹{(agreement.balance || 0).toLocaleString()}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                        {(() => {
+                            const mountainRent = agreement.mountainRent || 0;
+                            const totalValue = agreement.totalAmount || 0;
+                            const baseRent = Math.max(0, totalValue - mountainRent);
+                            const balanceDue = (agreement.balance !== undefined && agreement.balance !== null) 
+                                ? agreement.balance 
+                                : (totalValue - (agreement.advancePaid || 0));
+
+                            return (
+                                <div className="mb-12">
+                                    <h4 className="text-[10px] uppercase font-bold mb-4 tracking-widest" style={{ color: accentColor }}>Financial Summary</h4>
+                                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-gray-50 border-b border-gray-200">
+                                                <tr>
+                                                    <th className="px-6 py-3 text-left font-bold text-gray-700">Description</th>
+                                                    <th className="px-6 py-3 text-right font-bold text-gray-700">Amount</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                <tr>
+                                                    <td className="px-6 py-4 text-gray-600">Base Contract Rent</td>
+                                                    <td className="px-6 py-4 text-right font-bold">₹{baseRent.toLocaleString()}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td className="px-6 py-4 text-gray-600">Mountain Authorization Fee</td>
+                                                    <td className="px-6 py-4 text-right font-bold">₹{mountainRent.toLocaleString()}</td>
+                                                </tr>
+                                                <tr className="bg-gray-50">
+                                                    <td className="px-6 py-4 font-bold text-gray-900 uppercase text-xs">Total Agreement Value</td>
+                                                    <td className="px-6 py-4 text-right font-bold text-lg" style={{ color: accentColor }}>₹{totalValue.toLocaleString()}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td className="px-6 py-4 text-gray-500 italic">Advance Received</td>
+                                                    <td className="px-6 py-4 text-right text-green-600 font-bold">- ₹{(agreement.advancePaid || 0).toLocaleString()}</td>
+                                                </tr>
+                                                <tr className="border-t-2 border-gray-200">
+                                                    <td className="px-6 py-4 font-bold text-gray-900 uppercase text-xs italic">Outstanding Balance Due</td>
+                                                    <td className="px-6 py-4 text-right font-black text-gray-900 text-xl underline decoration-4" style={{ textUnderlineOffset: '4px', textDecorationColor: accentColor }}>₹{balanceDue.toLocaleString()}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            );
+                        })()}
 
                         {/* Terms */}
                         <div className="mt-auto pt-10 border-t border-gray-100">

@@ -14,7 +14,10 @@ import {
   Receipt,
   MapPin,
   Settings,
-  CreditCard
+  CreditCard,
+  ClipboardList,
+  Search,
+  History
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -186,6 +189,24 @@ export default function PartnerDashboard() {
                   <Receipt size={18} />
                 </div>
                 <span className="text-sm font-bold">Revenue Reports</span>
+              </Link>
+              <Link href="/fleet/assignments" className="w-full p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center gap-4 transition-all">
+                <div className="w-10 h-10 rounded-xl bg-brand-gold/10 flex items-center justify-center text-brand-gold">
+                  <ClipboardList size={18} />
+                </div>
+                <span className="text-sm font-bold">Assign Buses</span>
+              </Link>
+              <Link href="/tours/all" className="w-full p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center gap-4 transition-all">
+                <div className="w-10 h-10 rounded-xl bg-brand-gold/10 flex items-center justify-center text-brand-gold">
+                  <History size={18} />
+                </div>
+                <span className="text-sm font-bold">All Tours History</span>
+              </Link>
+              <Link href="/dashboard/search" className="w-full p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center gap-4 transition-all">
+                <div className="w-10 h-10 rounded-xl bg-brand-gold/10 flex items-center justify-center text-brand-gold">
+                  <Search size={18} />
+                </div>
+                <span className="text-sm font-bold">Search Agreements</span>
               </Link>
               <Link href="/dashboard/settings" className="w-full p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center gap-4 transition-all">
                 <div className="w-10 h-10 rounded-xl bg-brand-gold/10 flex items-center justify-center text-brand-gold">
