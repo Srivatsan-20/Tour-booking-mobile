@@ -1,0 +1,70 @@
+# Reject unmatched HTTP requests
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    return 444;
+}
+
+# Redirect valid HTTP requests to HTTPS
+server {
+    listen 80;
+    server_name shreesaisenthiltravels.com www.shreesaisenthiltravels.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name shreesaisenthiltravels.com www.shreesaisenthiltravels.com;
+
+    # Reject unmatched host headers
+    if ($host !~* ^(shreesaisenthiltravels\.com|www\.shreesaisenthiltravels\.com)$) {
+        return 444;
+    }
+
+    ssl_certificate /etc/letsencrypt/live/shreesaisenthiltravels.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/shreesaisenthiltravels.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    # Privacy Policy & Legal Static Pages
+    location ~* ^/(privacy|legal/privacy)(\.html)?/?$ {
+        alias /var/www/s3t_static/privacy.html;
+        default_type text/html;
+    }
+
+    # API and Swagger
+    location /api/ {
+        proxy_pass http://localhost:5001/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /swagger/ {
+        proxy_pass http://localhost:5001/swagger/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Frontend
+    location / {
+        proxy_pass http://localhost:3010;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}

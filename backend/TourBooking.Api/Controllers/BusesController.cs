@@ -41,6 +41,10 @@ public sealed class BusesController : ControllerBase
                 VehicleNumber = x.VehicleNumber,
                 Name = x.Name,
                 IsActive = x.IsActive,
+                BusType = x.BusType,
+                Capacity = x.Capacity,
+                BaseRate = x.BaseRate,
+                HomeCity = x.HomeCity,
                 CreatedAtUtc = x.CreatedAtUtc,
             })
             .ToListAsync(cancellationToken);
@@ -68,6 +72,10 @@ public sealed class BusesController : ControllerBase
             Id = Guid.NewGuid(),
             VehicleNumber = vehicleNumber,
             Name = string.IsNullOrWhiteSpace(request.Name) ? null : request.Name.Trim(),
+            BusType = request.BusType ?? "AC",
+            Capacity = request.Capacity ?? 40,
+            BaseRate = request.BaseRate ?? 5000m,
+            HomeCity = request.HomeCity?.Trim(),
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow,
             UserId = CurrentUserId,
@@ -82,6 +90,49 @@ public sealed class BusesController : ControllerBase
             VehicleNumber = entity.VehicleNumber,
             Name = entity.Name,
             IsActive = entity.IsActive,
+            BusType = entity.BusType,
+            Capacity = entity.Capacity,
+            BaseRate = entity.BaseRate,
+            HomeCity = entity.HomeCity,
+            CreatedAtUtc = entity.CreatedAtUtc,
+        });
+    }
+
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<BusResponse>> Update(Guid id, [FromBody] CreateBusRequest request, CancellationToken cancellationToken)
+    {
+        var entity = await _db.Buses.FirstOrDefaultAsync(x => x.Id == id && x.UserId == CurrentUserId, cancellationToken);
+        if (entity is null) return NotFound();
+
+        if (request.VehicleNumber is not null)
+        {
+            var vn = request.VehicleNumber.Trim();
+            if (!string.IsNullOrWhiteSpace(vn) && vn != entity.VehicleNumber)
+            {
+                var exists = await _db.Buses.AnyAsync(x => x.VehicleNumber == vn && x.UserId == CurrentUserId, cancellationToken);
+                if (exists) return Conflict("Vehicle number already in use");
+                entity.VehicleNumber = vn;
+            }
+        }
+
+        if (request.Name is not null) entity.Name = string.IsNullOrWhiteSpace(request.Name) ? null : request.Name.Trim();
+        if (request.BusType is not null) entity.BusType = request.BusType;
+        if (request.Capacity.HasValue) entity.Capacity = request.Capacity.Value;
+        if (request.BaseRate.HasValue) entity.BaseRate = request.BaseRate.Value;
+        if (request.HomeCity is not null) entity.HomeCity = request.HomeCity.Trim();
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return Ok(new BusResponse
+        {
+            Id = entity.Id,
+            VehicleNumber = entity.VehicleNumber,
+            Name = entity.Name,
+            IsActive = entity.IsActive,
+            BusType = entity.BusType,
+            Capacity = entity.Capacity,
+            BaseRate = entity.BaseRate,
+            HomeCity = entity.HomeCity,
             CreatedAtUtc = entity.CreatedAtUtc,
         });
     }
@@ -109,6 +160,10 @@ public sealed class BusesController : ControllerBase
 			VehicleNumber = entity.VehicleNumber,
 			Name = entity.Name,
 			IsActive = entity.IsActive,
+            BusType = entity.BusType,
+            Capacity = entity.Capacity,
+            BaseRate = entity.BaseRate,
+            HomeCity = entity.HomeCity,
 			CreatedAtUtc = entity.CreatedAtUtc,
 		};
 	}

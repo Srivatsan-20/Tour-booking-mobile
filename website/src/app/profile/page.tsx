@@ -1,0 +1,340 @@
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import {
+    Building2, MapPin, Phone, Mail,
+    Save, Loader2, ChevronLeft, ShieldCheck,
+    CreditCard
+} from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
+export default function ProfilePage() {
+    const { user, updateProfile, isLoading: authLoading } = useAuth();
+    const router = useRouter();
+
+    const [companyName, setCompanyName] = useState('');
+    const [companyAddress, setCompanyAddress] = useState('');
+    const [companyPhone, setCompanyPhone] = useState('');
+    const [email, setEmail] = useState('');
+    const [upiLink, setUpiLink] = useState('');
+    const [driverCharges, setDriverCharges] = useState('500');
+    const [tollCharges, setTollCharges] = useState('0');
+    const [fastTagCharges, setFastTagCharges] = useState('0');
+    const [otherCharges, setOtherCharges] = useState('0');
+    const [adminPayLink, setAdminPayLink] = useState('');
+    const [logoUrl, setLogoUrl] = useState('');
+    const [brandColor, setBrandColor] = useState('#1a365d');
+    const [isSaving, setIsSaving] = useState(false);
+    const [success, setSuccess] = useState(false);
+
+    useEffect(() => {
+        if (user) {
+            setCompanyName(user.companyName || '');
+            setCompanyAddress(user.companyAddress || '');
+            setCompanyPhone(user.companyPhone || '');
+            setEmail(user.email || '');
+            setUpiLink(user.upiLink || '');
+            setDriverCharges(user.driverCharges?.toString() || '500');
+            setTollCharges(user.tollCharges?.toString() || '0');
+            setFastTagCharges(user.fastTagCharges?.toString() || '0');
+            setOtherCharges(user.otherCharges?.toString() || '0');
+            setLogoUrl(user.logoUrl || '');
+            setBrandColor(user.brandColor || '#1a365d');
+            if (user.role === 'SuperAdmin') {
+                setAdminPayLink(user.adminPayLink || '');
+            }
+        }
+    }, [user]);
+
+    useEffect(() => {
+        if (!authLoading && !user) {
+            router.push('/auth/login');
+        }
+    }, [user, authLoading, router]);
+
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSaving(true);
+        setSuccess(false);
+
+        try {
+            await updateProfile({
+                companyName,
+                companyAddress,
+                companyPhone,
+                email,
+                upiLink,
+                driverCharges: Number(driverCharges),
+                tollCharges: Number(tollCharges),
+                fastTagCharges: Number(fastTagCharges),
+                otherCharges: Number(otherCharges),
+                logoUrl,
+                brandColor,
+                ...(user?.role === 'SuperAdmin' ? { adminPayLink } : {})
+            });
+            setSuccess(true);
+            setTimeout(() => setSuccess(false), 3000);
+        } catch (error) {
+            console.error('Failed to update profile:', error);
+            alert('Failed to update company profile.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    if (authLoading || !user) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <Loader2 className="animate-spin text-brand-gold" size={40} />
+            </div>
+        );
+    }
+
+    return (
+        <div className="max-w-4xl mx-auto px-6 py-12">
+            <Link href="/dashboard" className="text-text-muted hover:text-brand-gold flex items-center gap-2 mb-8 transition-colors text-sm">
+                <ChevronLeft size={16} /> Back to Dashboard
+            </Link>
+
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
+                <div>
+                    <h4 className="text-tactical text-brand-gold mb-2 uppercase tracking-widest">Branding Hub</h4>
+                    <h1 className="text-4xl font-serif font-bold">Company Profile</h1>
+                    <p className="text-text-muted mt-2">Manage your transport agency's public identity and heritage credentials.</p>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full text-green-500 text-[10px] font-black uppercase tracking-widest">
+                    <ShieldCheck size={14} />
+                    Verified Partner
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                <div className="lg:col-span-2">
+                    <form onSubmit={handleSave} className="space-y-8">
+                        <div className="glass p-8 rounded-[2.5rem] border-white/5 space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Official Agency Name</label>
+                                <div className="relative">
+                                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-gold/50" size={18} />
+                                    <input
+                                        type="text"
+                                        value={companyName}
+                                        onChange={(e) => setCompanyName(e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-brand-gold outline-none transition-colors"
+                                        placeholder="e.g. S3T Heritage Travels"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">HQ Address</label>
+                                <div className="relative">
+                                    <MapPin className="absolute left-4 top-4 text-brand-gold/50" size={18} />
+                                    <textarea
+                                        value={companyAddress}
+                                        onChange={(e) => setCompanyAddress(e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-brand-gold outline-none transition-colors min-h-[120px] resize-none"
+                                        placeholder="Full operational address..."
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Primary Operations Phone</label>
+                                    <div className="relative">
+                                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-gold/50" size={18} />
+                                        <input
+                                            type="tel"
+                                            value={companyPhone}
+                                            onChange={(e) => setCompanyPhone(e.target.value)}
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-brand-gold outline-none transition-colors"
+                                            placeholder="+91 9XXXX XXXXX"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Digital Correspondance Email</label>
+                                    <div className="relative">
+                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-gold/50" size={18} />
+                                        <input
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-brand-gold outline-none transition-colors"
+                                            placeholder="tours@agency.com"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">UPI ID for Payments (WhatsApp/Customer Apps)</label>
+                                <div className="relative">
+                                    <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-gold/50" size={18} />
+                                    <input
+                                        type="text"
+                                        value={upiLink}
+                                        onChange={(e) => setUpiLink(e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-brand-gold outline-none transition-colors"
+                                        placeholder="e.g. s3t-travels@okaxis"
+                                    />
+                                </div>
+                                <p className="text-[10px] text-text-muted ml-1 italic opacity-60">Customers will use this ID for direct payments. Make sure it's correct.</p>
+                            </div>
+
+                            <div className="pt-8 border-t border-white/5 space-y-6">
+                                <h3 className="text-lg font-serif font-bold text-brand-gold uppercase tracking-widest">Brand Visual Styling</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Company Logo URL</label>
+                                        <input
+                                            type="url"
+                                            value={logoUrl}
+                                            onChange={(e) => setLogoUrl(e.target.value)}
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm focus:border-brand-gold outline-none transition-colors"
+                                            placeholder="https://example.com/logo.png"
+                                        />
+                                        <p className="text-[10px] text-text-muted italic opacity-60 ml-1">Enter a valid URL for your PNG/JPG logo.</p>
+                                        {logoUrl && (
+                                            <div className="mt-2 flex items-center gap-3 p-3 bg-white/5 rounded-2xl border border-white/5">
+                                                <img src={logoUrl} alt="Logo Preview" className="h-10 object-contain max-w-[120px]" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
+                                                <span className="text-[10px] text-text-muted">Logo Preview</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Theme Accent Color</label>
+                                        <div className="flex gap-3">
+                                            <input
+                                                type="color"
+                                                value={brandColor}
+                                                onChange={(e) => setBrandColor(e.target.value)}
+                                                className="w-12 h-12 bg-white/5 border border-white/10 rounded-xl outline-none p-1 cursor-pointer animate-in fade-in"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={brandColor}
+                                                onChange={(e) => setBrandColor(e.target.value)}
+                                                className="flex-grow bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm focus:border-brand-gold outline-none transition-colors"
+                                                placeholder="#1a365d"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-8 border-t border-white/5">
+                                <h3 className="text-lg font-serif font-bold text-brand-gold mb-6 uppercase tracking-widest">Standard Operating Rates</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Driver Charges (Per Trip)</label>
+                                        <input
+                                            type="number"
+                                            value={driverCharges}
+                                            onChange={(e) => setDriverCharges(e.target.value)}
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm focus:border-brand-gold outline-none transition-colors"
+                                            placeholder="500"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Toll Charges (Standard)</label>
+                                        <input
+                                            type="number"
+                                            value={tollCharges}
+                                            onChange={(e) => setTollCharges(e.target.value)}
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm focus:border-brand-gold outline-none transition-colors"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">FastTag (Standard)</label>
+                                        <input
+                                            type="number"
+                                            value={fastTagCharges}
+                                            onChange={(e) => setFastTagCharges(e.target.value)}
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm focus:border-brand-gold outline-none transition-colors"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Other Charges</label>
+                                        <input
+                                            type="number"
+                                            value={otherCharges}
+                                            onChange={(e) => setOtherCharges(e.target.value)}
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm focus:border-brand-gold outline-none transition-colors"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                </div>
+                                <p className="text-[10px] text-text-muted mt-4 italic opacity-60">These rates are shown as read-only to customers during their booking flow.</p>
+                            </div>
+
+                            {user?.role === 'SuperAdmin' && (
+                                <div className="pt-8 border-t border-white/5 space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-brand-gold ml-1">SaaS Subscription Payment Link (Razorpay/Stripe)</label>
+                                    <div className="relative">
+                                        <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-gold/50" size={18} />
+                                        <input
+                                            type="text"
+                                            value={adminPayLink}
+                                            onChange={(e) => setAdminPayLink(e.target.value)}
+                                            className="w-full bg-brand-gold/5 border border-brand-gold/20 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-brand-gold outline-none transition-colors"
+                                            placeholder="https://rzp.io/l/yourlink"
+                                        />
+                                    </div>
+                                    <p className="text-[10px] text-brand-gold italic opacity-80 ml-1">New partners will be redirected to this link to pay their monthly subscription fees.</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                            <button
+                                type="submit"
+                                disabled={isSaving}
+                                className="gold-bg-gradient flex-grow py-4 rounded-2xl text-bg-deep font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform shadow-lg disabled:opacity-50"
+                            >
+                                {isSaving ? <Loader2 className="animate-spin" size={20} /> : <><Save size={20} /> Update Heritage Registry</>}
+                            </button>
+                            {success && (
+                                <div className="text-green-500 font-bold text-sm animate-in fade-in slide-in-from-left-4">
+                                    Saved Successfully!
+                                </div>
+                            )}
+                        </div>
+                    </form>
+                </div>
+
+                <div className="space-y-6">
+                    <div className="glass p-8 rounded-[2.5rem] border-white/5">
+                        <h3 className="text-lg font-serif font-bold mb-4">Account Metadata</h3>
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-[10px] uppercase text-text-muted tracking-widest">Partner Identity</p>
+                                <p className="text-brand-gold font-bold">{user.userName}</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] uppercase text-text-muted tracking-widest">Access Role</p>
+                                <p className="text-white">{user.role === 'SuperAdmin' ? 'Super Administrator' : 'Heritage Partner'}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-6 rounded-[2rem] bg-brand-gold/5 border border-brand-gold/10">
+                        <p className="text-xs text-brand-gold/70 leading-relaxed italic">
+                            "These details appear on your transport agreements and PDF quotations generated for clients. Ensure accuracy for professional heritage operations."
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

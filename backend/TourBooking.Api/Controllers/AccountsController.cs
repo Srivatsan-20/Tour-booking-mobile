@@ -268,22 +268,23 @@ public sealed class AccountsController : ControllerBase
 		}
 
 		var ids = agreements.Select(x => x.Id).ToList();
-		var totals = ids.Count == 0
-			? new Dictionary<Guid, decimal>()
+		var tripExpenses = ids.Count == 0
+			? new List<TripExpense>()
 			: await _db.TripExpenses
 				.AsNoTracking()
 				.Where(x => ids.Contains(x.AgreementId))
-				.Select(x => new
-				{
-					x.AgreementId,
-					Driver = x.BusExpenses.Sum(be => (decimal?)be.DriverBatta) ?? 0m,
-					Fuel = x.BusExpenses.SelectMany(be => be.FuelEntries).Sum(f => (decimal?)f.Cost) ?? 0m,
-					Other = x.BusExpenses.SelectMany(be => be.OtherExpenses).Sum(o => (decimal?)o.Amount) ?? 0m,
-				})
-				.ToDictionaryAsync(
-					x => x.AgreementId,
-					x => x.Driver + x.Fuel + x.Other,
-					cancellationToken);
+				.Include(x => x.BusExpenses)
+					.ThenInclude(be => be.FuelEntries)
+				.Include(x => x.BusExpenses)
+					.ThenInclude(be => be.OtherExpenses)
+				.ToListAsync(cancellationToken);
+
+		var totals = tripExpenses.ToDictionary(
+			x => x.AgreementId,
+			x => x.BusExpenses.Sum(be => be.DriverBatta) +
+			     x.BusExpenses.SelectMany(be => be.FuelEntries).Sum(f => f.Cost) +
+			     x.BusExpenses.SelectMany(be => be.OtherExpenses).Sum(o => o.Amount)
+		);
 
 		var result = agreements
 			.Select(a =>

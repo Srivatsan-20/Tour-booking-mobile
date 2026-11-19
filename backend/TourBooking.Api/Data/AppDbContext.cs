@@ -11,9 +11,10 @@ public sealed class AppDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
-    public DbSet<Agreement> Agreements => Set<Agreement>();
-
+    public DbSet<CustomerUser> CustomerUsers => Set<CustomerUser>();
     public DbSet<Bus> Buses => Set<Bus>();
+    public DbSet<Agreement> Agreements => Set<Agreement>();
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
     public DbSet<AgreementBusAssignment> AgreementBusAssignments => Set<AgreementBusAssignment>();
 
 	public DbSet<TripExpense> TripExpenses => Set<TripExpense>();
@@ -23,11 +24,24 @@ public sealed class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<SystemSetting>()
+            .HasKey(x => x.Key);
+
         var user = modelBuilder.Entity<User>();
         user.HasKey(x => x.Id);
         user.Property(x => x.Username).HasMaxLength(100).IsRequired();
         user.HasIndex(x => x.Username).IsUnique();
         user.Property(x => x.Email).HasMaxLength(200);
+        user.Property(x => x.LogoUrl).HasMaxLength(1000);
+        user.Property(x => x.BrandColor).HasMaxLength(50);
+
+        var customerUser = modelBuilder.Entity<CustomerUser>();
+        customerUser.HasKey(x => x.Id);
+        customerUser.Property(x => x.Phone).HasMaxLength(20).IsRequired();
+        customerUser.HasIndex(x => x.Phone).IsUnique();
+        customerUser.Property(x => x.Name).HasMaxLength(200).IsRequired();
+        customerUser.Property(x => x.Email).HasMaxLength(200);
+        customerUser.Property(x => x.CreatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         var agreement = modelBuilder.Entity<Agreement>();
         agreement.HasKey(x => x.Id);
@@ -36,6 +50,12 @@ public sealed class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(x => x.UserId)
             .OnDelete(DeleteBehavior.NoAction);
+
+        agreement.HasOne(x => x.CustomerUser)
+            .WithMany(x => x.Agreements)
+            .HasForeignKey(x => x.CustomerUserId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
 
         agreement.Property(x => x.CustomerName).HasMaxLength(200).IsRequired();
         agreement.Property(x => x.Phone).HasMaxLength(50);
@@ -53,18 +73,18 @@ public sealed class AppDbContext : DbContext
 	        .HasDefaultValue(false);
 	    agreement.Property(x => x.CancelledAtUtc);
 
-        agreement.Property(x => x.TotalAmount).HasColumnType("decimal(18,2)");
-        agreement.Property(x => x.AdvancePaid).HasColumnType("decimal(18,2)");
-        agreement.Property(x => x.Balance).HasColumnType("decimal(18,2)");
+        agreement.Property(x => x.TotalAmount);
+        agreement.Property(x => x.AdvancePaid);
+        agreement.Property(x => x.Balance);
 
-        agreement.Property(x => x.PerDayRent).HasColumnType("decimal(18,2)");
+        agreement.Property(x => x.PerDayRent);
         agreement.Property(x => x.IncludeMountainRent).HasDefaultValue(false);
-        agreement.Property(x => x.MountainRent).HasColumnType("decimal(18,2)");
+        agreement.Property(x => x.MountainRent);
         agreement.Property(x => x.UseIndividualBusRates).HasDefaultValue(false);
         agreement.Property(x => x.BusRatesJson).HasMaxLength(8000);
 
         agreement.Property(x => x.CreatedAtUtc)
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
 		// Accounts / expenses (1 Agreement -> 0..1 TripExpense)
 		var tripExpense = modelBuilder.Entity<TripExpense>();
@@ -124,7 +144,10 @@ public sealed class AppDbContext : DbContext
             .OnDelete(DeleteBehavior.NoAction);
         bus.Property(x => x.Name).HasMaxLength(100);
         bus.Property(x => x.IsActive).HasDefaultValue(true);
-        bus.Property(x => x.CreatedAtUtc).HasDefaultValueSql("GETUTCDATE()");
+        bus.Property(x => x.BaseRate).HasDefaultValue(5000m);
+        bus.Property(x => x.BusType).HasMaxLength(50).HasDefaultValue("AC");
+        bus.Property(x => x.Capacity).HasDefaultValue(40);
+        bus.Property(x => x.CreatedAtUtc).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         var assignment = modelBuilder.Entity<AgreementBusAssignment>();
         assignment.HasKey(x => new { x.AgreementId, x.BusId });

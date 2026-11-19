@@ -1,0 +1,770 @@
+Building...
+/Users/admin/Documents/Win-Projects/AntiGravity/Tour-booking-mobile-1/backend/TourBooking.Api/Controllers/PaymentController.cs(41,38): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [/Users/admin/Documents/Win-Projects/AntiGravity/Tour-booking-mobile-1/backend/TourBooking.Api/TourBooking.Api.csproj]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      PRAGMA journal_mode = 'wal';
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "CustomerUsers" (
+          "Id" INTEGER NOT NULL CONSTRAINT "PK_CustomerUsers" PRIMARY KEY AUTOINCREMENT,
+          "Name" TEXT NOT NULL,
+          "Phone" TEXT NOT NULL,
+          "Email" TEXT NOT NULL,
+          "PasswordHash" TEXT NOT NULL,
+          "CreatedAtUtc" TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP)
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "SystemSettings" (
+          "Key" TEXT NOT NULL CONSTRAINT "PK_SystemSettings" PRIMARY KEY,
+          "Value" TEXT NOT NULL,
+          "Group" TEXT NOT NULL,
+          "UpdatedAtUtc" TEXT NOT NULL
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "Users" (
+          "Id" INTEGER NOT NULL CONSTRAINT "PK_Users" PRIMARY KEY AUTOINCREMENT,
+          "Username" TEXT NOT NULL,
+          "PasswordHash" TEXT NOT NULL,
+          "Email" TEXT NOT NULL,
+          "CompanyName" TEXT NOT NULL,
+          "CompanyAddress" TEXT NOT NULL,
+          "CompanyPhone" TEXT NOT NULL,
+          "CompanyEmail" TEXT NOT NULL,
+          "UpiLink" TEXT NULL
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "Agreements" (
+          "Id" TEXT NOT NULL CONSTRAINT "PK_Agreements" PRIMARY KEY,
+          "UserId" INTEGER NULL,
+          "CustomerUserId" INTEGER NULL,
+          "CustomerName" TEXT NOT NULL,
+          "Phone" TEXT NOT NULL,
+          "FromDate" TEXT NOT NULL,
+          "ToDate" TEXT NOT NULL,
+          "BusType" TEXT NOT NULL,
+          "BusCount" INTEGER NULL,
+          "Passengers" INTEGER NULL,
+          "PlacesToCover" TEXT NOT NULL,
+          "TotalAmount" TEXT NULL,
+          "AdvancePaid" TEXT NULL,
+          "Balance" TEXT NULL,
+          "PerDayRent" TEXT NULL,
+          "IncludeMountainRent" INTEGER NOT NULL DEFAULT 0,
+          "MountainRent" TEXT NULL,
+          "UseIndividualBusRates" INTEGER NOT NULL DEFAULT 0,
+          "BusRatesJson" TEXT NULL,
+          "Notes" TEXT NOT NULL,
+          "IsCancelled" INTEGER NOT NULL DEFAULT 0,
+          "CancelledAtUtc" TEXT NULL,
+          "IsCompleted" INTEGER NOT NULL,
+          "CreatedAtUtc" TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+          CONSTRAINT "FK_Agreements_CustomerUsers_CustomerUserId" FOREIGN KEY ("CustomerUserId") REFERENCES "CustomerUsers" ("Id") ON DELETE SET NULL,
+          CONSTRAINT "FK_Agreements_Users_UserId" FOREIGN KEY ("UserId") REFERENCES "Users" ("Id")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "Buses" (
+          "Id" TEXT NOT NULL CONSTRAINT "PK_Buses" PRIMARY KEY,
+          "UserId" INTEGER NULL,
+          "VehicleNumber" TEXT NOT NULL,
+          "Name" TEXT NULL,
+          "IsActive" INTEGER NOT NULL DEFAULT 1,
+          "BusType" TEXT NOT NULL DEFAULT 'AC',
+          "Capacity" INTEGER NOT NULL DEFAULT 40,
+          "BaseRate" TEXT NOT NULL DEFAULT '5000.0',
+          "HomeCity" TEXT NULL,
+          "CreatedAtUtc" TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+          CONSTRAINT "FK_Buses_Users_UserId" FOREIGN KEY ("UserId") REFERENCES "Users" ("Id")
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "TripExpenses" (
+          "Id" TEXT NOT NULL CONSTRAINT "PK_TripExpenses" PRIMARY KEY,
+          "AgreementId" TEXT NOT NULL,
+          "CreatedAtUtc" TEXT NOT NULL DEFAULT (GETUTCDATE()),
+          "UpdatedAtUtc" TEXT NOT NULL DEFAULT (GETUTCDATE()),
+          CONSTRAINT "FK_TripExpenses_Agreements_AgreementId" FOREIGN KEY ("AgreementId") REFERENCES "Agreements" ("Id") ON DELETE CASCADE
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "AgreementBusAssignments" (
+          "AgreementId" TEXT NOT NULL,
+          "BusId" TEXT NOT NULL,
+          "CreatedAtUtc" TEXT NOT NULL DEFAULT (GETUTCDATE()),
+          CONSTRAINT "PK_AgreementBusAssignments" PRIMARY KEY ("AgreementId", "BusId"),
+          CONSTRAINT "FK_AgreementBusAssignments_Agreements_AgreementId" FOREIGN KEY ("AgreementId") REFERENCES "Agreements" ("Id") ON DELETE CASCADE,
+          CONSTRAINT "FK_AgreementBusAssignments_Buses_BusId" FOREIGN KEY ("BusId") REFERENCES "Buses" ("Id") ON DELETE CASCADE
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "BusExpenses" (
+          "Id" TEXT NOT NULL CONSTRAINT "PK_BusExpenses" PRIMARY KEY,
+          "TripExpenseId" TEXT NOT NULL,
+          "BusId" TEXT NULL,
+          "DriverBatta" decimal(18,2) NOT NULL DEFAULT '0.0',
+          "Days" INTEGER NOT NULL DEFAULT 0,
+          "StartKm" INTEGER NULL,
+          "EndKm" INTEGER NULL,
+          "DisplayOrder" INTEGER NOT NULL DEFAULT 0,
+          CONSTRAINT "FK_BusExpenses_Buses_BusId" FOREIGN KEY ("BusId") REFERENCES "Buses" ("Id") ON DELETE SET NULL,
+          CONSTRAINT "FK_BusExpenses_TripExpenses_TripExpenseId" FOREIGN KEY ("TripExpenseId") REFERENCES "TripExpenses" ("Id") ON DELETE CASCADE
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "FuelEntries" (
+          "Id" TEXT NOT NULL CONSTRAINT "PK_FuelEntries" PRIMARY KEY,
+          "BusExpenseId" TEXT NOT NULL,
+          "Place" TEXT NOT NULL,
+          "Liters" decimal(18,2) NOT NULL DEFAULT '0.0',
+          "Cost" decimal(18,2) NOT NULL DEFAULT '0.0',
+          CONSTRAINT "FK_FuelEntries_BusExpenses_BusExpenseId" FOREIGN KEY ("BusExpenseId") REFERENCES "BusExpenses" ("Id") ON DELETE CASCADE
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "OtherExpenses" (
+          "Id" TEXT NOT NULL CONSTRAINT "PK_OtherExpenses" PRIMARY KEY,
+          "BusExpenseId" TEXT NOT NULL,
+          "Description" TEXT NOT NULL,
+          "Amount" decimal(18,2) NOT NULL DEFAULT '0.0',
+          CONSTRAINT "FK_OtherExpenses_BusExpenses_BusExpenseId" FOREIGN KEY ("BusExpenseId") REFERENCES "BusExpenses" ("Id") ON DELETE CASCADE
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_AgreementBusAssignments_BusId" ON "AgreementBusAssignments" ("BusId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_Agreements_CustomerUserId" ON "Agreements" ("CustomerUserId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_Agreements_UserId" ON "Agreements" ("UserId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_Buses_UserId_VehicleNumber" ON "Buses" ("UserId", "VehicleNumber");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_BusExpenses_BusId" ON "BusExpenses" ("BusId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_BusExpenses_TripExpenseId" ON "BusExpenses" ("TripExpenseId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_CustomerUsers_Phone" ON "CustomerUsers" ("Phone");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_FuelEntries_BusExpenseId" ON "FuelEntries" ("BusExpenseId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_OtherExpenses_BusExpenseId" ON "OtherExpenses" ("BusExpenseId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_TripExpenses_AgreementId" ON "TripExpenses" ("AgreementId");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE UNIQUE INDEX "IX_Users_Username" ON "Users" ("Username");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Users" AS "u")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@p0='?', @p1='?', @p2='?' (Size = 22), @p3='?', @p4='?', @p5='?' (Size = 60), @p6='?', @p7='?' (Size = 7)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "Users" ("CompanyAddress", "CompanyEmail", "CompanyName", "CompanyPhone", "Email", "PasswordHash", "UpiLink", "Username")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7)
+      RETURNING "Id";
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Buses" AS "b")
+warn: Microsoft.EntityFrameworkCore.Query[10103]
+      The query uses the 'First'/'FirstOrDefault' operator without 'OrderBy' and filter operators. This may lead to unpredictable results.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username"
+      FROM "Users" AS "u"
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = Decimal), @p2='?' (Size = 2), @p3='?' (DbType = Int32), @p4='?', @p5='?', @p6='?' (DbType = Int32), @p7='?' (Size = 6)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "Buses" ("Id", "BaseRate", "BusType", "Capacity", "HomeCity", "Name", "UserId", "VehicleNumber")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7)
+      RETURNING "CreatedAtUtc", "IsActive";
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = Decimal), @p2='?' (Size = 6), @p3='?' (DbType = Int32), @p4='?', @p5='?', @p6='?' (DbType = Int32), @p7='?' (Size = 10)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "Buses" ("Id", "BaseRate", "BusType", "Capacity", "HomeCity", "Name", "UserId", "VehicleNumber")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7)
+      RETURNING "CreatedAtUtc", "IsActive";
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = Decimal), @p2='?' (Size = 2), @p3='?' (DbType = Int32), @p4='?', @p5='?', @p6='?' (DbType = Int32), @p7='?' (Size = 10)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "Buses" ("Id", "BaseRate", "BusType", "Capacity", "HomeCity", "Name", "UserId", "VehicleNumber")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7)
+      RETURNING "CreatedAtUtc", "IsActive";
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5115
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: /Users/admin/Documents/Win-Projects/AntiGravity/Tour-booking-mobile-1/backend/TourBooking.Api
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username"
+      FROM "Buses" AS "b"
+      LEFT JOIN "Users" AS "u" ON "b"."UserId" = "u"."Id"
+      WHERE "b"."IsActive"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId"
+      FROM "Agreements" AS "a"
+      WHERE NOT ("a"."IsCancelled")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__agreementIds_0='?' (Size = 2)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."AgreementId", "a"."BusId", "a"."CreatedAtUtc"
+      FROM "AgreementBusAssignments" AS "a"
+      WHERE "a"."AgreementId" IN (
+          SELECT "a0"."value"
+          FROM json_each(@__agreementIds_0) AS "a0"
+      )
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username"
+      FROM "Buses" AS "b"
+      LEFT JOIN "Users" AS "u" ON "b"."UserId" = "u"."Id"
+      WHERE "b"."IsActive"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId"
+      FROM "Agreements" AS "a"
+      WHERE NOT ("a"."IsCancelled")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__agreementIds_0='?' (Size = 2)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."AgreementId", "a"."BusId", "a"."CreatedAtUtc"
+      FROM "AgreementBusAssignments" AS "a"
+      WHERE "a"."AgreementId" IN (
+          SELECT "a0"."value"
+          FROM json_each(@__agreementIds_0) AS "a0"
+      )
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username"
+      FROM "Buses" AS "b"
+      LEFT JOIN "Users" AS "u" ON "b"."UserId" = "u"."Id"
+      WHERE "b"."IsActive"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId"
+      FROM "Agreements" AS "a"
+      WHERE NOT ("a"."IsCancelled")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__agreementIds_0='?' (Size = 2)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."AgreementId", "a"."BusId", "a"."CreatedAtUtc"
+      FROM "AgreementBusAssignments" AS "a"
+      WHERE "a"."AgreementId" IN (
+          SELECT "a0"."value"
+          FROM json_each(@__agreementIds_0) AS "a0"
+      )
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username"
+      FROM "Buses" AS "b"
+      LEFT JOIN "Users" AS "u" ON "b"."UserId" = "u"."Id"
+      WHERE "b"."IsActive"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId"
+      FROM "Agreements" AS "a"
+      WHERE NOT ("a"."IsCancelled")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__agreementIds_0='?' (Size = 2)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."AgreementId", "a"."BusId", "a"."CreatedAtUtc"
+      FROM "AgreementBusAssignments" AS "a"
+      WHERE "a"."AgreementId" IN (
+          SELECT "a0"."value"
+          FROM json_each(@__agreementIds_0) AS "a0"
+      )
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__dto_Phone_0='?' (Size = 10)], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "CustomerUsers" AS "c"
+          WHERE "c"."Phone" = @__dto_Phone_0)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (Size = 16), @p2='?' (Size = 8), @p3='?' (Size = 60), @p4='?' (Size = 10)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "CustomerUsers" ("CreatedAtUtc", "Email", "Name", "PasswordHash", "Phone")
+      VALUES (@p0, @p1, @p2, @p3, @p4)
+      RETURNING "Id";
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__customerId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username", "t"."AgreementId", "t"."BusId", "t"."CreatedAtUtc", "t"."Id", "t"."BaseRate", "t"."BusType", "t"."Capacity", "t"."CreatedAtUtc0", "t"."HomeCity", "t"."IsActive", "t"."Name", "t"."UserId", "t"."VehicleNumber"
+      FROM "Agreements" AS "a"
+      LEFT JOIN "Users" AS "u" ON "a"."UserId" = "u"."Id"
+      LEFT JOIN (
+          SELECT "a0"."AgreementId", "a0"."BusId", "a0"."CreatedAtUtc", "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc" AS "CreatedAtUtc0", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber"
+          FROM "AgreementBusAssignments" AS "a0"
+          INNER JOIN "Buses" AS "b" ON "a0"."BusId" = "b"."Id"
+      ) AS "t" ON "a"."Id" = "t"."AgreementId"
+      WHERE "a"."CustomerUserId" = @__customerId_0 AND NOT ("a"."IsCancelled")
+      ORDER BY "a"."CreatedAtUtc" DESC, "a"."Id", "u"."Id", "t"."AgreementId", "t"."BusId"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__customerId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username", "t"."AgreementId", "t"."BusId", "t"."CreatedAtUtc", "t"."Id", "t"."BaseRate", "t"."BusType", "t"."Capacity", "t"."CreatedAtUtc0", "t"."HomeCity", "t"."IsActive", "t"."Name", "t"."UserId", "t"."VehicleNumber"
+      FROM "Agreements" AS "a"
+      LEFT JOIN "Users" AS "u" ON "a"."UserId" = "u"."Id"
+      LEFT JOIN (
+          SELECT "a0"."AgreementId", "a0"."BusId", "a0"."CreatedAtUtc", "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc" AS "CreatedAtUtc0", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber"
+          FROM "AgreementBusAssignments" AS "a0"
+          INNER JOIN "Buses" AS "b" ON "a0"."BusId" = "b"."Id"
+      ) AS "t" ON "a"."Id" = "t"."AgreementId"
+      WHERE "a"."CustomerUserId" = @__customerId_0 AND NOT ("a"."IsCancelled")
+      ORDER BY "a"."CreatedAtUtc" DESC, "a"."Id", "u"."Id", "t"."AgreementId", "t"."BusId"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username"
+      FROM "Buses" AS "b"
+      LEFT JOIN "Users" AS "u" ON "b"."UserId" = "u"."Id"
+      WHERE "b"."IsActive"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId"
+      FROM "Agreements" AS "a"
+      WHERE NOT ("a"."IsCancelled")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__agreementIds_0='?' (Size = 2)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."AgreementId", "a"."BusId", "a"."CreatedAtUtc"
+      FROM "AgreementBusAssignments" AS "a"
+      WHERE "a"."AgreementId" IN (
+          SELECT "a0"."value"
+          FROM json_each(@__agreementIds_0) AS "a0"
+      )
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username"
+      FROM "Buses" AS "b"
+      LEFT JOIN "Users" AS "u" ON "b"."UserId" = "u"."Id"
+      WHERE "b"."IsActive"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId"
+      FROM "Agreements" AS "a"
+      WHERE NOT ("a"."IsCancelled")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__agreementIds_0='?' (Size = 2)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."AgreementId", "a"."BusId", "a"."CreatedAtUtc"
+      FROM "AgreementBusAssignments" AS "a"
+      WHERE "a"."AgreementId" IN (
+          SELECT "a0"."value"
+          FROM json_each(@__agreementIds_0) AS "a0"
+      )
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username"
+      FROM "Buses" AS "b"
+      LEFT JOIN "Users" AS "u" ON "b"."UserId" = "u"."Id"
+      WHERE "b"."IsActive"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId"
+      FROM "Agreements" AS "a"
+      WHERE NOT ("a"."IsCancelled")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__agreementIds_0='?' (Size = 2)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."AgreementId", "a"."BusId", "a"."CreatedAtUtc"
+      FROM "AgreementBusAssignments" AS "a"
+      WHERE "a"."AgreementId" IN (
+          SELECT "a0"."value"
+          FROM json_each(@__agreementIds_0) AS "a0"
+      )
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username"
+      FROM "Buses" AS "b"
+      LEFT JOIN "Users" AS "u" ON "b"."UserId" = "u"."Id"
+      WHERE "b"."Id" = @__id_0 AND "b"."IsActive"
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username"
+      FROM "Buses" AS "b"
+      LEFT JOIN "Users" AS "u" ON "b"."UserId" = "u"."Id"
+      WHERE "b"."Id" = @__id_0 AND "b"."IsActive"
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__customerId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username", "t"."AgreementId", "t"."BusId", "t"."CreatedAtUtc", "t"."Id", "t"."BaseRate", "t"."BusType", "t"."Capacity", "t"."CreatedAtUtc0", "t"."HomeCity", "t"."IsActive", "t"."Name", "t"."UserId", "t"."VehicleNumber"
+      FROM "Agreements" AS "a"
+      LEFT JOIN "Users" AS "u" ON "a"."UserId" = "u"."Id"
+      LEFT JOIN (
+          SELECT "a0"."AgreementId", "a0"."BusId", "a0"."CreatedAtUtc", "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc" AS "CreatedAtUtc0", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber"
+          FROM "AgreementBusAssignments" AS "a0"
+          INNER JOIN "Buses" AS "b" ON "a0"."BusId" = "b"."Id"
+      ) AS "t" ON "a"."Id" = "t"."AgreementId"
+      WHERE "a"."CustomerUserId" = @__customerId_0 AND NOT ("a"."IsCancelled")
+      ORDER BY "a"."CreatedAtUtc" DESC, "a"."Id", "u"."Id", "t"."AgreementId", "t"."BusId"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__customerId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username", "t"."AgreementId", "t"."BusId", "t"."CreatedAtUtc", "t"."Id", "t"."BaseRate", "t"."BusType", "t"."Capacity", "t"."CreatedAtUtc0", "t"."HomeCity", "t"."IsActive", "t"."Name", "t"."UserId", "t"."VehicleNumber"
+      FROM "Agreements" AS "a"
+      LEFT JOIN "Users" AS "u" ON "a"."UserId" = "u"."Id"
+      LEFT JOIN (
+          SELECT "a0"."AgreementId", "a0"."BusId", "a0"."CreatedAtUtc", "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc" AS "CreatedAtUtc0", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber"
+          FROM "AgreementBusAssignments" AS "a0"
+          INNER JOIN "Buses" AS "b" ON "a0"."BusId" = "b"."Id"
+      ) AS "t" ON "a"."Id" = "t"."AgreementId"
+      WHERE "a"."CustomerUserId" = @__customerId_0 AND NOT ("a"."IsCancelled")
+      ORDER BY "a"."CreatedAtUtc" DESC, "a"."Id", "u"."Id", "t"."AgreementId", "t"."BusId"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username"
+      FROM "Buses" AS "b"
+      LEFT JOIN "Users" AS "u" ON "b"."UserId" = "u"."Id"
+      WHERE "b"."Id" = @__id_0 AND "b"."IsActive"
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__request_BusId_Value_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber"
+      FROM "Buses" AS "b"
+      WHERE "b"."Id" = @__request_BusId_Value_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = Decimal), @p2='?' (DbType = Decimal), @p3='?' (DbType = Int32), @p4='?', @p5='?' (Size = 2), @p6='?' (DbType = DateTime), @p7='?' (DbType = DateTime), @p8='?' (Size = 8), @p9='?' (DbType = Int32), @p10='?' (Size = 10), @p11='?' (DbType = Boolean), @p12='?' (DbType = Decimal), @p13='?' (Size = 32), @p14='?' (DbType = Int32), @p15='?' (DbType = Decimal), @p16='?', @p17='?', @p18='?' (Size = 10), @p19='?' (DbType = Decimal), @p20='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "Agreements" ("Id", "AdvancePaid", "Balance", "BusCount", "BusRatesJson", "BusType", "CancelledAtUtc", "CreatedAtUtc", "CustomerName", "CustomerUserId", "FromDate", "IsCompleted", "MountainRent", "Notes", "Passengers", "PerDayRent", "Phone", "PlacesToCover", "ToDate", "TotalAmount", "UserId")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16, @p17, @p18, @p19, @p20)
+      RETURNING "IncludeMountainRent", "IsCancelled", "UseIndividualBusRates";
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = Guid), @p2='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "AgreementBusAssignments" ("AgreementId", "BusId", "CreatedAtUtc")
+      VALUES (@p0, @p1, @p2);
+[NOTIFICATION] Sending WhatsApp to 
+Message: Dear John Doe, your booking for TT2222 from 01/05/2026 to 01/05/2026 is confirmed. Total: ₹8500.0.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__customerId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username", "t"."AgreementId", "t"."BusId", "t"."CreatedAtUtc", "t"."Id", "t"."BaseRate", "t"."BusType", "t"."Capacity", "t"."CreatedAtUtc0", "t"."HomeCity", "t"."IsActive", "t"."Name", "t"."UserId", "t"."VehicleNumber"
+      FROM "Agreements" AS "a"
+      LEFT JOIN "Users" AS "u" ON "a"."UserId" = "u"."Id"
+      LEFT JOIN (
+          SELECT "a0"."AgreementId", "a0"."BusId", "a0"."CreatedAtUtc", "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc" AS "CreatedAtUtc0", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber"
+          FROM "AgreementBusAssignments" AS "a0"
+          INNER JOIN "Buses" AS "b" ON "a0"."BusId" = "b"."Id"
+      ) AS "t" ON "a"."Id" = "t"."AgreementId"
+      WHERE "a"."CustomerUserId" = @__customerId_0 AND NOT ("a"."IsCancelled")
+      ORDER BY "a"."CreatedAtUtc" DESC, "a"."Id", "u"."Id", "t"."AgreementId", "t"."BusId"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__request_BusId_Value_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber"
+      FROM "Buses" AS "b"
+      WHERE "b"."Id" = @__request_BusId_Value_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = Decimal), @p2='?' (DbType = Decimal), @p3='?' (DbType = Int32), @p4='?', @p5='?' (Size = 2), @p6='?' (DbType = DateTime), @p7='?' (DbType = DateTime), @p8='?' (Size = 8), @p9='?' (DbType = Int32), @p10='?' (Size = 10), @p11='?' (DbType = Boolean), @p12='?' (DbType = Decimal), @p13='?' (Size = 32), @p14='?' (DbType = Int32), @p15='?' (DbType = Decimal), @p16='?', @p17='?', @p18='?' (Size = 10), @p19='?' (DbType = Decimal), @p20='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "Agreements" ("Id", "AdvancePaid", "Balance", "BusCount", "BusRatesJson", "BusType", "CancelledAtUtc", "CreatedAtUtc", "CustomerName", "CustomerUserId", "FromDate", "IsCompleted", "MountainRent", "Notes", "Passengers", "PerDayRent", "Phone", "PlacesToCover", "ToDate", "TotalAmount", "UserId")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16, @p17, @p18, @p19, @p20)
+      RETURNING "IncludeMountainRent", "IsCancelled", "UseIndividualBusRates";
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = Guid), @p1='?' (DbType = Guid), @p2='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "AgreementBusAssignments" ("AgreementId", "BusId", "CreatedAtUtc")
+      VALUES (@p0, @p1, @p2);
+[NOTIFICATION] Sending WhatsApp to 
+Message: Dear John Doe, your booking for TT2222 from 01/05/2026 to 01/05/2026 is confirmed. Total: ₹8500.0.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId"
+      FROM "Agreements" AS "a"
+      WHERE "a"."Id" = @__id_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__phone_0='?' (Size = 10)], CommandType='Text', CommandTimeout='30']
+      SELECT "c"."Id", "c"."CreatedAtUtc", "c"."Email", "c"."Name", "c"."PasswordHash", "c"."Phone"
+      FROM "CustomerUsers" AS "c"
+      WHERE "c"."Phone" = @__phone_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__customerId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username", "t"."AgreementId", "t"."BusId", "t"."CreatedAtUtc", "t"."Id", "t"."BaseRate", "t"."BusType", "t"."Capacity", "t"."CreatedAtUtc0", "t"."HomeCity", "t"."IsActive", "t"."Name", "t"."UserId", "t"."VehicleNumber"
+      FROM "Agreements" AS "a"
+      LEFT JOIN "Users" AS "u" ON "a"."UserId" = "u"."Id"
+      LEFT JOIN (
+          SELECT "a0"."AgreementId", "a0"."BusId", "a0"."CreatedAtUtc", "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc" AS "CreatedAtUtc0", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber"
+          FROM "AgreementBusAssignments" AS "a0"
+          INNER JOIN "Buses" AS "b" ON "a0"."BusId" = "b"."Id"
+      ) AS "t" ON "a"."Id" = "t"."AgreementId"
+      WHERE "a"."CustomerUserId" = @__customerId_0 AND NOT ("a"."IsCancelled")
+      ORDER BY "a"."CreatedAtUtc" DESC, "a"."Id", "u"."Id", "t"."AgreementId", "t"."BusId"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__customerId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username", "t"."AgreementId", "t"."BusId", "t"."CreatedAtUtc", "t"."Id", "t"."BaseRate", "t"."BusType", "t"."Capacity", "t"."CreatedAtUtc0", "t"."HomeCity", "t"."IsActive", "t"."Name", "t"."UserId", "t"."VehicleNumber"
+      FROM "Agreements" AS "a"
+      LEFT JOIN "Users" AS "u" ON "a"."UserId" = "u"."Id"
+      LEFT JOIN (
+          SELECT "a0"."AgreementId", "a0"."BusId", "a0"."CreatedAtUtc", "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc" AS "CreatedAtUtc0", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber"
+          FROM "AgreementBusAssignments" AS "a0"
+          INNER JOIN "Buses" AS "b" ON "a0"."BusId" = "b"."Id"
+      ) AS "t" ON "a"."Id" = "t"."AgreementId"
+      WHERE "a"."CustomerUserId" = @__customerId_0 AND NOT ("a"."IsCancelled")
+      ORDER BY "a"."CreatedAtUtc" DESC, "a"."Id", "u"."Id", "t"."AgreementId", "t"."BusId"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username"
+      FROM "Buses" AS "b"
+      LEFT JOIN "Users" AS "u" ON "b"."UserId" = "u"."Id"
+      WHERE "b"."IsActive"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId"
+      FROM "Agreements" AS "a"
+      WHERE NOT ("a"."IsCancelled")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__agreementIds_0='?' (Size = 79)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."AgreementId", "a"."BusId", "a"."CreatedAtUtc"
+      FROM "AgreementBusAssignments" AS "a"
+      WHERE "a"."AgreementId" IN (
+          SELECT "a0"."value"
+          FROM json_each(@__agreementIds_0) AS "a0"
+      )
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username"
+      FROM "Buses" AS "b"
+      LEFT JOIN "Users" AS "u" ON "b"."UserId" = "u"."Id"
+      WHERE "b"."IsActive"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId"
+      FROM "Agreements" AS "a"
+      WHERE NOT ("a"."IsCancelled")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__agreementIds_0='?' (Size = 79)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."AgreementId", "a"."BusId", "a"."CreatedAtUtc"
+      FROM "AgreementBusAssignments" AS "a"
+      WHERE "a"."AgreementId" IN (
+          SELECT "a0"."value"
+          FROM json_each(@__agreementIds_0) AS "a0"
+      )
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__dto_Username_0='?' (Size = 7)], CommandType='Text', CommandTimeout='30']
+      SELECT "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username"
+      FROM "Users" AS "u"
+      WHERE "u"."Username" = @__dto_Username_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__CurrentUserId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId"
+      FROM "Agreements" AS "a"
+      WHERE "a"."UserId" = @__CurrentUserId_0 AND NOT ("a"."IsCancelled")
+      ORDER BY "a"."CreatedAtUtc" DESC
+      LIMIT @__p_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__CurrentUserId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."VehicleNumber", "b"."Name", "b"."IsActive", "b"."BusType", "b"."Capacity", "b"."BaseRate", "b"."HomeCity", "b"."CreatedAtUtc"
+      FROM "Buses" AS "b"
+      WHERE "b"."UserId" = @__CurrentUserId_0 AND "b"."IsActive"
+      ORDER BY "b"."VehicleNumber"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__CurrentUserId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId"
+      FROM "Agreements" AS "a"
+      WHERE "a"."UserId" = @__CurrentUserId_0 AND NOT ("a"."IsCancelled")
+      ORDER BY "a"."CreatedAtUtc" DESC
+      LIMIT @__p_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__CurrentUserId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId"
+      FROM "Agreements" AS "a"
+      WHERE "a"."UserId" = @__CurrentUserId_0 AND NOT ("a"."IsCancelled")
+      ORDER BY "a"."CreatedAtUtc" DESC
+      LIMIT @__p_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (2ms) [Parameters=[@__CurrentUserId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."VehicleNumber", "b"."Name", "b"."IsActive", "b"."BusType", "b"."Capacity", "b"."BaseRate", "b"."HomeCity", "b"."CreatedAtUtc"
+      FROM "Buses" AS "b"
+      WHERE "b"."UserId" = @__CurrentUserId_0 AND "b"."IsActive"
+      ORDER BY "b"."VehicleNumber"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__CurrentUserId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId"
+      FROM "Agreements" AS "a"
+      WHERE "a"."UserId" = @__CurrentUserId_0 AND NOT ("a"."IsCancelled")
+      ORDER BY "a"."CreatedAtUtc" DESC
+      LIMIT @__p_1
+fail: Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware[1]
+      An unhandled exception has occurred while executing the request.
+      System.NotSupportedException: SQLite cannot apply aggregate operator 'Sum' on expressions of type 'decimal'. Convert the values to a supported type, or use LINQ to Objects to aggregate the results on the client side.
+         at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteQueryableAggregateMethodTranslator.Translate(MethodInfo method, EnumerableExpression source, IReadOnlyList`1 arguments, IDiagnosticsLogger`1 logger)
+         at Microsoft.EntityFrameworkCore.Query.RelationalAggregateMethodCallTranslatorProvider.<>c__DisplayClass6_0.<Translate>b__0(IAggregateMethodCallTranslator t)
+         at System.Linq.Enumerable.SelectEnumerableIterator`2.MoveNext()
+         at System.Linq.Enumerable.TryGetFirst[TSource](IEnumerable`1 source, Func`2 predicate, Boolean& found)
+         at System.Linq.Enumerable.FirstOrDefault[TSource](IEnumerable`1 source, Func`2 predicate)
+         at Microsoft.EntityFrameworkCore.Query.RelationalAggregateMethodCallTranslatorProvider.Translate(IModel model, MethodInfo method, EnumerableExpression source, IReadOnlyList`1 arguments, IDiagnosticsLogger`1 logger)
+         at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.TranslateAggregateMethod(EnumerableExpression enumerableExpression, MethodInfo method, List`1 scalarArguments)
+         at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.TryTranslateAggregateMethodCall(MethodCallExpression methodCallExpression, SqlExpression& translation)
+         at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+         at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+         at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.TranslateInternal(Expression expression, Boolean applyDefaultTypeMapping)
+         at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.Translate(Expression expression, Boolean applyDefaultTypeMapping)
+         at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateAggregateWithSelector(ShapedQueryExpression source, LambdaExpression selectorLambda, Func`2 methodGenerator, Boolean throwWhenEmpty, Type resultType)
+         at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateSum(ShapedQueryExpression source, LambdaExpression selector, Type resultType)
+         at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+         at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+         at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+         at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+         at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.TranslateSubquery(Expression expression)
+         at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+         at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+         at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitBinary(BinaryExpression binaryExpression)
+         at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitBinary(BinaryExpression binaryExpression)
+         at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.TranslateInternal(Expression expression, Boolean applyDefaultTypeMapping)
+         at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.TranslateProjection(Expression expression, Boolean applyDefaultTypeMapping)
+         at Microsoft.EntityFrameworkCore.Query.Internal.RelationalProjectionBindingExpressionVisitor.Visit(Expression expression)
+         at Microsoft.EntityFrameworkCore.Query.Internal.RelationalProjectionBindingExpressionVisitor.VisitNew(NewExpression newExpression)
+         at Microsoft.EntityFrameworkCore.Query.Internal.RelationalProjectionBindingExpressionVisitor.Visit(Expression expression)
+         at Microsoft.EntityFrameworkCore.Query.Internal.RelationalProjectionBindingExpressionVisitor.Translate(SelectExpression selectExpression, Expression expression)
+         at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateSelect(ShapedQueryExpression source, LambdaExpression selector)
+         at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+         at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+         at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+         at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+         at Microsoft.EntityFrameworkCore.Query.QueryCompilationContext.CreateQueryExecutor[TResult](Expression query)
+         at Microsoft.EntityFrameworkCore.Storage.Database.CompileQuery[TResult](Expression query, Boolean async)
+         at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.CompileQueryCore[TResult](IDatabase database, Expression query, IModel model, Boolean async)
+         at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.<>c__DisplayClass12_0`1.<ExecuteAsync>b__0()
+         at Microsoft.EntityFrameworkCore.Query.Internal.CompiledQueryCache.GetOrAddQuery[TResult](Object cacheKey, Func`1 compiler)
+         at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.ExecuteAsync[TResult](Expression query, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Query.Internal.EntityQueryProvider.ExecuteAsync[TResult](Expression expression, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Query.Internal.EntityQueryable`1.GetAsyncEnumerator(CancellationToken cancellationToken)
+         at System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1.GetAsyncEnumerator()
+         at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToDictionaryAsync[TSource,TKey,TElement](IQueryable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer, CancellationToken cancellationToken)
+         at TourBooking.Api.Controllers.AccountsController.ListAccounts(String from, String to, Boolean includeCancelled, CancellationToken cancellationToken) in /Users/admin/Documents/Win-Projects/AntiGravity/Tour-booking-mobile-1/backend/TourBooking.Api/Controllers/AccountsController.cs:line 271
+         at lambda_method734(Closure, Object)
+         at Microsoft.AspNetCore.Mvc.Infrastructure.ActionMethodExecutor.AwaitableObjectResultExecutor.Execute(ActionContext actionContext, IActionResultTypeMapper mapper, ObjectMethodExecutor executor, Object controller, Object[] arguments)
+         at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeActionMethodAsync>g__Awaited|12_0(ControllerActionInvoker invoker, ValueTask`1 actionResultValueTask)
+         at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeNextActionFilterAsync>g__Awaited|10_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+         at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Rethrow(ActionExecutedContextSealed context)
+         at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+         at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+      --- End of stack trace from previous location ---
+         at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+         at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+         at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+         at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+         at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+         at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
+         at Swashbuckle.AspNetCore.Swagger.SwaggerMiddleware.Invoke(HttpContext httpContext, ISwaggerProvider swaggerProvider)
+         at Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddlewareImpl.Invoke(HttpContext context)
+fail: Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddleware[1]
+      An unhandled exception has occurred while executing the request.
+      System.NotSupportedException: SQLite cannot apply aggregate operator 'Sum' on expressions of type 'decimal'. Convert the values to a supported type, or use LINQ to Objects to aggregate the results on the client side.
+         at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteQueryableAggregateMethodTranslator.Translate(MethodInfo method, EnumerableExpression source, IReadOnlyList`1 arguments, IDiagnosticsLogger`1 logger)
+         at Microsoft.EntityFrameworkCore.Query.RelationalAggregateMethodCallTranslatorProvider.<>c__DisplayClass6_0.<Translate>b__0(IAggregateMethodCallTranslator t)
+         at System.Linq.Enumerable.SelectEnumerableIterator`2.MoveNext()
+         at System.Linq.Enumerable.TryGetFirst[TSource](IEnumerable`1 source, Func`2 predicate, Boolean& found)
+         at System.Linq.Enumerable.FirstOrDefault[TSource](IEnumerable`1 source, Func`2 predicate)
+         at Microsoft.EntityFrameworkCore.Query.RelationalAggregateMethodCallTranslatorProvider.Translate(IModel model, MethodInfo method, EnumerableExpression source, IReadOnlyList`1 arguments, IDiagnosticsLogger`1 logger)
+         at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.TranslateAggregateMethod(EnumerableExpression enumerableExpression, MethodInfo method, List`1 scalarArguments)
+         at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.TryTranslateAggregateMethodCall(MethodCallExpression methodCallExpression, SqlExpression& translation)
+         at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+         at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+         at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.TranslateInternal(Expression expression, Boolean applyDefaultTypeMapping)
+         at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.Translate(Expression expression, Boolean applyDefaultTypeMapping)
+         at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateAggregateWithSelector(ShapedQueryExpression source, LambdaExpression selectorLambda, Func`2 methodGenerator, Boolean throwWhenEmpty, Type resultType)
+         at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateSum(ShapedQueryExpression source, LambdaExpression selector, Type resultType)
+         at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+         at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+         at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+         at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+         at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.TranslateSubquery(Expression expression)
+         at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+         at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+         at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitBinary(BinaryExpression binaryExpression)
+         at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitBinary(BinaryExpression binaryExpression)
+         at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.TranslateInternal(Expression expression, Boolean applyDefaultTypeMapping)
+         at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.TranslateProjection(Expression expression, Boolean applyDefaultTypeMapping)
+         at Microsoft.EntityFrameworkCore.Query.Internal.RelationalProjectionBindingExpressionVisitor.Visit(Expression expression)
+         at Microsoft.EntityFrameworkCore.Query.Internal.RelationalProjectionBindingExpressionVisitor.VisitNew(NewExpression newExpression)
+         at Microsoft.EntityFrameworkCore.Query.Internal.RelationalProjectionBindingExpressionVisitor.Visit(Expression expression)
+         at Microsoft.EntityFrameworkCore.Query.Internal.RelationalProjectionBindingExpressionVisitor.Translate(SelectExpression selectExpression, Expression expression)
+         at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateSelect(ShapedQueryExpression source, LambdaExpression selector)
+         at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+         at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+         at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+         at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+         at Microsoft.EntityFrameworkCore.Query.QueryCompilationContext.CreateQueryExecutor[TResult](Expression query)
+         at Microsoft.EntityFrameworkCore.Storage.Database.CompileQuery[TResult](Expression query, Boolean async)
+         at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.CompileQueryCore[TResult](IDatabase database, Expression query, IModel model, Boolean async)
+         at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.<>c__DisplayClass12_0`1.<ExecuteAsync>b__0()
+         at Microsoft.EntityFrameworkCore.Query.Internal.CompiledQueryCache.GetOrAddQuery[TResult](Object cacheKey, Func`1 compiler)
+         at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.ExecuteAsync[TResult](Expression query, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Query.Internal.EntityQueryProvider.ExecuteAsync[TResult](Expression expression, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Query.Internal.EntityQueryable`1.GetAsyncEnumerator(CancellationToken cancellationToken)
+         at System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1.GetAsyncEnumerator()
+         at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToDictionaryAsync[TSource,TKey,TElement](IQueryable`1 source, Func`2 keySelector, Func`2 elementSelector, IEqualityComparer`1 comparer, CancellationToken cancellationToken)
+         at TourBooking.Api.Controllers.AccountsController.ListAccounts(String from, String to, Boolean includeCancelled, CancellationToken cancellationToken) in /Users/admin/Documents/Win-Projects/AntiGravity/Tour-booking-mobile-1/backend/TourBooking.Api/Controllers/AccountsController.cs:line 271
+         at lambda_method737(Closure, Object)
+         at Microsoft.AspNetCore.Mvc.Infrastructure.ActionMethodExecutor.AwaitableObjectResultExecutor.Execute(ActionContext actionContext, IActionResultTypeMapper mapper, ObjectMethodExecutor executor, Object controller, Object[] arguments)
+         at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeActionMethodAsync>g__Awaited|12_0(ControllerActionInvoker invoker, ValueTask`1 actionResultValueTask)
+         at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeNextActionFilterAsync>g__Awaited|10_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+         at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Rethrow(ActionExecutedContextSealed context)
+         at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+         at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+      --- End of stack trace from previous location ---
+         at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+         at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+         at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+         at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+         at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+         at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
+         at Swashbuckle.AspNetCore.Swagger.SwaggerMiddleware.Invoke(HttpContext httpContext, ISwaggerProvider swaggerProvider)
+         at Microsoft.AspNetCore.Diagnostics.DeveloperExceptionPageMiddlewareImpl.Invoke(HttpContext context)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username"
+      FROM "Buses" AS "b"
+      LEFT JOIN "Users" AS "u" ON "b"."UserId" = "u"."Id"
+      WHERE "b"."IsActive"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId"
+      FROM "Agreements" AS "a"
+      WHERE NOT ("a"."IsCancelled")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__agreementIds_0='?' (Size = 79)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."AgreementId", "a"."BusId", "a"."CreatedAtUtc"
+      FROM "AgreementBusAssignments" AS "a"
+      WHERE "a"."AgreementId" IN (
+          SELECT "a0"."value"
+          FROM json_each(@__agreementIds_0) AS "a0"
+      )
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username"
+      FROM "Buses" AS "b"
+      LEFT JOIN "Users" AS "u" ON "b"."UserId" = "u"."Id"
+      WHERE "b"."IsActive"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."Id", "a"."AdvancePaid", "a"."Balance", "a"."BusCount", "a"."BusRatesJson", "a"."BusType", "a"."CancelledAtUtc", "a"."CreatedAtUtc", "a"."CustomerName", "a"."CustomerUserId", "a"."FromDate", "a"."IncludeMountainRent", "a"."IsCancelled", "a"."IsCompleted", "a"."MountainRent", "a"."Notes", "a"."Passengers", "a"."PerDayRent", "a"."Phone", "a"."PlacesToCover", "a"."ToDate", "a"."TotalAmount", "a"."UseIndividualBusRates", "a"."UserId"
+      FROM "Agreements" AS "a"
+      WHERE NOT ("a"."IsCancelled")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__agreementIds_0='?' (Size = 79)], CommandType='Text', CommandTimeout='30']
+      SELECT "a"."AgreementId", "a"."BusId", "a"."CreatedAtUtc"
+      FROM "AgreementBusAssignments" AS "a"
+      WHERE "a"."AgreementId" IN (
+          SELECT "a0"."value"
+          FROM json_each(@__agreementIds_0) AS "a0"
+      )
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username"
+      FROM "Buses" AS "b"
+      LEFT JOIN "Users" AS "u" ON "b"."UserId" = "u"."Id"
+      WHERE "b"."Id" = @__id_0 AND "b"."IsActive"
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[@__id_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+      SELECT "b"."Id", "b"."BaseRate", "b"."BusType", "b"."Capacity", "b"."CreatedAtUtc", "b"."HomeCity", "b"."IsActive", "b"."Name", "b"."UserId", "b"."VehicleNumber", "u"."Id", "u"."CompanyAddress", "u"."CompanyEmail", "u"."CompanyName", "u"."CompanyPhone", "u"."Email", "u"."PasswordHash", "u"."UpiLink", "u"."Username"
+      FROM "Buses" AS "b"
+      LEFT JOIN "Users" AS "u" ON "b"."UserId" = "u"."Id"
+      WHERE "b"."Id" = @__id_0 AND "b"."IsActive"
+      LIMIT 1

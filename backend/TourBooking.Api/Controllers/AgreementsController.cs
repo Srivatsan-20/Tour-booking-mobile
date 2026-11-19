@@ -40,13 +40,12 @@ public sealed class AgreementsController : ControllerBase
 		    query = query.Where(x => !x.IsCancelled);
 		}
 
-		var items = await query
+		var list = await query
             .OrderByDescending(x => x.CreatedAtUtc)
             .Take(200)
-            .Select(x => ToResponse(x))
             .ToListAsync(cancellationToken);
 
-        return items;
+        return list.Select(ToResponse).ToList();
     }
 
     [HttpGet("{id:guid}")]
@@ -297,10 +296,8 @@ public sealed class AgreementsController : ControllerBase
         if (agreement is null) return NotFound();
         if (agreement.IsCancelled) return Conflict("Agreement is cancelled");
 
-        if (agreement.BusCount is null || agreement.BusCount.Value <= 0)
-        {
-            return BadRequest("busCount must be set before assigning buses");
-        }
+        // Default to 1 bus if busCount not explicitly set
+        var allowedBusCount = (agreement.BusCount is null || agreement.BusCount.Value <= 0) ? 1 : agreement.BusCount.Value;
 
         var bus = await _db.Buses.FirstOrDefaultAsync(x => x.Id == request.BusId && x.UserId == CurrentUserId, cancellationToken);
         if (bus is null) return NotFound("Bus not found");
@@ -309,9 +306,9 @@ public sealed class AgreementsController : ControllerBase
         var currentCount = await _db.AgreementBusAssignments
             .AsNoTracking()
             .CountAsync(x => x.AgreementId == id, cancellationToken);
-        if (currentCount >= agreement.BusCount.Value)
+        if (currentCount >= allowedBusCount)
         {
-            return Conflict("This agreement already has enough buses assigned");
+            return Conflict($"This agreement already has {allowedBusCount} bus(es) assigned");
         }
 
         var alreadyAssigned = await _db.AgreementBusAssignments
@@ -413,6 +410,7 @@ public sealed class AgreementsController : ControllerBase
         return ToResponse(entity);
     }
 
+    [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         var entity = await _db.Agreements
@@ -465,6 +463,7 @@ public sealed class AgreementsController : ControllerBase
 
         AssignedBuses = null,
 		IsCancelled = x.IsCancelled,
+		IsCompleted = x.IsCompleted,
 		CancelledAtUtc = x.CancelledAtUtc,
         CreatedAtUtc = x.CreatedAtUtc,
     };
@@ -594,7 +593,12 @@ public sealed class AgreementsController : ControllerBase
     private static bool TryParseDdMmYyyy(string input, out DateOnly date)
     {
         var s = (input ?? string.Empty).Trim();
-        return DateOnly.TryParseExact(s, new[] { "dd/MM/yyyy", "d/M/yyyy" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out date);
+        var formats = new[] { "dd/MM/yyyy", "d/M/yyyy", "yyyy-MM-dd", "yyyy-M-d", "MM/dd/yyyy", "M/d/yyyy" };
+        var success = DateOnly.TryParseExact(s, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out date) ||
+                     DateOnly.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.None, out date);
+        
+        Console.WriteLine($"[DEBUG] Parsing date: '{s}', Result: {success}, Parsed: {date}");
+        return success;
     }
 
     private static bool OverlapsInclusive(DateOnly aFrom, DateOnly aTo, DateOnly bFrom, DateOnly bTo)

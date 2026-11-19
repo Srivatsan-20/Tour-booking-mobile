@@ -44,3 +44,7 @@ yarn-error.*
 **/bin/
 **/obj/
 .vs/
+
+# SQLite temporary files
+*.db-shm
+*.db-wal

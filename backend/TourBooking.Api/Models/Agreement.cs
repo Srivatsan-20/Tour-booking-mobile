@@ -7,6 +7,10 @@ public sealed class Agreement
     public int? UserId { get; set; }
     public User? User { get; set; }
 
+    // Linked customer account (set when booking made from website with customer login)
+    public int? CustomerUserId { get; set; }
+    public CustomerUser? CustomerUser { get; set; }
+
     public string CustomerName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
 

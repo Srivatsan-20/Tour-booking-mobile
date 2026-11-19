@@ -1,0 +1,476 @@
+@import "tailwindcss";
+
+:root {
+  --brand-gold: #FFD700;
+  --brand-bronze: #C5A059;
+  --brand-amber: #FFD700;
+  --bg-deep: #0a0a0a;
+  --bg-card: #141414;
+  --text-luxury: #F5F5F5;
+  --text-muted: #A0A0A0;
+  
+  --background: #0a0a0a;
+  --foreground: #F5F5F5;
+
+  --gold-stop-1: #BF953F;
+  --gold-stop-2: #FCF6BA;
+  --gold-stop-3: #B38728;
+  --gold-stop-4: #FBF5B7;
+  --gold-stop-5: #AA771C;
+
+  --logo-tagline: #FCF6BA;
+  --logo-subtag: #BF953F;
+  --logo-border: #BF953F;
+}
+
+[data-theme="light"] {
+  --bg-deep: #F8FAFC;      /* Clean luxury light-slate backdrop */
+  --bg-card: #FFFFFF;      /* Crisp white cards */
+  --text-luxury: #0F172A;  /* Rich dark carbon/slate text */
+  --text-muted: #475569;   /* Readable slate subtext */
+  
+  --brand-gold: #B48A30;   /* High-contrast solid antique gold accent */
+  --brand-bronze: #906D20; /* Deep bronze gold */
+  --brand-amber: #D97706;  /* Deep amber */
+  
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+ 
+  --gold-stop-1: #906D20;
+  --gold-stop-2: #B48A30;
+  --gold-stop-3: #906D20;
+  --gold-stop-4: #B48A30;
+  --gold-stop-5: #906D20;
+
+  --logo-tagline: #0F172A; /* High-contrast dark tagline in light mode */
+  --logo-subtag: #B48A30;
+  --logo-border: #B48A30;
+}
+
+[data-theme="royal"] {
+  --bg-deep: #FAF8F5;      /* Luxury Warm Alabaster / Ivory backdrop */
+  --bg-card: #FFFFFF;      /* Pure white card faces */
+  --text-luxury: #0F1E36;  /* Deep Royal Navy Blue text */
+  --text-muted: #3B4B64;   /* Slate blue muted text */
+  
+  --brand-gold: #B48A30;   /* Clean gold accent */
+  --brand-bronze: #906D20; /* Refined bronze gold */
+  --brand-amber: #1E3A8A;  /* Navy accent */
+  
+  --background: #FAF8F5;
+  --foreground: #0F1E36;
+
+  --gold-stop-1: #906D20;
+  --gold-stop-2: #B48A30;
+  --gold-stop-3: #906D20;
+  --gold-stop-4: #B48A30;
+  --gold-stop-5: #906D20;
+
+  --logo-tagline: #0F1E36; /* Navy tagline */
+  --logo-subtag: #B48A30;
+  --logo-border: #B48A30;
+}
+
+[data-theme="ocean"] {
+  --bg-deep: #F0F4F8;      /* Clean ice-blue white canvas */
+  --bg-card: #FFFFFF;      /* Pure white card faces */
+  --text-luxury: #0F172A;  /* Deep slate carbon text */
+  --text-muted: #475569;   /* Slate subtext */
+  
+  --brand-gold: #2563EB;   /* Cobalt Blue instead of gold */
+  --brand-bronze: #1D4ED8; /* Royal Blue */
+  --brand-amber: #3B82F6;  /* Light Blue */
+  
+  --background: #F0F4F8;
+  --foreground: #0F172A;
+
+  --gold-stop-1: #1D4ED8;
+  --gold-stop-2: #3B82F6;
+  --gold-stop-3: #1E40AF;
+  --gold-stop-4: #3B82F6;
+  --gold-stop-5: #1D4ED8;
+
+  --logo-tagline: #1E40AF; /* Navy tagline */
+  --logo-subtag: #2563EB;  /* Cobalt subtag */
+  --logo-border: #2563EB;  /* Cobalt border */
+}
+
+@theme {
+  --color-brand-gold: var(--brand-gold);
+  --color-brand-bronze: var(--brand-bronze);
+  --color-brand-amber: var(--brand-amber);
+  --color-bg-deep: var(--bg-deep);
+  --color-bg-card: var(--bg-card);
+  --color-text-luxury: var(--text-luxury);
+  --color-text-muted: var(--text-muted);
+
+  --font-serif: var(--font-playfair);
+  --font-sans: var(--font-outfit);
+
+  --animate-fade-in: fade-in 0.6s ease-out;
+  --animate-scale-in: scale-in 0.4s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #F5F5F5;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-outfit), sans-serif;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-playfair), serif;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gold-gradient {
+  background: linear-gradient(to right, var(--gold-stop-1), var(--gold-stop-2), var(--gold-stop-3), var(--gold-stop-4), var(--gold-stop-5));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-bg-gradient {
+  background: linear-gradient(to right, var(--gold-stop-1), var(--gold-stop-2), var(--gold-stop-3), var(--gold-stop-4), var(--gold-stop-5));
+}
+
+.text-tactical {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #A0A0A0;
+}
+
+/* ========================================== */
+/* LIGHT / ROYAL THEME COMPREHENSIVE OVERRIDES */
+/* ========================================== */
+
+/* 1. Glass Cards layout */
+[data-theme="light"] .glass {
+  background: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02), 0 10px 15px -3px rgba(0, 0, 0, 0.03) !important;
+}
+
+[data-theme="royal"] .glass {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(15, 30, 54, 0.08) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02), 0 10px 15px -3px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* 2. Text Gradients replacement for readability */
+[data-theme="light"] .gold-gradient {
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  -webkit-text-fill-color: initial !important;
+  color: #B48A30 !important;
+  font-weight: 800;
+}
+
+[data-theme="royal"] .gold-gradient {
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  -webkit-text-fill-color: initial !important;
+  color: #0F1E36 !important;
+  font-weight: 800;
+}
+
+/* 3. Grounded dark footers */
+[data-theme="light"] footer,
+[data-theme="royal"] footer {
+  background-color: #0F172A !important;
+  border-top-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-theme="light"] footer *,
+[data-theme="royal"] footer * {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+[data-theme="light"] footer a:hover,
+[data-theme="royal"] footer a:hover {
+  color: #FFD700 !important;
+}
+
+[data-theme="light"] footer h4,
+[data-theme="royal"] footer h4 {
+  color: #FFFFFF !important;
+}
+
+/* 4. Form inputs overrides */
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+  border-color: #E2E8F0 !important;
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: #94A3B8 !important;
+}
+
+[data-theme="light"] input:focus,
+[data-theme="light"] select:focus,
+[data-theme="light"] textarea:focus {
+  border-color: #B48A30 !important;
+  box-shadow: 0 0 0 2px rgba(180, 138, 48, 0.1) !important;
+}
+
+[data-theme="royal"] input,
+[data-theme="royal"] select,
+[data-theme="royal"] textarea {
+  background-color: #FFFFFF !important;
+  color: #0F1E36 !important;
+  border-color: rgba(15, 30, 54, 0.15) !important;
+}
+
+[data-theme="royal"] input::placeholder,
+[data-theme="royal"] textarea::placeholder {
+  color: #6B7280 !important;
+}
+
+[data-theme="royal"] input:focus,
+[data-theme="royal"] select:focus,
+[data-theme="royal"] textarea:focus {
+  border-color: #B48A30 !important;
+  box-shadow: 0 0 0 2px rgba(180, 138, 48, 0.15) !important;
+}
+
+/* 5. Utility transparent boxes background/borders mapping */
+[data-theme="light"] .bg-white\/5 { background-color: #F1F5F9 !important; }
+[data-theme="light"] .bg-white\/10 { background-color: #E2E8F0 !important; }
+[data-theme="light"] .border-white\/10 { border-color: #E2E8F0 !important; }
+[data-theme="light"] .border-white\/5 { border-color: #F1F5F9 !important; }
+
+[data-theme="royal"] .bg-white\/5 { background-color: rgba(15, 30, 54, 0.04) !important; }
+[data-theme="royal"] .bg-white\/10 { background-color: rgba(15, 30, 54, 0.08) !important; }
+[data-theme="royal"] .border-white\/10 { border-color: rgba(15, 30, 54, 0.08) !important; }
+[data-theme="royal"] .border-white\/5 { border-color: rgba(15, 30, 54, 0.04) !important; }
+
+/* 6. Main typography overrides for invisible texts (text-white) */
+[data-theme="light"] .text-white {
+  color: var(--text-luxury) !important;
+}
+[data-theme="royal"] .text-white {
+  color: var(--text-luxury) !important;
+}
+
+/* Retain genuine white text inside colored badges / dark buttons / headers */
+[data-theme="light"] button.text-white,
+[data-theme="light"] .gold-bg-gradient .text-white,
+[data-theme="light"] footer .text-white,
+[data-theme="light"] .bg-red-500 .text-white,
+[data-theme="light"] .bg-red-600 .text-white,
+[data-theme="light"] .bg-green-600 .text-white,
+[data-theme="light"] .bg-blue-600 .text-white,
+[data-theme="royal"] button.text-white,
+[data-theme="royal"] .gold-bg-gradient .text-white,
+[data-theme="royal"] footer .text-white,
+[data-theme="royal"] .bg-red-500 .text-white,
+[data-theme="royal"] .bg-red-600 .text-white,
+[data-theme="royal"] .bg-green-600 .text-white,
+[data-theme="royal"] .bg-blue-600 .text-white {
+  color: #FFFFFF !important;
+}
+
+/* Force dark text color for gold buttons using text-bg-deep in light modes */
+[data-theme="light"] .text-bg-deep {
+  color: #0A0A0A !important;
+}
+[data-theme="royal"] .text-bg-deep {
+  color: #0F1E36 !important;
+}
+
+/* Map standard gray and slate text utility classes */
+[data-theme="light"] .text-gray-100 { color: #1E293B !important; }
+[data-theme="light"] .text-gray-200 { color: #334155 !important; }
+[data-theme="light"] .text-gray-300 { color: #475569 !important; }
+[data-theme="light"] .text-gray-400 { color: #64748B !important; }
+[data-theme="light"] .text-slate-100 { color: #1E293B !important; }
+[data-theme="light"] .text-slate-200 { color: #334155 !important; }
+[data-theme="light"] .text-slate-300 { color: #475569 !important; }
+
+[data-theme="royal"] .text-gray-100 { color: #1E293B !important; }
+[data-theme="royal"] .text-gray-200 { color: #334155 !important; }
+[data-theme="royal"] .text-gray-300 { color: #3B4B64 !important; }
+[data-theme="royal"] .text-gray-400 { color: #475569 !important; }
+[data-theme="royal"] .text-slate-100 { color: #1E293B !important; }
+[data-theme="royal"] .text-slate-200 { color: #334155 !important; }
+[data-theme="royal"] .text-slate-300 { color: #3B4B64 !important; }
+
+/* Map opacity classes for white text */
+[data-theme="light"] .text-white\/90 { color: rgba(15, 23, 42, 0.9) !important; }
+[data-theme="light"] .text-white\/80 { color: rgba(15, 23, 42, 0.8) !important; }
+[data-theme="light"] .text-white\/70 { color: rgba(15, 23, 42, 0.7) !important; }
+[data-theme="light"] .text-white\/60 { color: rgba(15, 23, 42, 0.6) !important; }
+[data-theme="light"] .text-white\/50 { color: rgba(15, 23, 42, 0.5) !important; }
+[data-theme="light"] .text-white\/40 { color: rgba(15, 23, 42, 0.4) !important; }
+[data-theme="light"] .text-white\/30 { color: rgba(15, 23, 42, 0.3) !important; }
+
+[data-theme="royal"] .text-white\/90 { color: rgba(15, 30, 54, 0.9) !important; }
+[data-theme="royal"] .text-white\/80 { color: rgba(15, 30, 54, 0.8) !important; }
+[data-theme="royal"] .text-white\/70 { color: rgba(15, 30, 54, 0.7) !important; }
+[data-theme="royal"] .text-white\/60 { color: rgba(15, 30, 54, 0.6) !important; }
+[data-theme="royal"] .text-white\/50 { color: rgba(15, 30, 54, 0.5) !important; }
+[data-theme="royal"] .text-white\/40 { color: rgba(15, 30, 54, 0.4) !important; }
+[data-theme="royal"] .text-white\/30 { color: rgba(15, 30, 54, 0.3) !important; }
+
+[data-theme="ocean"] .text-white\/90 { color: rgba(15, 23, 42, 0.9) !important; }
+[data-theme="ocean"] .text-white\/80 { color: rgba(15, 23, 42, 0.8) !important; }
+[data-theme="ocean"] .text-white\/70 { color: rgba(15, 23, 42, 0.7) !important; }
+[data-theme="ocean"] .text-white\/60 { color: rgba(15, 23, 42, 0.6) !important; }
+[data-theme="ocean"] .text-white\/50 { color: rgba(15, 23, 42, 0.5) !important; }
+[data-theme="ocean"] .text-white\/40 { color: rgba(15, 23, 42, 0.4) !important; }
+[data-theme="ocean"] .text-white\/30 { color: rgba(15, 23, 42, 0.3) !important; }
+
+/* Keep dark hero section styling consistent across all themes */
+[data-theme="light"] section.relative.min-h-\[92vh\] .text-white,
+[data-theme="royal"] section.relative.min-h-\[92vh\] .text-white,
+[data-theme="ocean"] section.relative.min-h-\[92vh\] .text-white {
+  color: #FFFFFF !important;
+}
+[data-theme="light"] section.relative.min-h-\[92vh\] .text-text-muted,
+[data-theme="royal"] section.relative.min-h-\[92vh\] .text-text-muted,
+[data-theme="ocean"] section.relative.min-h-\[92vh\] .text-text-muted {
+  color: #CBD5E1 !important;
+}
+[data-theme="light"] section.relative.min-h-\[92vh\] .bg-white\/5,
+[data-theme="royal"] section.relative.min-h-\[92vh\] .bg-white\/5,
+[data-theme="ocean"] section.relative.min-h-\[92vh\] .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* ========================================== */
+/* OCEAN (WHITE & BLUE) THEME ACCESSIBILITY   */
+/* ========================================== */
+
+[data-theme="ocean"] .glass {
+  background: #FFFFFF !important;
+  border: 1px solid #DBEAFE !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02), 0 10px 15px -3px rgba(37, 99, 235, 0.03) !important;
+}
+
+[data-theme="ocean"] .gold-gradient {
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  -webkit-text-fill-color: initial !important;
+  color: #1E40AF !important;
+  font-weight: 800;
+}
+
+/* Grounding Midnight Blue Footer */
+[data-theme="ocean"] footer {
+  background-color: #0F172A !important;
+  border-top-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-theme="ocean"] footer * {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+[data-theme="ocean"] footer h4 {
+  color: #FFFFFF !important;
+}
+
+/* Utility boxes borders mappings */
+[data-theme="ocean"] .bg-white\/5 { background-color: #F1F5F9 !important; }
+[data-theme="ocean"] .bg-white\/10 { background-color: #E2E8F0 !important; }
+[data-theme="ocean"] .border-white\/10 { border-color: #DBEAFE !important; }
+[data-theme="ocean"] .border-white\/5 { border-color: #F1F5F9 !important; }
+
+/* Text input styling */
+[data-theme="ocean"] input,
+[data-theme="ocean"] select,
+[data-theme="ocean"] textarea {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+  border-color: #CBD5E1 !important;
+}
+
+[data-theme="ocean"] input::placeholder,
+[data-theme="ocean"] textarea::placeholder {
+  color: #94A3B8 !important;
+}
+
+[data-theme="ocean"] input:focus,
+[data-theme="ocean"] select:focus,
+[data-theme="ocean"] textarea:focus {
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1) !important;
+}
+
+/* Map text-white color to deep slate */
+[data-theme="ocean"] .text-white {
+  color: var(--text-luxury) !important;
+}
+
+/* Retain genuine white text inside colored indicators/buttons */
+[data-theme="ocean"] button.text-white,
+[data-theme="ocean"] .gold-bg-gradient .text-white,
+[data-theme="ocean"] footer .text-white,
+[data-theme="ocean"] .bg-red-500 .text-white,
+[data-theme="ocean"] .bg-red-600 .text-white,
+[data-theme="ocean"] .bg-green-600 .text-white,
+[data-theme="ocean"] .bg-blue-600 .text-white {
+  color: #FFFFFF !important;
+}
+
+/* On Cobalt Blue buttons, keep the text color as white! */
+[data-theme="ocean"] .text-bg-deep {
+  color: #FFFFFF !important;
+}
+
+/* Map gray shades */
+[data-theme="ocean"] .text-gray-100 { color: #1E293B !important; }
+[data-theme="ocean"] .text-gray-200 { color: #334155 !important; }
+[data-theme="ocean"] .text-gray-300 { color: #475569 !important; }
+[data-theme="ocean"] .text-gray-400 { color: #64748B !important; }
+[data-theme="ocean"] .text-slate-100 { color: #1E293B !important; }
+[data-theme="ocean"] .text-slate-200 { color: #334155 !important; }
+[data-theme="ocean"] .text-slate-300 { color: #475569 !important; }

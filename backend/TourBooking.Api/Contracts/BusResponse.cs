@@ -6,5 +6,9 @@ public sealed class BusResponse
     public string VehicleNumber { get; set; } = string.Empty;
     public string? Name { get; set; }
     public bool IsActive { get; set; }
+    public string BusType { get; set; } = "AC";
+    public int Capacity { get; set; }
+    public decimal BaseRate { get; set; }
+    public string? HomeCity { get; set; }
     public DateTime CreatedAtUtc { get; set; }
 }
