@@ -14,23 +14,23 @@ import { ScreenContainer } from '../components/ScreenContainer';
 type Props = NativeStackScreenProps<RootStackParamList, 'AgreementForm'>;
 
 const emptyDraft: AgreementDraft = {
-  customerName: '',
-  phone: '',
-  fromDate: '',
-  toDate: '',
-  busType: '',
-  busCount: '',
-  passengers: '',
-  placesToCover: '',
-  perDayRent: '',
+  customerName: 'Kavitha Murugan',
+  phone: '9840123456',
+  fromDate: '2026-09-15',
+  toDate: '2026-09-18',
+  busType: 'Royal Heritage AC Sleeper',
+  busCount: '1',
+  passengers: '36',
+  placesToCover: 'Chennai to Madurai & Rameswaram Pilgrimage',
+  perDayRent: '12000',
   includeMountainRent: false,
   mountainRent: '',
   useIndividualBusRates: false,
   individualBusRates: [],
-  totalAmount: '',
-  advancePaid: '',
-  balance: '',
-  notes: '',
+  totalAmount: '36000',
+  advancePaid: '10000',
+  balance: '26000',
+  notes: 'Includes AC sleeper coach, experienced driver allowance and FastTag.',
 };
 
 function parseAmount(input: string): number | null {

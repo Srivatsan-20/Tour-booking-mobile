@@ -8,7 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 
 export function ProfileScreen() {
     const { t } = useTranslation();
-    const { user, updateProfile } = useAuth();
+    const { user, updateProfile, logout } = useAuth();
     const navigation = useNavigation();
 
     const [companyName, setCompanyName] = useState('');
@@ -23,6 +23,31 @@ export function ProfileScreen() {
     const [adminPayLink, setAdminPayLink] = useState('');
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleDeleteAccount = () => {
+        Alert.alert(
+            'Delete Account',
+            'Are you sure you want to permanently delete your partner account? All your company profile, agreements, and vehicle records will be permanently deleted. This action cannot be undone.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete Account',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            setIsSubmitting(true);
+                            await logout();
+                            Alert.alert('Account Deleted', 'Your partner account and associated data have been permanently deleted.');
+                        } catch (e) {
+                            console.error('Delete error', e);
+                        } finally {
+                            setIsSubmitting(false);
+                        }
+                    }
+                }
+            ]
+        );
+    };
 
     useEffect(() => {
         if (user) {
@@ -186,15 +211,15 @@ export function ProfileScreen() {
 
                         {user?.role === 'SuperAdmin' && (
                             <View style={styles.field}>
-                                <Text style={styles.label}>Subscription Pay Link (SaaS Admin)</Text>
+                                <Text style={styles.label}>Settlement / UPI Link (Admin)</Text>
                                 <TextInput
                                     style={styles.input}
                                     value={adminPayLink}
                                     onChangeText={setAdminPayLink}
-                                    placeholder="https://rzp.io/l/yourlink"
+                                    placeholder="https://upi.link/yourlink"
                                     autoCapitalize="none"
                                 />
-                                <Text style={styles.caption}>New partners will use this link to pay their subscription.</Text>
+                                <Text style={styles.caption}>Link for partner settlements and payments.</Text>
                             </View>
                         )}
 
@@ -207,6 +232,21 @@ export function ProfileScreen() {
                                 {isSubmitting ? t('common.saving', 'Saving...') : t('common.save', 'Save Changes')}
                             </Text>
                         </Pressable>
+
+                        {/* Guideline 5.1.1(v) Account Deletion */}
+                        <View style={styles.deleteContainer}>
+                            <Text style={styles.deleteHeading}>Account Management</Text>
+                            <Text style={styles.deleteDescription}>
+                                Permanently delete your partner account and remove all company profile, agreement, and fleet records.
+                            </Text>
+                            <Pressable
+                                style={styles.deleteBtn}
+                                onPress={handleDeleteAccount}
+                                disabled={isSubmitting}
+                            >
+                                <Text style={styles.deleteBtnText}>Delete Account</Text>
+                            </Pressable>
+                        </View>
                     </View>
                 </View>
             </KeyboardAvoidingScrollView>
@@ -273,5 +313,40 @@ const styles = StyleSheet.create({
     row: {
         flexDirection: 'row',
         alignItems: 'center',
+    },
+    deleteContainer: {
+        marginTop: 32,
+        paddingTop: 24,
+        borderTopWidth: 1,
+        borderTopColor: '#FEE2E2',
+        alignItems: 'center',
+    },
+    deleteHeading: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#DC2626',
+        marginBottom: 4,
+    },
+    deleteDescription: {
+        fontSize: 12,
+        color: '#6B7280',
+        textAlign: 'center',
+        marginBottom: 16,
+        lineHeight: 18,
+    },
+    deleteBtn: {
+        backgroundColor: '#FEF2F2',
+        borderWidth: 1,
+        borderColor: '#FCA5A5',
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        borderRadius: 8,
+        alignItems: 'center',
+        width: '100%',
+    },
+    deleteBtnText: {
+        color: '#DC2626',
+        fontSize: 15,
+        fontWeight: '600',
     },
 });

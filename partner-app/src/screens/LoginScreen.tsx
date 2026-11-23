@@ -46,7 +46,7 @@ export function LoginScreen() {
                             style={styles.logo}
                             resizeMode="contain"
                         />
-                        <Text style={styles.brandTitle}>SRI SAI SENTHIL</Text>
+                        <Text style={styles.brandTitle}>SHREE SAI SENTHIL TRAVELS</Text>
                         <Text style={styles.brandSubtitle}>PARTNER PORTAL</Text>
                     </View>
 
@@ -83,9 +83,12 @@ export function LoginScreen() {
                             </Text>
                         </Pressable>
 
-                        <Pressable onPress={() => navigation.navigate('Register')} style={styles.linkBtn}>
-                            <Text style={styles.linkText}>{t('auth.dontHaveAccount')}</Text>
-                        </Pressable>
+                        {/* Registration removed for B2B fleet operator app (accounts provisioned by management) */}
+                        {false && (
+                            <Pressable onPress={() => navigation.navigate('Register')} style={styles.linkBtn}>
+                                <Text style={styles.linkText}>{t('auth.dontHaveAccount')}</Text>
+                            </Pressable>
+                        )}
                     </View>
                 </View>
             </KeyboardAvoidingScrollView>

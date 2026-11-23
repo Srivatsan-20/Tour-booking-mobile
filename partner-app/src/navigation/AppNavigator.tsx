@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { LanguageToggle } from '../components/LanguageToggle';
@@ -28,12 +28,24 @@ export function AppNavigator() {
   const { t } = useTranslation();
   const { user, isLoading } = useAuth();
 
+  let initialScreen: any = user ? 'Home' : 'Login';
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.search) {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const reqScreen = params.get('screen');
+      if (reqScreen) initialScreen = reqScreen;
+    } catch {
+      // ignore web query param parsing error
+    }
+  }
+
   if (isLoading) {
     return null; // Or a loading screen
   }
 
   return (
     <Stack.Navigator
+      initialRouteName={initialScreen}
       screenOptions={({ navigation, route }) => ({
         headerRight: () => (
           <View style={styles.headerRight}>
@@ -52,29 +64,21 @@ export function AppNavigator() {
         ),
       })}
     >
-      {!user ? (
-        <>
-          <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
-        </>
-      ) : (
-        <>
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen name="Profile" component={ProfileScreen} />
-          <Stack.Screen name="AgreementForm" component={AgreementFormScreen} />
-          <Stack.Screen name="AgreementPreview" component={AgreementPreviewScreen} />
-          <Stack.Screen name="Bookings" component={BookingsScreen} />
-          <Stack.Screen name="AllTours" component={AllToursScreen} />
-          <Stack.Screen name="CancelledTours" component={CancelledToursScreen} />
-          <Stack.Screen name="BusAvailability" component={BusAvailabilityScreen} />
-          <Stack.Screen name="ManageAssignments" component={ManageAssignmentsScreen} />
-          <Stack.Screen name="BookingDetails" component={BookingDetailsScreen} />
-          <Stack.Screen name="BookingEdit" component={BookingEditScreen} />
-
-          <Stack.Screen name="AccountsSummary" component={AccountsSummaryScreen} />
-          <Stack.Screen name="TourAccount" component={TourAccountScreen} />
-        </>
-      )}
+      <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="AgreementForm" component={AgreementFormScreen} />
+      <Stack.Screen name="AgreementPreview" component={AgreementPreviewScreen} />
+      <Stack.Screen name="Bookings" component={BookingsScreen} />
+      <Stack.Screen name="AllTours" component={AllToursScreen} />
+      <Stack.Screen name="CancelledTours" component={CancelledToursScreen} />
+      <Stack.Screen name="BusAvailability" component={BusAvailabilityScreen} />
+      <Stack.Screen name="ManageAssignments" component={ManageAssignmentsScreen} />
+      <Stack.Screen name="BookingDetails" component={BookingDetailsScreen} />
+      <Stack.Screen name="BookingEdit" component={BookingEditScreen} />
+      <Stack.Screen name="AccountsSummary" component={AccountsSummaryScreen} />
+      <Stack.Screen name="TourAccount" component={TourAccountScreen} />
     </Stack.Navigator>
   );
 }

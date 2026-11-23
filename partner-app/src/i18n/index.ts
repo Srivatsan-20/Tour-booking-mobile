@@ -8,8 +8,13 @@ import { resources, type SupportedLanguage } from './resources';
 const fallbackLng: SupportedLanguage = 'en';
 
 function detectDeviceLanguage(): SupportedLanguage {
-  const locale = Localization.getLocales()?.[0]?.languageCode;
-  if (locale === 'ta') return 'ta';
+  try {
+    const locales = Localization.getLocales();
+    const locale = locales?.[0]?.languageCode;
+    if (locale === 'ta') return 'ta';
+  } catch (err) {
+    console.warn('Failed to detect device language, using fallback:', err);
+  }
   return fallbackLng;
 }
 
@@ -23,15 +28,22 @@ if (!i18n.isInitialized) {
 }
 
 export async function bootstrapI18n(): Promise<void> {
-  const saved = await getSavedLanguage();
-  const lng = saved ?? detectDeviceLanguage();
-  await i18n.changeLanguage(lng);
+  try {
+    const saved = await getSavedLanguage();
+    const lng = saved ?? detectDeviceLanguage();
+    await i18n.changeLanguage(lng);
+  } catch (err) {
+    console.warn('Failed to bootstrap i18n, continuing with fallback:', err);
+  }
 }
 
 export async function changeLanguage(lng: SupportedLanguage): Promise<void> {
-  await i18n.changeLanguage(lng);
-  await setSavedLanguage(lng);
+  try {
+    await i18n.changeLanguage(lng);
+    await setSavedLanguage(lng);
+  } catch (err) {
+    console.warn('Failed to change language:', err);
+  }
 }
 
 export { i18n };
-

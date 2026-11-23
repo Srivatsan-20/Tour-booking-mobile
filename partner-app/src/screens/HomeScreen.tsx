@@ -26,8 +26,6 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 export function HomeScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { logout, user } = useAuth();
-  
-  const isPending = user?.subscriptionStatus === 'Pending';
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -39,24 +37,6 @@ export function HomeScreen({ navigation }: Props) {
           <Text style={styles.welcomeText}>{t('common.greeting', 'Welcome Back,')}</Text>
           <Text style={styles.appTitle}>{t('home.title', 'Tour Booking Manager')}</Text>
         </View>
-
-        {isPending && (
-          <View style={styles.alertBox}>
-            <View style={styles.alertHeader}>
-              <AlertTriangle size={24} color="#EF4444" />
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.alertTitle}>Action Required: Subscription Pending</Text>
-                <Text style={styles.alertText}>Your SaaS platform access is currently restricted. Please complete your subscription payment.</Text>
-              </View>
-            </View>
-            {user?.systemPayLink && (
-              <Pressable style={styles.payBtn} onPress={() => { if (user?.systemPayLink) Linking.openURL(user.systemPayLink); }}>
-                <CreditCard size={18} color="#FFFFFF" />
-                <Text style={styles.payBtnText}>Pay Subscription</Text>
-              </Pressable>
-            )}
-          </View>
-        )}
 
         {/* Section: Booking Management */}
         <View style={styles.section}>

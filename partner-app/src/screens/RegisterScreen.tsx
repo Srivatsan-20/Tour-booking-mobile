@@ -70,7 +70,7 @@ export function RegisterScreen() {
                             style={styles.logo}
                             resizeMode="contain"
                         />
-                        <Text style={styles.brandTitle}>SRI SAI SENTHIL</Text>
+                        <Text style={styles.brandTitle}>SHREE SAI SENTHIL TRAVELS</Text>
                         <Text style={styles.brandSubtitle}>PARTNER ONBOARDING</Text>
                     </View>
 
