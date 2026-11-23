@@ -70,7 +70,7 @@ export const RegisterScreen = ({ navigation }: any) => {
 
                 <View style={styles.header}>
                     <Text style={styles.title}>Create Account</Text>
-                    <Text style={styles.subtitle}>Join the Sri Sai Senthil legacy</Text>
+                    <Text style={styles.subtitle}>Join the Shree Sai Senthil Travels legacy</Text>
                 </View>
 
                 <View style={styles.form}>

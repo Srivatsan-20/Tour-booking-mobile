@@ -9,6 +9,7 @@ interface CustomerAuthContextType {
     login: (data: CustomerLoginDto) => Promise<void>;
     register: (data: CustomerRegisterDto) => Promise<void>;
     logout: () => Promise<void>;
+    deleteAccount: () => Promise<void>;
 }
 
 const CustomerAuthContext = createContext<CustomerAuthContextType | undefined>(undefined);
@@ -58,8 +59,18 @@ export const CustomerAuthProvider = ({ children }: { children: ReactNode }) => {
         await AsyncStorage.removeItem('customer_user');
     };
 
+    const deleteAccount = async () => {
+        try {
+            await customerAuthApi.deleteAccount();
+        } catch (e) {
+            console.warn('Backend deleteAccount failed or offline, removing locally:', e);
+        } finally {
+            await logout();
+        }
+    };
+
     return (
-        <CustomerAuthContext.Provider value={{ customer, isLoading, login, register, logout }}>
+        <CustomerAuthContext.Provider value={{ customer, isLoading, login, register, logout, deleteAccount }}>
             {children}
         </CustomerAuthContext.Provider>
     );

@@ -18,7 +18,8 @@ import {
     ArrowLeft,
     Clock,
     CheckCircle2,
-    XCircle
+    XCircle,
+    User
 } from 'lucide-react-native';
 
 export const HistoryScreen = ({ navigation }: any) => {
@@ -132,6 +133,13 @@ export const HistoryScreen = ({ navigation }: any) => {
                     <ArrowLeft color={Theme.colors.gold} size={24} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Trip History</Text>
+                <TouchableOpacity
+                    style={styles.profileBtn}
+                    onPress={() => navigation.navigate('Profile')}
+                    accessibilityLabel="Account Settings"
+                >
+                    <User color={Theme.colors.gold} size={20} />
+                </TouchableOpacity>
             </View>
 
             {loading ? (
@@ -170,6 +178,7 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
         paddingTop: 60,
         paddingHorizontal: Theme.spacing.lg,
         paddingBottom: 20,
@@ -183,11 +192,20 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    profileBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: Theme.colors.card,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: Theme.colors.border,
+    },
     headerTitle: {
         fontFamily: Theme.fonts.serif,
         fontSize: 20,
         color: '#FFF',
-        marginLeft: 16,
     },
     list: {
         padding: Theme.spacing.lg,

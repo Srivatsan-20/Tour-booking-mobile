@@ -66,6 +66,28 @@ public sealed class CustomerController : ControllerBase
         return Ok(BuildResponse(customer));
     }
 
+    [HttpDelete("account")]
+    [Authorize(Policy = "CustomerOnly")]
+    public async Task<IActionResult> DeleteAccount(CancellationToken ct)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == null) return Unauthorized();
+
+        var customer = await _db.CustomerUsers.FirstOrDefaultAsync(c => c.Id == customerId, ct);
+        if (customer == null) return NotFound("Account not found.");
+
+        var agreements = await _db.Agreements.Where(a => a.CustomerUserId == customerId).ToListAsync(ct);
+        foreach (var a in agreements)
+        {
+            a.CustomerUserId = null;
+        }
+
+        _db.CustomerUsers.Remove(customer);
+        await _db.SaveChangesAsync(ct);
+
+        return Ok(new { message = "Account successfully deleted." });
+    }
+
     // ─── My Bookings ───────────────────────────────────────────────────────────
 
     [HttpGet("my-bookings")]

@@ -23,4 +23,5 @@ export interface CustomerAuthResponse {
 export const customerAuthApi = {
     login: (data: CustomerLoginDto) => api.post<CustomerAuthResponse>('/api/customer/login', data),
     register: (data: CustomerRegisterDto) => api.post<CustomerAuthResponse>('/api/customer/register', data),
+    deleteAccount: () => api.delete('/api/customer/account'),
 };

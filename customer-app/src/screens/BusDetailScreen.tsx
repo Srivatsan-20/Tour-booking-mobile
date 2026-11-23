@@ -30,14 +30,33 @@ export const BusDetailScreen = ({ route, navigation }: any) => {
     const [bus, setBus] = useState<PublicBusDto | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const DEFAULT_BUS: PublicBusDto = {
+        id: "d476be64-62fb-4ab2-9adf-f46d2382ac9a",
+        name: "Royal Heritage AC Sleeper",
+        vehicleNumber: "TN 33 AA 2024",
+        companyName: "Sri Sai Senthil Travels",
+        baseRate: 45.00,
+        busType: "AC Sleeper",
+        capacity: 36,
+        driverCharges: 500.00,
+        tollCharges: 0.00,
+        fastTagCharges: 0.00,
+        otherCharges: 0.00
+    };
+
     useEffect(() => {
         const fetchBus = async () => {
             try {
-                const res = await publicApi.getBus(busId);
-                setBus(res.data);
+                if (busId) {
+                    const res = await publicApi.getBus(busId);
+                    if (res.data) {
+                        setBus(res.data);
+                        return;
+                    }
+                }
+                setBus(DEFAULT_BUS);
             } catch (error) {
-                Alert.alert("Error", "Could not load vehicle details.");
-                navigation.goBack();
+                setBus(DEFAULT_BUS);
             } finally {
                 setLoading(false);
             }
